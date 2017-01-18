@@ -1,4 +1,4 @@
-function [VS,RS,P] = vectorstrength(Spks,ISI)
+function [VS,RS,P] = vectorstrength_jdy(Spks,ISI)
 
 % Vector Strength is a measure of the degree of phase-locking or
 % synchronization. (Computed over entire stimulus interval, including rise

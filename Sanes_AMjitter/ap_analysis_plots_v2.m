@@ -1,4 +1,4 @@
-function ap_analysis_plots_v2(subject,session,channel,clu,PLOT_TYPE,raster)
+function ap_analysis_plots_v2(subject,session,channel,clu,METRIC,PLOT_TYPE,raster)
 % Plots various response measures for each stimulus, as defined in input
 % variable PLOT_TYPE. Current options are FR and FF, as bar plots only.
 % CV = std / mean;
@@ -14,7 +14,7 @@ function ap_analysis_plots_v2(subject,session,channel,clu,PLOT_TYPE,raster)
 set(0,'DefaultAxesFontSize',10)
 set(0,'DefaultTextInterpreter','none')
 
-if nargin<6
+if nargin<7 || ~exist('raster','var')
     savedir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
     savename = sprintf('%s_sess-%s_raster_ch%i_clu%i',subject,session,channel,clu);
     load(fullfile(savedir,subject,savename))
@@ -59,12 +59,6 @@ for ib = blocks
         bk_str = num2str(ib);
     end
     
-    % Convert behavioral state to integer
-%     Beh = nan(size(bk_raster));
-%     Beh(strcmp({bk_raster.behaving},'P')) = 0;
-%     Beh(strcmp({bk_raster.behaving},'A')) = 1;
-%     Beh(strcmp({bk_raster.behaving},'D')) = 2;
-    
     % Find unique stimuli based on other parameters
     [LP_HP_dB_rate,~,np] = unique([bk_raster.HP; bk_raster.LP; bk_raster.dB; bk_raster.AMrate]','rows');
     
@@ -81,14 +75,30 @@ for ip = 1:max(np)
 
     % Go through by increasing AMdepth
     for id = 1:max(ndpth)
+        if id==1, continue, end
+        % Collapse data across blocks, if params repeated
+        stim = collapse_identical_blocks(param_raster(ndpth==id));
+        
+        % Plot subplot
         subplot(1,max(ndpth),id)
         hold on
+        switch METRIC
+            case 'FR'
+                [data_mean,data_std,data_trs] = calc_FR(stim);
+            case 'FF'
+                [data_mean,data_std] = calc_FF(stim,binsize);
+                data_trs = nan;
+            case 'FFpd'
+                [data_mean] = calc_FF_periods(stim,subject);
+                data_std = nan; data_trs = nan;
+        end
         
         switch PLOT_TYPE
-            case 'FR'
-                plot_subplot_FR(param_raster(ndpth==id),baselineFR)
-            case 'FF'
-                plot_subplot_FF(param_raster(ndpth==id),binsize)
+            case 'bar'
+                subplot_bar(stim,data_mean,data_std,data_trs,baselineFR);
+            case 'matrix'
+                imagesc(data_mean)
+                colorbar
         end
         
     end
@@ -129,7 +139,7 @@ for ip = 1:max(np)
                 subject,session,binsize,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
     end
     
-    print(hF,'-depsc',fullfile(an_dir,savename))
+%     print(hF,'-depsc',fullfile(an_dir,savename))
 
 
 end
@@ -141,95 +151,236 @@ end
 
 
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-%        SUBPLOTS FOR DIFFERENT ANALYSES
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-function plot_subplot_FR(raster,baselineFR)
+function stim = collapse_identical_blocks(raster)
 
-% Set labels
-if raster(1).AMdepth==0
-    jitter_labels = repmat({'unmodulated'},1,numel(raster));
-else
-    jitter_labels = [raster.jitter];
+% Combine actual data across blocks
+drinking = strcmp({raster.behaving},'D');
+[unq,~,iu] = unique([[raster.fileIDs]; drinking]','rows');
+for iiu = 1:max(iu)
+    
+    rs = find([raster.fileIDs]==unq(iiu,1) & drinking==unq(iiu,2));
+    
+    x=[]; y=0; bk=[]; 
+    for irs = rs
+        x = [x raster(irs).x];
+        y = [y raster(irs).y + max(y)*ones(size(raster(irs).y))];
+        bk = [bk raster(irs).block];
+    end
+    y(1)=[];
+    
+    stim(iiu) = raster(rs(1));
+    stim(iiu).block = bk;
+    stim(iiu).x = x; 
+    stim(iiu).y = y;
+    
+end
 end
 
-% Get behaving datapoints
-drinking = find(strcmp({raster.behaving},'D'));
-behaving = find(strcmp({raster.behaving},'A'));
-if ~isempty(drinking)
-%     keyboard
-end
-
-jitters = str2double(strtok([raster.jitter],'_'));
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-%%
+function [FRvec,FRstd,FRtr] = calc_FR(stim)
+
 % Get FR and std of FR for error bars
-FRvec = [raster.nSpk];
-FRstd = nan(1,numel(raster)); FRtr=struct();
-for ir = 1:numel(raster)
-    x = raster(ir).x;
-    y = raster(ir).y;
+FRvec = nan(1,numel(stim)); FRstd = nan(1,numel(stim)); FRtr=struct();
+for ir = 1:numel(stim)
+    x = stim(ir).x;
+    y = stim(ir).y;
     FR_t = nan(1,max(y));
     for it = 1:max(y)
-        FR_t(it) = numel(x(x(y==it) > raster(ir).AMonset & x(y==it) < raster(ir).stimDur)) / ((raster(ir).stimDur-raster(ir).AMonset)/1000);
+        FR_t(it) = numel(x(x(y==it) > stim(ir).AMonset & x(y==it) < stim(ir).stimDur)) / ((stim(ir).stimDur-stim(ir).AMonset)/1000);
     end
     FRtr(ir).tr = FR_t;
+    FRvec(ir) = mean(FR_t,'omitnan');
     FRstd(ir) = std(FR_t,'omitnan');
 end
-%%
 
-% Set up vectors for creating bar plots
-nj_max = sum(jitters==mode(jitters));
-xbarvec = nan( 1,numel(unique(jitters))*nj_max);
-ybarvec = nan( 1,numel(unique(jitters))*nj_max);
-ebarvec = nan( 1,numel(unique(jitters))*nj_max);
-xbarlab = cell(1,numel(unique(jitters))*nj_max);
-barcols = copper(numel(unique(jitters)));
+end
 
-ii=1-nj_max;
-ic=0;
-for ij = unique(jitters)
-    ii=ii+nj_max; ic=ic+1;
-    nj = sum(jitters==ij);
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+function [FFmean,FFstd] = calc_FF(stim,binsize)
+
+% Find minimum number of trials for each stimulus
+ntc=nan(numel(stim),1);
+for is = 1:numel(stim)
+    ntc(is) = max(stim(is).y);
+end
+min_nt = min(ntc);
+% min_nt = 5;
+
+iterations = 200;  rng('shuffle');
+
+% Set up empty vectors and get FF data
+FF     = nan(numel(stim),iterations);
+
+for ii = 1:iterations
+for is = 1:numel(stim)
     
-    xbarvec(ii:ii+nj_max-1) = ij;
+    data = stim(is);
     
-    if nj<nj_max
-        ii1=ii+nj_max-nj-1;
-        ybarvec(ii1:ii1+nj-1) = FRvec(jitters==ij);
-        ebarvec(ii1:ii1+nj-1) = FRstd(jitters==ij);
-        xbarlab(ii1:ii1+nj-1) = deal({jitter_labels{jitters==ij}});
+    if binsize==0
+        tVec = [data.AMonset data.stimDur];
+    else
+        tVec = data.AMonset : binsize : data.stimDur;
+    end
+    
+    trs = 1:max(data.y); 
+    trs(randi(max(data.y),[max(trs)-min_nt 1])) = []; %remove random trials
+    sp_hist = nan(min_nt,length(tVec)-1);
+    
+    ir = 0;
+    for it = trs
+        ir=ir+1;
         
-        trFRs = {FRtr(jitters==ij).tr};
-        ispc=0;
-        for isp=ii1:ii1+nj-1
-            ispc=ispc+1;
-            plot(repmat(isp,size(trFRs{ispc})), trFRs{ispc}, 'o', 'Color', barcols(ic,:),'MarkerSize',8)
-        end
-        
-    elseif nj==nj_max
-        ybarvec(ii:ii+nj_max-1) = FRvec(jitters==ij);
-        ebarvec(ii:ii+nj_max-1) = FRstd(jitters==ij);
-        xbarlab(ii:ii+nj_max-1) = deal({jitter_labels{jitters==ij}});
-        
-        trFRs = {FRtr(jitters==ij).tr};
-        ispc=0;
-        for isp=ii:ii+nj_max-1
-            ispc=ispc+1;
-            plot(repmat(isp,size(trFRs{ispc})), trFRs{ispc}, 'o', 'Color', barcols(ic,:),'MarkerSize',8)
-        end
+        sp = data.x(data.y==it);
+        sp_hist(ir,:) = histcounts(sp,tVec);
         
     end
     
-    % Plot this jitter group
-    b=bar(ii:ii+nj_max-1, ybarvec(ii:ii+nj_max-1), 'BaseValue',baselineFR, 'FaceColor', barcols(ic,:));
-    if ij==0
+    % Calculate means and variances for time bins
+    tr_var  = var(sp_hist,1);
+    tr_mean = mean(sp_hist,1);
+    
+    % Calculate Fano Factor for this stimulus
+    FF(is,ii) = mean(tr_var(tr_mean~=0) ./ tr_mean(tr_mean~=0));
+
+end
+end
+
+FFmean = mean(FF,2);
+FFstd = std(FF,1,2)/sqrt(iterations);
+
+end
+
+
+function [FFmean] = calc_FF_periods(stim,subject)
+
+% Set stimulus file directory
+blocks = stim.block;
+stimdir = fullfile('/Users/kpenikis/Documents/SanesLab/Data/raw_data',subject,sprintf('Block-%i_Stim',blocks(1)));
+rV = load(fullfile(stimdir,stim(1).stimfn));
+
+% Find minimum number of trials for each stimulus
+ntc=nan(numel(stim),1);
+for is = 1:numel(stim)
+    ntc(is) = max(stim(is).y);
+end
+min_nt = min(ntc);
+% min_nt = 5;
+
+iterations = 200;  rng('shuffle');
+
+% Set up empty vectors and get FF data
+FF = nan( numel(stim), length(rV.buffer)-1, iterations );
+
+for is = 1:numel(stim)
+    
+    data = stim(is);
+    
+    % Get vectors of rates for this stimulus
+    rateVec = load(fullfile(stimdir,data.stimfn));
+    rateVec = rateVec.buffer;
+    tVec = round(data.AMonset + cumsum([0 0.75*(1000/rateVec(2)) 1000./rateVec(3:end)]));
+    
+for ii = 1:iterations
+    
+    trs = 1:max(data.y); 
+    trs(randi(max(data.y),[max(trs)-min_nt 1])) = []; %remove random trials
+    sp_hist = nan(min_nt,length(tVec)-1);
+    
+    ir = 0;
+    for it = trs
+        ir=ir+1;
+        
+        sp = data.x(data.y==it);
+        sp_hist(ir,:) = histcounts(sp,tVec);
+        
+    end
+    
+    % Calculate means and variances for time bins
+    tr_var  = var(sp_hist,1);
+    tr_mean = mean(sp_hist,1);
+    
+    % Calculate Fano Factor for this stimulus
+    FF(is,:,ii) = tr_var(tr_mean~=0) ./ tr_mean(tr_mean~=0);
+
+end
+end
+
+FFmean = mean(FF,3);
+FFstd  = std(FF,1,3)/sqrt(iterations);
+
+end
+
+
+
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%        SUBPLOTS 
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+function subplot_bar(stim,data_mean,data_std,data_trs,baselineFR)
+
+
+% Set labels
+if stim(1).AMdepth==0
+    jitter_labels = repmat({'unmodulated'},1,numel(stim));
+else
+    jitter_labels = [stim.jitter];
+end
+jitters = str2double(strtok([stim.jitter],'_'));
+
+% Get behaving datapoints
+drinking = strcmp({stim.behaving},'D');
+behaving = strcmp({stim.behaving},'A');
+
+% Set up vectors for creating bar plots
+xbarvec = nan( 1,numel(stim));
+ybarvec = nan( 1,numel(stim));
+ebarvec = nan( 1,numel(stim));
+xbarlab = cell(1,numel(stim));
+barcols = copper(numel(stim)); %numel(unique(jitters)) because of drinking
+
+ic=0;
+for ii = 1:numel(stim)
+    ic=ic+1;
+    
+    % Get data to plot
+    xbarvec(ii) = jitters(ii);
+    ybarvec(ii) = data_mean(ii);
+    ebarvec(ii) = data_std(ii);
+    xbarlab(ii) = deal({jitter_labels{ii}});
+    
+    % Plot some things only if this is a FR plot
+    if ~isnan(data_trs) 
+        b=bar(ii, ybarvec(ii), 'BaseValue', baselineFR, 'FaceColor', barcols(ic,:));
+        
+        % Plot FR from individual trials
+        trFRs = data_trs(ii).tr;
+        plot(repmat(ii,size(trFRs)), trFRs, 'o', 'Color', barcols(ic,:),'MarkerSize',8)
+        
+    else
+        b=bar(ii, ybarvec(ii), 'FaceColor', barcols(ic,:));
+    end
+    
+    if jitters(ii)==0
         b.EdgeColor = 'blue';
         b.LineWidth = 2;
     end
-    errorbar(ii:ii+nj_max-1, ybarvec(ii:ii+nj_max-1), ebarvec(ii:ii+nj_max-1),...
+    if drinking(ii)==1
+        b.FaceAlpha = 0.2;
+        b.EdgeColor = barcols(ic,:);
+        b.LineWidth = 2;
+    elseif behaving(ii)==1
+        b.FaceAlpha = 0.5;
+        b.EdgeColor = 'r';
+        b.LineWidth = 1;
+    end
+    errorbar(ii, ybarvec(ii), ebarvec(ii),...
         'LineStyle','none', 'Color',[0 0 0] , 'LineWidth',1 )
     
 end
@@ -240,7 +391,7 @@ mean_j0FR = mean(ybarvec(xbarvec==0),'omitnan');
 set(gca,'xtick',1:length(xbarvec),'xticklabel',xbarlab,'TickLabelInterpreter', 'none','XTickLabelRotation',45)
 plot([0 length(xbarvec)+1],[mean_j0FR mean_j0FR],'--b')
 set(gca,'xlim',[0 length(xbarvec)+1])
-title([num2str(raster(1).AMdepth*100) '% depth'])
+title([num2str(stim(1).AMdepth*100) '% depth'])
 hAllAxes = findobj(gcf,'type','axes');
 if numel(hAllAxes)==1
     ylabel('avg FR during AM (Hz)')
@@ -256,6 +407,14 @@ end % function
 
 function plot_subplot_FF(raster,binsize)
 
+% Set labels
+if raster(1).AMdepth==0
+    jitter_labels = repmat({'unmodulated'},1,numel(raster));
+else
+    jitter_labels = [raster.jitter];
+end
+jitters = str2double(strtok([raster.jitter],'_'));
+nj_max = sum(jitters==mode(jitters));
 
 % Get behaving datapoints
 drinking = find(strcmp({raster.behaving},'D'));
@@ -286,7 +445,11 @@ for ii = 1:numel(raster)
     
     data = raster(ii);
     
-    tVec = data.AMonset : binsize : data.stimDur;
+    if binsize==0
+        tVec = [data.AMonset data.stimDur];
+    else
+        tVec = data.AMonset : binsize : data.stimDur;
+    end
     
     trs = 1:max(data.y); 
     trs(randi(max(data.y),[max(trs)-ent 1])) = []; %remove random trials
@@ -314,15 +477,6 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%
 % Now prepare the plot 
-
-% Set labels
-if raster(1).AMdepth==0
-    jitter_labels = repmat({'unmodulated'},1,numel(raster));
-else
-    jitter_labels = [raster.jitter];
-end
-jitters = str2double(strtok([raster.jitter],'_'));
-nj_max = sum(jitters==mode(jitters));
 
 % Set up vectors for creating bar plots
 xbarvec = nan( 1,numel(unique(jitters))*nj_max);
@@ -366,7 +520,7 @@ set(gca,'xtick',1:length(xbarvec),'xticklabel',xbarlab,'TickLabelInterpreter', '
 plot([0 length(xbarvec)+1],[mean_j0FF mean_j0FF],'--b')
 plot([0 length(xbarvec)+1],[1 1],'--k')
 set(gca,'xlim',[0 length(xbarvec)+1])
-title([num2str(data(1).AMdepth*100) '% depth'])
+title([num2str(data(1).AMdepth*100) '% depth' ])
 hAllAxes = findobj(gcf,'type','axes');
 if numel(hAllAxes)==1
     ylabel('avg Fano Factor across time during AM')
