@@ -7,7 +7,7 @@ function dp = RunTemplateMatching(go,nogo,Iterations)
 mxgT		=	length(go);
 mxnT		=	length(nogo);
 
-for i=1:Iterations
+for ii=1:Iterations
 	
 	%---Get GO Template---%
 	Gidx		=	randi(mxgT);		%Randomly select a go trial for Go template%
@@ -62,7 +62,7 @@ for i=1:Iterations
 	end
 	Prob2		=	nansum(Nn)/length(Nn);
 		
-	if( i == 1 )
+	if( ii == 1 )
 		MN		=	Prob;
 		NN		=	Prob2;
 	else

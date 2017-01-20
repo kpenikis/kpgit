@@ -23,17 +23,15 @@ for is = 1:numel(stim)
     for ipd = 1:numel(tVec)-1
         AMpdms = (tVec(ipd+1)-tVec(ipd));
         
-        allsp=[];
+        Spks=[];
         for it = trs
             sp=[];
             sp = data.x(data.y==it);
-            allsp = [allsp sp(sp>=tVec(ipd) & sp<=(tVec(ipd+1)))];
+            Spks = [Spks ( sp( sp>=tVec(ipd) & sp<=(tVec(ipd+1)) ) -tVec(ipd)) + ((it-1)*AMpdms)  ];
         end
         
-        Spks = allsp - tVec(ipd);
-        
         % for this period, call -vectorstrength-
-        [VS(is,ipd)] = vectorstrength(Spks,AMpdms);
+        [VS(is,ipd),RS(is,ipd)] = vectorstrength(Spks,AMpdms,max(trs));
         
     end    
     

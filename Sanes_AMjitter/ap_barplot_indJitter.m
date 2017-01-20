@@ -4,12 +4,6 @@ function ap_barplot_indJitter(subject,session,channel,clu,METRIC,raster)
 % CV = std / mean;
 % FF = var / mean;
 
-% TO DO:
-%  mark drinking/active datapoints with different color
-%  option for barplots or psychometric function
-%  combine actual data across blocks
-%  make even more modular, by measure type and plot type
-
 
 set(0,'DefaultAxesFontSize',10)
 set(0,'DefaultTextInterpreter','none')
@@ -27,7 +21,7 @@ end
 % Extra param to set for Fano Factor analysis
 binsize = 250;
 
-% Find stimuli with more than 8 trials
+% Remove stimuli with fewer than 8 trials
 raster = raster(cellfun(@length,{raster.tr_idx}) > 8);
 
 
@@ -92,9 +86,16 @@ for ib = blocks
                 case 'RS'
                     data_mean = calc_RS(stim,subject);
                     data_std = nan(length(data_mean),2); data_trs = nan;
+                case 'standardFR'
+                    [data_mean,data_std,data_trs] = calc_standardFR(stim,subject);
             end
             pause(0.2)
             subplot_bar(stim,data_mean,data_std,data_trs,baselineFR,METRIC);
+            %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            %%%
+            %%% for LC -- some issue with collapsing data across blocks
+            %%%
+            %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             pause(0.2)
         end
         
@@ -134,15 +135,19 @@ for ib = blocks
                 savename = sprintf('%s_%s_FanoFactor_bin%i_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
                     subject,session,binsize,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
             case 'VS'
-                savename = sprintf('%s_%s_VS_bin%i_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
-                    subject,session,binsize,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
+                savename = sprintf('%s_%s_VS_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
+                    subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
             case 'RS'
-                savename = sprintf('%s_%s_Rayleigh_bin%i_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
-                    subject,session,binsize,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
+                savename = sprintf('%s_%s_Rayleigh_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
+                    subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
+            case 'standardFR'
+                savename = sprintf('%s_%s_standardFR_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
+                    subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
         end
         
-        print(hF,'-depsc',fullfile(an_dir,savename))
-        
+        set(gcf,'PaperOrientation','landscape');
+        print(hF,'-dpdf',fullfile(an_dir,savename),'-bestfit')
+%         print(hF,'-depsc',fullfile(an_dir,savename))
         
     end
 end
@@ -253,6 +258,8 @@ if numel(hAllAxes)==1
             ylabel('avg Vector Strength')
         case 'RS'
             ylabel('avg Rayleigh Statistic')
+        case 'standardFR'
+            ylabel('avg FR during standard period')
     end
 else
     set(gca,'YTickLabel',[])

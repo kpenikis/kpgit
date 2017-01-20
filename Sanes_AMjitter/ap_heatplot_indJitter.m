@@ -4,13 +4,6 @@ function ap_heatplot_indJitter(subject,session,channel,clu,METRIC,raster)
 % CV = std / mean;
 % FF = var / mean;
 
-% TO DO:
-%  mark drinking/active datapoints with different color
-%  option for barplots or psychometric function
-%  combine actual data across blocks
-%  make even more modular, by measure type and plot type
-
-
 set(0,'DefaultAxesFontSize',10)
 set(0,'DefaultTextInterpreter','none')
 
@@ -23,7 +16,7 @@ if nargin<6 || ~exist('raster','var')
 end
 
 
-% Find stimuli with more than 8 trials
+% Remove stimuli with fewer than 8 trials
 raster = raster(cellfun(@length,{raster.tr_idx}) > 8);
 
 % Extra params to set, for Fano Factor analysis
@@ -82,19 +75,14 @@ for ip = 1:max(np)
         hold on
         
         switch METRIC
-%             case 'FR'
-%                 [data_mean,data_std,data_trs] = calc_FR(stim);
-%             case 'FF'
-%                 [data_mean,data_std] = calc_FF(stim,binsize);
-%                 data_trs = nan;
-            case 'FFpd'
-                [data_mean,data] = calc_FF_periods(stim,subject);
+            case 'FF'
+                [data] = calc_FF_periods(stim,subject);
                 data_std = nan; data_trs = nan;
             case 'VS'
-                [data_mean,data] = calc_VS(stim,subject);
+                [~,data] = calc_VS(stim,subject);
 %                 data_std = nan(length(data_mean),2); data_trs = nan;
             case 'RS'
-                [data_mean,data] = calc_RS(stim,subject);
+                [~,data] = calc_RS(stim,subject);
 %                 data_std = nan(length(data_mean),2); data_trs = nan;
         end
         
@@ -108,11 +96,11 @@ for ip = 1:max(np)
     % Set COLOR axis limits to be same for all subplots
     switch METRIC
         case 'RS'
-            cmax = 150;
+            cmax = 25;
         case 'VS'
             cmax = 1;
         case 'FF'
-            cmax = 3;
+            cmax = 2;
     end
     hAllAxes = findobj(hF,'type','axes');
     set(hAllAxes,'CLim',[0 cmax])
@@ -132,21 +120,30 @@ for ip = 1:max(np)
     suptitle(title_str);
     
     
-%     % Save figure
-%     an_dir = fullfile(savedir,subject,'^an_plots',session);
-%     if ~exist(an_dir,'dir')
-%         mkdir(an_dir)
-%     end
-%     
-%     switch METRIC
+    % Save figure
+    an_dir = fullfile(savedir,subject,'^an_plots',session);
+    if ~exist(an_dir,'dir')
+        mkdir(an_dir)
+    end
+    
+    switch METRIC
 %         case 'FR'
+%             keyboard
 %             savename = sprintf('%s_%s_FRresp_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
 %                 subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
-%         case 'FF'
-%             savename = sprintf('%s_%s_FanoFactor_bin%i_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
-%                 subject,session,binsize,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
-%     end
+        case 'FF'
+            savename = sprintf('%s_%s_FFpd_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
+                subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
+        case 'VS'
+            savename = sprintf('%s_%s_VSpd_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
+                subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
+        case 'RS'
+            savename = sprintf('%s_%s_RSpd_ch%i_clu%i_AM%sHz_%sdpth_%sdB_%s-%s_blk%s',...
+                subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
+    end
     
+    set(gcf,'PaperOrientation','landscape');
+    print(hF,'-dpdf',fullfile(an_dir,savename),'-bestfit')
 %     print(hF,'-depsc',fullfile(an_dir,savename))
 
 

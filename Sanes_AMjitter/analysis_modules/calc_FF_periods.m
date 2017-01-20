@@ -1,7 +1,7 @@
 
 function [FFmean] = calc_FF_periods(stim,subject)
 
-% Set stimulus file directory
+% Set stimulus file directory and load rate vectors
 blocks = stim.block;
 stimdir = fullfile('/Users/kpenikis/Documents/SanesLab/Data/raw_data',subject,sprintf('Block-%i_Stim',blocks(1)));
 rV = load(fullfile(stimdir,stim(1).stimfn));
@@ -48,7 +48,12 @@ for ii = 1:iterations
     tr_mean = mean(sp_hist,1);
     
     % Calculate Fano Factor for this stimulus
-    FF(is,:,ii) = tr_var(tr_mean~=0) ./ tr_mean(tr_mean~=0);
+    try
+        tr_var(tr_mean==0) = nan; tr_mean(tr_mean==0) = nan;
+        FF(is,:,ii) = tr_var(tr_mean~=0) ./ tr_mean(tr_mean~=0);
+    catch
+        keyboard
+    end
 
 end
 end

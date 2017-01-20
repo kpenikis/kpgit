@@ -8,10 +8,16 @@ function stim = collapse_blocks(raster)
 drinking = strcmp({raster.behaving},'D');
 behaving = strcmp({raster.behaving},'A');
 
-[unq,~,iu] = unique([[raster.fileIDs]; drinking; behaving]','rows');
+[usfn,~,isfn] = unique({raster.stimfn});
+[unq,~,iu] = unique([isfn'; drinking; behaving]','rows');
+
+if numel(raster)==max(iu)
+    stim=raster; return
+end
+
 for iiu = 1:max(iu)
-    
-    rs = find([raster.fileIDs]==unq(iiu,1) & drinking==unq(iiu,2) & behaving==unq(iiu,3));
+    rs = find(strcmp({raster.stimfn},usfn(isfn(unq(iiu,1)))) & drinking==unq(iiu,2) & behaving==unq(iiu,3));
+%     rs = find([raster.fileIDs]==unq(iiu,1) & drinking==unq(iiu,2) & behaving==unq(iiu,3));
     
     x=[]; y=0; bk=[]; 
     for irs = rs
