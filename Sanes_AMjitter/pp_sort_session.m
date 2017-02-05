@@ -35,7 +35,7 @@ addpath('helpers');
 
 % Load data structures
 
-datadir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
+datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 fprintf('\nloading data...\n')
 filename = sprintf('%s_sess-%s_Phys',subject,session);
 load(fullfile(datadir,subject,filename));
@@ -43,7 +43,7 @@ filename = sprintf('%s_sess-%s_Info',subject,session);
 load(fullfile(datadir,subject,filename));
 fs = Info.fs;
 
-savedir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
+savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 
 
 

@@ -29,7 +29,7 @@ ymaxval = 200;
 
 % Load data files
 
-datadir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
+datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 fprintf('loading data...\n')
 filename = sprintf( '%s_sess-%s_Spikes',subject,session); load(fullfile(datadir,subject,filename));
 filename = sprintf( '%s_sess-%s_Info'  ,subject,session); load(fullfile(datadir,subject,filename));
@@ -37,17 +37,16 @@ filename = sprintf( '%s_sess-%s_Stim'  ,subject,session); load(fullfile(datadir,
 
 
 % Manually select which flagged trials contain disruptive artifact
-
 if ~any(strcmp(fieldnames(Info.artifact_trs),'manual'))
     addpath('helpers')
+    
     Info = manually_mark_trials(Info,session,Stim);
+    
+    % Re-save Info structure
+    filename = sprintf( '%s_sess-%s_Info',subject,session);
+    save(fullfile(datadir,subject,filename),'Info','-v7.3');
+    
 end
-
-% Re-save Info structure
-filename = sprintf( '%s_sess-%s_Info',subject,session); 
-save(fullfile(datadir,subject,filename),'Info','-v7.3');
-
-
 
 %%
 
@@ -136,6 +135,12 @@ hS = zeros(numel(raster),nSubPlots);
 
 for ks = 1:numel(raster)
     
+%     if ~(raster(ks).block==80 && raster(ks).AMdepth==0.75 && strcmp(raster(ks).jitter,'100_rnd-1'))
+%         continue
+%     else
+%         keyboard
+%     end
+    
     if numel(raster(ks).tr_idx)<3
         continue
     end
@@ -169,16 +174,18 @@ for ks = 1:numel(raster)
     raster(ks).window_ms = [t_beg t_end];
     
     
-    % Get spiketimes for this stim (removing flagged trials)
+    % Get trials for this stim and remove flagged trials
     tr_this_stim = raster(ks).tr_idx;
     
     FLAGGED = [];
     FLAGGED = Info.artifact_trs(channel).manual;
     
+    
     [~,ibt,~] = intersect(tr_this_stim,FLAGGED);
     tr_this_stim(ibt) = [];
     
     
+    % Get spiketimes and create raster
     raster_x=[];  raster_y=[];  hist_raw=zeros(1,nt);
     for it = 1:numel(tr_this_stim)
         
@@ -247,11 +254,11 @@ for ks = 1:numel(raster)
     
     % SAVE FIGURE
     
-    savedir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
+    savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
     if raster_y<6
-        savedirR = fullfile(savedir,subject,'^rasters',session,'tested');
+        savedirR = fullfile(savedir,subject,'^rasters',session,['ch' num2str(channel)],'tested');
     else
-        savedirR = fullfile(savedir,subject,'^rasters',session);
+        savedirR = fullfile(savedir,subject,'^rasters',session,['ch' num2str(channel)]);
     end
     if ~exist(savedirR,'dir')
         mkdir(savedirR)

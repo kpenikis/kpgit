@@ -1,22 +1,23 @@
-function dp = run_classifier(go_mat,ng_mat,Iterations)
+function dp = run_classifier_orig(go_x,go_y,nogo_x,nogo_y,Iterations)
 %---Inputs---%
 %go & nogo = cell matrices of spike times for selected go and nogo trials%
 %Iterations = number of times you want to run the classifier (e.g., 1000x)%
 
 %---Get number of go and nogo trials---%
-mxgT		=	size(go_mat,1);
-mxnT		=	size(ng_mat,1);
+mxgT		=	max(go_y);
+mxnT		=	max(nogo_y);
 
 for ii=1:Iterations
 	
 	%---Get GO Template---%
 	Gidx		=	randi(mxgT);		%Randomly select a go trial for Go template%
-	Gtemplate	=   go_mat(Gidx,:);  
-% 	GtempSR		=	length(Gtemplate);	%Go template spike count%
+	Gtemplate	=	go_x(go_y==Gidx);	
+	GtempSR		=	length(Gtemplate);	%Go template spike count%
 	
 	%---NOGO Template---%
 	Nidx		=	randi(mxnT);	    %Randomly select a go trial for Nogo template%
-	Ntemplate	=	ng_mat(Nidx,:);
+	Ntemplate	=	nogo_x(nogo_y==Nidx);
+	NtempSR		=	length(Ntemplate);  %Nogo template spike count%
 	
 	mn			=	nan(mxgT-1,2);
 	Nn			=	nan(mxnT-1,2);
@@ -26,11 +27,14 @@ for ii=1:Iterations
     gT          =   gT(gT~=Gidx);
 	%---Compare GO Trials with Templates---%
 	for j=1:mxgT-1
-		testT	=	go_mat(gT(j),:);
+		Spks	=	go_x(go_y==gT(j));
+        testSR	=	length(Spks);
 		
 		%---Compare with Templates---%
-        gComp	=	pdist2(testT,Gtemplate);
-        nComp	=	pdist2(testT,Ntemplate);
+% 		gComp_a	=	abs(testSR - GtempSR);
+        gComp	=	pdist2(testSR,GtempSR);
+%         nComp_a	=	abs(testSR - NtempSR);
+        nComp	=	pdist2(testSR,NtempSR);
 		Comp	=	[gComp nComp];
 		mn(j,:)	=	Comp == nanmin(Comp);
 	end
@@ -41,11 +45,14 @@ for ii=1:Iterations
     nT          =   nT(nT~=Nidx);
 	%---Compare NOGO Trials with Templates---%
 	for j=1:mxnT-1
-		testT	=	ng_mat(nT(j),:);
+		Spks	=	nogo_x(nogo_y==nT(j));
+		testSR	=	length(Spks);
 		
 		%---Compare with Templates---%
-        gComp	=	pdist2(testT,Gtemplate);
-        nComp	=	pdist2(testT,Ntemplate);
+% 		gComp_a	=	abs(testSR - GtempSR);
+        gComp	=	pdist2(testSR,GtempSR);
+% 		nComp_a	=	abs(testSR - NtempSR);
+        nComp	=	pdist2(testSR,NtempSR);
 		Comp	=	[gComp nComp];
 		Nn(j,:)	=	Comp == nanmin(Comp);
 	end

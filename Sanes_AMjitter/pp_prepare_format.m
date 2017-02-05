@@ -41,7 +41,13 @@ addpath(genpath(includePath));
 addpath(genpath('/Users/kpenikis/Documents/MATLAB/eeglab13_6_5b/functions/'))
 addpath('helpers')
 
-savedir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
+% Raw data location
+datadirlocal = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
+datadirdrive = '/Volumes/Seagate Backup Plus Drive/RawData';
+
+
+% Saving location
+savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 if ~exist('session_label','var')
     prompt = '\n--> please enter uppercase letters for session label and press enter.';
     session_label = input(prompt,'s');
@@ -72,7 +78,14 @@ for ib=1:numel(BLOCKS)
     % Load this block datafile
     
     block_str = sprintf('Block-%i.mat',BLOCKS(ib));
-    datafile = fullfile('/Users/kpenikis/Documents/SanesLab/Data/raw_data',subject,block_str);
+    datafile = fullfile(datadirlocal,subject,block_str);
+    if ~exist(datafile,'file') %if doesnt exist locally, check for harddrive
+        datafile = fullfile(datadirdrive,subject,block_str);
+        if ~exist(datafile,'file')
+            warning('External hard drive not connected, and file not found locally.')
+            keyboard
+        end
+    end
     fprintf(' loading data file %s...',datafile)
     clear epData;
     load(datafile,'-mat'); %loads data struct: epData

@@ -3,7 +3,7 @@ function [RSmean,RS] = calc_RS(stim,subject)
 
 % Set stimulus file directory
 blocks = stim.block;
-stimdir = fullfile('/Users/kpenikis/Documents/SanesLab/Data/raw_data',subject,sprintf('Block-%i_Stim',blocks(1)));
+stimdir = fullfile('/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData',subject,sprintf('Block-%i_Stim',blocks(1)));
 rV = load(fullfile(stimdir,stim(1).stimfn));
 
 % Set up empty vectors and get VS data

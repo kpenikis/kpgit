@@ -12,11 +12,12 @@ for ii=1:Iterations
 	%---Get GO Template---%
 	Gidx		=	randi(mxgT);		%Randomly select a go trial for Go template%
 	Gtemplate	=   go_mat(Gidx,:);  
-% 	GtempSR		=	length(Gtemplate);	%Go template spike count%
+	GtempSR		=	length(Gtemplate);	%Go template spike count%
 	
 	%---NOGO Template---%
 	Nidx		=	randi(mxnT);	    %Randomly select a go trial for Nogo template%
 	Ntemplate	=	ng_mat(Nidx,:);
+	NtempSR		=	length(Ntemplate);  %Nogo template spike count%
 	
 	mn			=	nan(mxgT-1,2);
 	Nn			=	nan(mxnT-1,2);
@@ -44,8 +45,8 @@ for ii=1:Iterations
 		testT	=	ng_mat(nT(j),:);
 		
 		%---Compare with Templates---%
-        gComp	=	pdist2(testT,Gtemplate);
-        nComp	=	pdist2(testT,Ntemplate);
+        gComp	=	pdist2(testT,GtempSR);
+        nComp	=	pdist2(testT,NtempSR);
 		Comp	=	[gComp nComp];
 		Nn(j,:)	=	Comp == nanmin(Comp);
 	end

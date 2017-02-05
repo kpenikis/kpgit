@@ -16,7 +16,7 @@ addpath(genpath(includePath));
 
 % Load data structures
 
-datadir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
+datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 fprintf('loading data...\n')
 if ~exist('Spikes','var')
     filename = sprintf('%s_sess-%s_Spikes',subject,session);

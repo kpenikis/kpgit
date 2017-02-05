@@ -1,11 +1,13 @@
-function [VS,RS,P] = vectorstrength(Spks,period,ntr)
+function [VS,RS,P] = vectorstrength(Spktime,period,ntr)
 % Vector Strength is a measure of the degree of phase-locking or
 % synchronization. 
 
-NSpk	=	length(Spks)/ntr*1000/period; %this is now the average number of spikes for a 1 s sample
-Spktime	=	Spks;
+NSpk	=	length(Spktime); %/ntr*1000/period
+                                            %need this be normalized across 
+                                            %different period lengths? 
+                                            %ie. the average number of spikes for a 1 s sample
 
-VS1			=	(sqrt((sum(sin(2*pi*(Spktime/period))))^2 + (sum(cos(2*pi*(Spktime/period))))^2)) / length(Spktime);
+VS1			=	(sqrt((sum(sin(2*pi*(Spktime/period))))^2 + (sum(cos(2*pi*(Spktime/period))))^2)) / NSpk;
 
 % S		=	sum(sin(2*pi*(Spktime/ISI)));
 % C		=	sum(cos(2*pi*(Spktime/ISI)));

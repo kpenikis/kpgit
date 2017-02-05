@@ -8,7 +8,7 @@ function stim = collapse_blocks(raster)
 drinking = strcmp({raster.behaving},'D');
 behaving = strcmp({raster.behaving},'A');
 
-[usfn,~,isfn] = unique({raster.stimfn});
+[usfn,~,isfn] = unique({raster.stimfn},'stable');
 [unq,~,iu] = unique([isfn'; drinking; behaving]','rows');
 
 if numel(raster)==max(iu)
@@ -24,6 +24,7 @@ for iiu = 1:max(iu)
         x = [x raster(irs).x];
         y = [y raster(irs).y + max(y)*ones(size(raster(irs).y))];
         bk = [bk raster(irs).block];
+        
     end
     y(1)=[];
     
