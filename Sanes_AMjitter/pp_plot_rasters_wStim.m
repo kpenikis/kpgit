@@ -1,4 +1,4 @@
-function pp_plot_rasters_wStim(subject, session, channel, clu)
+function raster = pp_plot_rasters_wStim(subject, session, channel, clu)
 %
 %  pp_plot_rasters(subject, session, channel, clu)  
 %    Plots a raster and psth for each unique stimulus. Clu is the label
@@ -24,7 +24,7 @@ set(0,'DefaultTextInterpreter','none')
 
 
 %%%
-ymaxval = 200;
+ymaxval = 100;
 %%%
 
 % Load data files
@@ -285,8 +285,8 @@ end
 
 % SAVE RASTER STRUCT
 
-savename = sprintf('%s_sess-%s_raster_ch%i_clu%i',subject,session,channel,clu);
-save(fullfile(savedir,subject,savename),'raster','-v7.3')
+% savename = sprintf('%s_sess-%s_raster_ch%i_clu%i',subject,session,channel,clu);
+% save(fullfile(savedir,subject,savename),'raster','-v7.3')
 
 
 

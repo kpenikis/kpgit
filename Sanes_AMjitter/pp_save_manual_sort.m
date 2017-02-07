@@ -14,7 +14,7 @@ Spikes.sorted(channel)   = spikes;
 Spikes.man_sort(channel) = 1; 
 
 %Save Spikes structure
-savedir  = '/Users/kpenikis/Documents/SanesLab/Data/processed_data';
+savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 fprintf('\nsaving data...\n')
 savename = sprintf('%s_sess-%s_Spikes',subject,session);
 save(fullfile(savedir,subject,savename),'Spikes','-v7.3');

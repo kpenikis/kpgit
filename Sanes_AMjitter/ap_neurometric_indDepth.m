@@ -1,4 +1,12 @@
-function ap_neurometric_indDepth(subject,session,channel,clu,METRIC,merge_blocks,raster)
+function ap_neurometric_indDepth(subject,session,channel,clu,METRIC,merge_blocks)
+% ap_neurometric_indDepth
+%   runs neurometric classifier on spike data
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%
+% IMPORTANT PARAMETER! %
+binsize = 50;
+%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 set(0,'DefaultAxesFontSize',10)
@@ -14,31 +22,24 @@ setLineWidth     = 3;
 % rasterMarkerSize = 18;
 % rasterLineWidth  = 1;
 
-addpath('analysis_modules','helpers')
+addpath(genpath('analysis_modules'),'helpers')
 
-% Load raster struct for this unit
-if nargin<6 || ~exist('raster','var')
-    savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
-    savename = sprintf('%s_sess-%s_raster_ch%i_clu%i',subject,session,channel,clu);
-    load(fullfile(savedir,subject,savename))
-end
 
+% Load raster struct
+raster = get_raster(subject,session,channel,clu);
 
 % Remove stimuli with fewer than 8 trials
 raster = raster(cellfun(@length,{raster.tr_idx}) > 8);
 
-binsize = 50;
 
 if ~merge_blocks
-    % Find blocks and designate which ones to combine
-    blocks = unique([raster.block]);
-    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    group_blocks = [90 89];  %only 2 at a time for now
-    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    for ic = size(group_blocks,1)
-        blocks(blocks==group_blocks(ic,2)) = [];
-    end
+    % Get blocks for loop and designate which ones to combine
+    [blocks,group_blocks] = set_grouped_blocks(unique([raster.block]));
 else
+    % this case if you do want to merge across blocks (i.e. depth
+    % discrimination when blocks of 75% depth and 41% depth are presented
+    % separately). 
+    keyboard
     blocks = 1;
 end
 
@@ -249,6 +250,7 @@ for ip = 1:max(np)
                     subject,session,bin,channel,clu,str_pars{4},str_pars{3},str_pars{1},str_pars{2},bk_str);
         end
         
+        datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
         an_dir = fullfile(savedir,subject,'^an_plots',session,savefolder);
         if ~exist(an_dir,'dir')
             mkdir(an_dir)

@@ -1,5 +1,8 @@
 function runALL_anPlots(subject,session,channel,clu)
 % Plot all response measures for a designated unit.
+
+
+% close all
 % 
 % METRICS = {'FR' 'FF' 'FFpd-avg' 'VS' 'RS' 'standardFR'};
 % for im = 1:numel(METRICS)

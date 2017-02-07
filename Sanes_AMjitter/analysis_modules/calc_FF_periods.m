@@ -58,7 +58,7 @@ for ii = 1:iterations
 end
 end
 
-FFmean = mean(FF,3);
-FFstd  = std(FF,1,3)/sqrt(iterations);
+FFmean = mean(FF,3,'omitnan');
+FFstd  = std(FF,1,3,'omitnan')/sqrt(iterations);
 
 end

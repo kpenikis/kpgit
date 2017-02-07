@@ -1,44 +1,31 @@
-function ap_barplot_indJitter(subject,session,channel,clu,METRIC,raster)
-% Plots various response measures for each stimulus, as defined in input
-% variable PLOT_TYPE. Current options are FR and FF, as bar plots only.
-% CV = std / mean;
-% FF = var / mean;
+function ap_barplot_indJitter(subject,session,channel,clu,METRIC)
+% Calculates various response measures for each stimulus, as defined in input
+% variable METRIC, and plots the results as bar plots.
+
+%  (FF = var / mean)
 
 
 set(0,'DefaultAxesFontSize',10)
 set(0,'DefaultTextInterpreter','none')
 
-addpath('analysis_modules','helpers')
+addpath(genpath('analysis_modules'),'helpers')
 
-if nargin<6 || ~exist('raster','var')
-    savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
-    savename = sprintf('%s_sess-%s_raster_ch%i_clu%i',subject,session,channel,clu);
-    load(fullfile(savedir,subject,savename))
-end
-
-
-
-% Extra param to set for Fano Factor analysis
-binsize = 250;
+% Load raster struct
+raster = get_raster(subject,session,channel,clu);
 
 % Remove stimuli with fewer than 8 trials
 raster = raster(cellfun(@length,{raster.tr_idx}) > 8);
 
 
-% Find blocks and designate which ones to combine
-blocks = unique([raster.block]);
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-group_blocks = [90 89];  %only 2 at a time for now
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-for ic = size(group_blocks,1)
-    blocks(blocks==group_blocks(ic,2)) = [];
-end
+% Get blocks for loop and designate which ones to combine
+[blocks,group_blocks] = set_grouped_blocks(unique([raster.block]));
+
+% Extra param to set for Fano Factor analysis
+binsize = 250;
 
 % Make separate figures for each param except jitter and depth
 for ib = blocks
-    if ib==89
-        keyboard
-    end
+    
     % Get data for these blocks
     bk_raster = raster([raster.block]==ib);
     
@@ -158,7 +145,8 @@ for ib = blocks
                     subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
         end
         
-        an_dir = fullfile(savedir,subject,'^an_plots',session,savefolder);
+        datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
+        an_dir = fullfile(datadir,subject,'^an_plots',session,savefolder);
         if ~exist(an_dir,'dir')
             mkdir(an_dir)
         end

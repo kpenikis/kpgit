@@ -1,37 +1,28 @@
-function ap_heatplot_indJitter(subject,session,channel,clu,METRIC,raster)
+function ap_heatplot_indJitter(subject,session,channel,clu,METRIC)
 % Plots various response measures for each stimulus, as defined in input
-% variable PLOT_TYPE. Current options are FR and FF, as bar plots only.
-% CV = std / mean;
-% FF = var / mean;
+% variable METRIC. Calculates response for each AM period separately, and
+% plots as a heat plot.
+
 
 set(0,'DefaultAxesFontSize',10)
 set(0,'DefaultTextInterpreter','none')
 
-addpath('analysis_modules','helpers')
+addpath(genpath('analysis_modules'),'helpers')
 
-if nargin<6 || ~exist('raster','var')
-    savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
-    savename = sprintf('%s_sess-%s_raster_ch%i_clu%i',subject,session,channel,clu);
-    load(fullfile(savedir,subject,savename))
-end
 
+% Load raster struct
+raster = get_raster(subject,session,channel,clu);
 
 % Remove stimuli with fewer than 8 trials
 raster = raster(cellfun(@length,{raster.tr_idx}) > 8);
 
+
+% Get blocks for loop and designate which ones to combine
+[blocks,group_blocks] = set_grouped_blocks(unique([raster.block]));
+
+
 % Extra params to set, for Fano Factor analysis
 binsize = 250;
-
-
-% Find blocks and designate which ones to combine
-blocks = unique([raster.block]);
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-group_blocks = [90 89];  %only 2 at a time for now      %make a function containing list of blocks to merge
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-for ic = size(group_blocks,1)
-    blocks(blocks==group_blocks(ic,2)) = [];
-end
-
 
 % Make separate figures for each param except jitter and depth
 for ib = blocks
@@ -64,7 +55,7 @@ for ip = 1:max(np)
     
     plot_data=[];
     % Go through by increasing AMdepth
-    for id = 1:max(ndpth)
+    for id = max(ndpth):-1:1
         
         % Collapse data across blocks, if params repeated
         stim = collapse_blocks(param_raster(ndpth==id));
@@ -151,6 +142,7 @@ for ip = 1:max(np)
                 subject,session,channel,clu,str_pars{4},str_dpth,str_pars{3},str_pars{1},str_pars{2},bk_str);
     end
     
+    datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
     an_dir = fullfile(savedir,subject,'^an_plots',session,savefolder);
     if ~exist(an_dir,'dir')
         mkdir(an_dir)
@@ -186,10 +178,10 @@ switch METRIC
         b3 = 1.2;
         b4 = 1.6;
     case 'VS'
-        b1 = 0.2;
-        b2 = 0.4;
-        b3 = 0.6;
-        b4 = 0.8;
+        b1 = 0.15;
+        b2 = 0.3;
+        b3 = 0.45;
+        b4 = 0.6;
     case 'RS'
         b1 = 6.9;
         b2 = 13.8;
@@ -203,11 +195,16 @@ C(data>=b3 & data<b4)  = 4;
 C(data>=b4)            = 5;
 
 % Create color map
-map = [ 0.4  0.8  1     ;...
-        0.48 0.7  0.8   ;...
-        0.58 0.58 0.58  ;...
-        0.63 0.5  0.4   ;...
-        0.7  0.4 0.2   ];
+% map = [ 0.4  0.8  1     ;...
+%         0.48 0.7  0.8   ;...
+%         0.58 0.58 0.58  ;...
+%         0.63 0.5  0.4   ;...
+%         0.7  0.4 0.2   ];
+map = [ 0.7  0.4  0.2  ;...
+        0.85 0.7  0.6  ;...
+        0.9  0.9  0.9  ;...
+        0.55 0.55 0.55 ;...
+        0.2  0.2  0.2  ];
 colormap(flipud(map))
 
 % Plot data
@@ -237,15 +234,24 @@ end
 set(gca,'YTick',1:numel(stim),'YTickLabel',ylab,'TickLabelInterpreter','none')
 
 % Other figure properties
+title([num2str(stim(1).AMdepth*100) '% depth'])
 xlim([0.5 size(data,2)+0.5])
 ylim([0.5 size(data,1)+0.5])
-xlabel('sAM period (chronological)')
-title([num2str(stim(1).AMdepth*100) '% depth'])
+if numel(findobj(gcf,'type','axes'))==1
+    xlabel('sAM period (chronological)')
+else
+    set(gca,'XTick',[])
+end
 % Color bar
 h=colorbar; 
 h.Ticks = [1 2 3 4 5];
 h.TickLabels = {'0' num2str(b1) num2str(b2) num2str(b3) num2str(b4)};
 ylabel(h,METRIC,'FontSize',14)
+
+% Plot horizontal lines between conditions
+ylms = get(gca,'YLim');
+xlms = get(gca,'XLim');
+plot(repmat(xlms,diff(ylms)-1,1)',[(ylms(1)+1):(ylms(2)-1); (ylms(1)+1):(ylms(2)-1)],'k')
 
 
 

@@ -43,7 +43,7 @@ addpath('helpers')
 
 % Raw data location
 datadirlocal = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
-datadirdrive = '/Volumes/Seagate Backup Plus Drive/RawData';
+datadirdrive = '/Volumes/Seagate-1_KP/RawData';
 
 
 % Saving location
