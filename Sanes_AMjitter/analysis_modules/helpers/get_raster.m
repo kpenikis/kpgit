@@ -5,7 +5,9 @@ datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 dataname = sprintf('%s_sess-%s_Data',subject,session);
 load(fullfile(datadir,subject,dataname))
 
-iclu = find((Data.ch(channel).clu.label(:,1))==clu);
+labels = vertcat(Data.ch(channel).clu.label);
+iclu = labels(:,1)==clu;
+
 raster = Data.ch(channel).clu(iclu).raster;
 
 end

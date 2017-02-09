@@ -172,14 +172,14 @@ for ip = 1:max(np)
         
         %~~~~~~~~~~~~~~~~~~~~~~
         % Fit data with weibull
-        try
-        bestFitParams=nan(max(nfid),2);
-        for fid = 1:max(nfid)
-            bestFitParams(fid,:) = fit_weibull(depth_dB,dp(fid,2:end));
-        end
-        catch
-            keyboard
-        end
+% %         try
+% %         bestFitParams=nan(max(nfid),2);
+% %         for fid = 1:max(nfid)
+% %             bestFitParams(fid,:) = fit_weibull(depth_dB,dp(fid,2:end));
+% %         end
+% %         catch
+% %             keyboard
+% %         end
         
         %~~~~~~~~~~~~~~~~~~~~~~
         %   Plot everything
@@ -203,15 +203,15 @@ for ip = 1:max(np)
         hL=legend(fIDs,'Location','northwest'); hL.Interpreter = 'none';
         set(gca,'FontSize',figFontSize)
         
-        % Plot best fit weibull function over observed data range
-        plot_stim = -42:0.25:0;
-        for fid = 1:max(nfid)
-            Weibull_fit = real(weibull(bestFitParams(fid,1),bestFitParams(fid,2),plot_stim-min(depth_dB),1));
-            wp= plot(plot_stim,Weibull_fit,'-','LineWidth',setLineWidth, 'Color', pcols(fid,:));
-            if any(strcmp(fIDs{fid},{'AM_4Hz_0.mat' 'AM_8Hz_0.mat' 'AM_16Hz_0.mat'}))
-                wp.Color = 'blue';
-            end
-        end
+% %         % Plot best fit weibull function over observed data range
+% %         plot_stim = -42:0.25:0;
+% %         for fid = 1:max(nfid)
+% %             Weibull_fit = real(weibull(bestFitParams(fid,1),bestFitParams(fid,2),plot_stim-min(depth_dB),1));
+% %             wp= plot(plot_stim,Weibull_fit,'-','LineWidth',setLineWidth, 'Color', pcols(fid,:));
+% %             if any(strcmp(fIDs{fid},{'AM_4Hz_0.mat' 'AM_8Hz_0.mat' 'AM_16Hz_0.mat'}))
+% %                 wp.Color = 'blue';
+% %             end
+% %         end
         
         hold off
         
@@ -251,7 +251,7 @@ for ip = 1:max(np)
         end
         
         datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
-        an_dir = fullfile(savedir,subject,'^an_plots',session,savefolder);
+        an_dir = fullfile(datadir,subject,'^an_plots',session,savefolder);
         if ~exist(an_dir,'dir')
             mkdir(an_dir)
         end

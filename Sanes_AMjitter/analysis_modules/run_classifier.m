@@ -1,4 +1,4 @@
-function dp = run_classifier(go_mat,ng_mat,Iterations)
+function [dp,pHit,pFA] = run_classifier(go_mat,ng_mat,Iterations)
 %---Inputs---%
 %go & nogo = cell matrices of spike times for selected go and nogo trials%
 %Iterations = number of times you want to run the classifier (e.g., 1000x)%
@@ -63,17 +63,8 @@ p			=	nanmean(MN,1);
 pp			=	nanmean(NN,1);
 pHit		=	p(1);
 pFA			=	pp(1);
-dp			=	calculatedprime(pHit,pFA);
+dp			=	calculate_dprime(pHit,pFA);
 dp			=	abs(dp);
 %---Note: you can calculate dprime on each iteration instead and then
 %average those values across all iterations. I've tried that and it's
 %more/less the same results.---%
-
-function dprime = calculatedprime(pHit,pFA)
-zHit	=	sqrt(2)*erfinv(2*pHit-1);
-zFA		=	sqrt(2)*erfinv(2*pFA-1);
-%Differe way to calculate dprime%
-% zHit	=	norminv(pHit,0,1);
-% zFA		=	norminv(pFA,0,1);
-%-- Calculate d-prime
-dprime = zHit - zFA ;
