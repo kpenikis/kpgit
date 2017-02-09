@@ -24,26 +24,40 @@ function Spikes = pp_sort_session( subject, session, Spikes )
 %    from a later channel. 
 %
 
+%%
+% cd \gits\kpgit\Sanes_AMJitter
+% rmpath('C:\gits\epsych\UserFiles\SanesLab\DataAnalysis\SanesLab_ephys_scripts')
+%%
 tic
 
 global fs
 
-includePath='/Users/kpenikis/Documents/MATLAB/ums2k_02_23_2012';
+% Set directories based on processor used 
+[~,computername] = system('hostname');
+
+if strncmp(computername,'Regina',5)        % PC at 1012 rig
+    
+    datadir = 'G:\ProcessedData_temp';
+    includePath='C:\gits\kpgit\ums2k_02_23_2012';
+    
+else                                       % macbook pro
+    
+    includePath='/Users/kpenikis/Documents/MATLAB/ums2k_02_23_2012';
+    datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
+    
+end
+
 addpath(genpath(includePath));
 addpath('helpers');
 
 
 % Load data structures
-
-datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 fprintf('\nloading data...\n')
 filename = sprintf('%s_sess-%s_Phys',subject,session);
 load(fullfile(datadir,subject,filename));
 filename = sprintf('%s_sess-%s_Info',subject,session);
 load(fullfile(datadir,subject,filename));
 fs = Info.fs;
-
-savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 
 
 
@@ -84,9 +98,9 @@ for ich = start_channel:n_channels
     
     clear spks
     
-    % save data after each channel
+    % Save data after each channel
     savename = sprintf('%s_sess-%s_Spikes',subject,session);
-    save(fullfile(savedir,subject,savename),'Spikes','-v7.3');
+    save(fullfile(datadir,subject,savename),'Spikes','-v7.3');
     
 end
 
@@ -101,7 +115,7 @@ Spikes.sorted = Spikes.clustered;
 % Save completed Spikes file
 fprintf('\nsaving data...\n')
 savename = sprintf('%s_sess-%s_Spikes',subject,session);
-save(fullfile(savedir,subject,savename),'Spikes','-v7.3');
+save(fullfile(datadir,subject,savename),'Spikes','-v7.3');
 
 
 

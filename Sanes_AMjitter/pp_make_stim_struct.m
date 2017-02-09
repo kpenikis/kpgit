@@ -68,7 +68,9 @@ elseif isfield(epData.epocs,'Freq') %Frequency tuning
 
 end
 
-% Mark trials as 0: passive uncontrolled, 1: behaving, 2: passive drinking.
+%% Mark trials as 0: passive uncontrolled, 1: behaving, 2: passive drinking.
+% Code will always stop here for jitter stim blocks, and require user input
+% about subject's drinking behavior.
 N = 0; 
 if all(~strcmp(stimfiles,'basic_tuning')), keyboard, end
 if N==0
@@ -76,7 +78,7 @@ if N==0
 else
     behaving = [2*ones(1,N) zeros(1,numel(onsets)-N)];
 end
-
+%%
 
 % Check that the 2 saved sources from openex correspond
 if length(AMonset) ~= length(onsets)

@@ -34,31 +34,57 @@ tic
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
     
-% Set directories for loading and saving data
+%% Set directories for loading and saving data
 
-includePath='/Users/kpenikis/Documents/MATLAB/ums2k_02_23_2012';
-addpath(genpath(includePath));
-addpath(genpath('/Users/kpenikis/Documents/MATLAB/eeglab13_6_5b/functions/'))
+% Check which computer
+
+[~,computername] = system('hostname');
+
+if strncmp(computername,'Regina',5)        % PC at 1012 rig
+    
+    % Raw data location
+    datadirlocal = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
+    datadirdrive = 'G:\RawData';
+    
+    % Saving location
+    savedir  = 'G:\ProcessedData_temp';
+    if ~exist('session_label','var')
+        prompt = '\n--> please enter uppercase letters for session label and press enter.';
+        session_label = input(prompt,'s');
+    end
+    if ~exist(fullfile(savedir,subject),'dir')
+        [~,~,~] = mkdir(fullfile(savedir,subject));
+    end
+    
+else                                    % macbook pro
+    
+    
+%     includePath='/Users/kpenikis/Documents/MATLAB/ums2k_02_23_2012';
+%     addpath(genpath(includePath));
+%     addpath(genpath('/Users/kpenikis/Documents/MATLAB/eeglab13_6_5b/functions/'))
+    
+    % Raw data location
+    datadirlocal = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
+    datadirdrive = '/Volumes/Seagate-1_KP/RawData';
+    
+    % Saving location
+    savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
+    if ~exist('session_label','var')
+        prompt = '\n--> please enter uppercase letters for session label and press enter.';
+        session_label = input(prompt,'s');
+    end
+    
+    if ~exist(fullfile(savedir,subject),'dir')
+        [~,~,~] = mkdir(fullfile(savedir,subject));
+    end
+    
+end
+
 addpath('helpers')
 
-% Raw data location
-datadirlocal = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
-datadirdrive = '/Volumes/Seagate-1_KP/RawData';
 
 
-% Saving location
-savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
-if ~exist('session_label','var')
-    prompt = '\n--> please enter uppercase letters for session label and press enter.';
-    session_label = input(prompt,'s');
-end
-
-if ~exist(fullfile(savedir,subject),'dir')
-    [~,~,~] = mkdir(fullfile(savedir,subject));
-end
-
-
-% Process data...
+%% Process data...
 
 fprintf('\n------------------------------------------------------------')
 fprintf('\nProcessing ephys data from: %s',subject)

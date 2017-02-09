@@ -22,22 +22,7 @@ for it = 1:size(data,1)
     data_cell{it} = data(it,:)';
 end
 
-% try
-    spikes = ss_detect(data_cell,spikes);
-    
-% catch   % break data into chunks of 200 trials
-%     tr_chnk = 200;
-%     fprintf( ' data file too large for UMS to handle; breaking into chunks of %i trials',tr_chnk)
-%     for ii = 1:ceil(size(data,1)/tr_chnk) 
-% 
-%         try
-%             spikes = ss_detect( data_cell( ((ii-1)*tr_chnk+1 : (ii)*tr_chnk )), spikes);  
-%         catch
-%             spikes = ss_detect( data( [(ii-1)*tr_chnk+1:size(data,1)], :), spikes);
-%         end
-%         
-%     end
-% end
+spikes = ss_detect(data_cell,spikes);
 
 
 % Run the rest of the sorting algorithm
