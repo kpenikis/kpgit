@@ -12,9 +12,8 @@ for is = 1:numel(stim)
     ntc(is) = max(stim(is).y);
 end
 min_nt = min(ntc);
-% min_nt = 5;
 
-iterations = 200;  rng('shuffle');
+iterations = 500;  rng('shuffle');
 
 % Set up empty vectors and get FF data
 FF = nan( numel(stim), length(rV.buffer)-1, iterations );
@@ -50,7 +49,7 @@ for ii = 1:iterations
     % Calculate Fano Factor for this stimulus
     try
         tr_var(tr_mean==0) = nan; tr_mean(tr_mean==0) = nan;
-        FF(is,:,ii) = tr_var(tr_mean~=0) ./ tr_mean(tr_mean~=0);
+        FF(is,:,ii) = tr_var ./ tr_mean;
     catch
         keyboard
     end

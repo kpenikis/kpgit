@@ -1,5 +1,5 @@
 
-function [VSmean,VS] = calc_VS(stim,subject)
+function [VSmean,VS,RSmean,RS] = calc_VSRS(stim,subject)
 
 % Set stimulus file directory
 blocks = stim.block;
@@ -43,6 +43,8 @@ for is = 1:numel(stim)
 end
 
 VSmean = mean(VS,2);
+RSmean = mean(RS,2);
+
 
 
 end

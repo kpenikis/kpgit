@@ -58,11 +58,6 @@ if strncmp(computername,'Regina',5)        % PC at 1012 rig
     
 else                                    % macbook pro
     
-    
-%     includePath='/Users/kpenikis/Documents/MATLAB/ums2k_02_23_2012';
-%     addpath(genpath(includePath));
-%     addpath(genpath('/Users/kpenikis/Documents/MATLAB/eeglab13_6_5b/functions/'))
-    
     % Raw data location
     datadirlocal = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
     datadirdrive = '/Volumes/Seagate-1_KP/RawData';

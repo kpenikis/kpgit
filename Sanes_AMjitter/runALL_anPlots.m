@@ -1,26 +1,41 @@
-function runALL_anPlots(subject,session,channel,clu)
-% Plot all response measures for a designated unit.
+function runALL_anPlots(subject,session)
+% runALL_anPlots(subject,session)
+%   Plot responses of all clusters of a session to all stimuli, for all
+%   response metrics.
+%   
+%   Inputs
+%     subject: subject name as string
+%     session: session label as string
+%     channel: (optional) channel number as double
+%         clu: (optional) cluster label as double
+% 
+% KP, 02-2017,
+% 
 
 
-% % % ap_plot_polarHisto_v1( subject, session, channel,clu)
+
+% Load Data structure
+datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
+filename = sprintf( '%s_sess-%s_Data',subject,session);
+load(fullfile(datadir,subject,filename));
 
 
-close all
+METRICS = {'FR' 'FF' 'FF-avPds' 'FF-Pds' 'VS' 'VS-Pds' 'RS' 'RS-Pds' 'standardFR' 'Corr'};
 
-METRICS = {'FR' 'FF' 'FFpd-avg' 'VS' 'RS' 'standardFR'};
-for im = 1:numel(METRICS)
-    ap_barplot_indJitter(subject,session,channel,clu,METRICS{im})
-end
-
-METRICS = {'FF' 'VS' 'RS'};
-for im = 1:numel(METRICS)
-    ap_heatplot_indJitter(subject,session,channel,clu,METRICS{im})
-end
-
-METRICS = {'FR'};
-for im = 1:numel(METRICS)
-    ap_neurometric_indDepth(subject,session,channel,clu,METRICS{im},0)
-end
-
+% Go through each cluster and call analysis programs
+for channel = 1:numel(Data.ch)
+    for iu = 1:numel(Data.ch(channel).clu)
+        
+        clu = Data.ch(channel).clu(iu).label(1);
+        
+        close all
+                
+        for im = 1:numel(METRICS)
+            ap_xJitter(subject,session,channel,clu,METRICS{im})
+        end
+        
+        
+    end 
+end 
 
 end

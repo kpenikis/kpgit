@@ -1,12 +1,9 @@
 function Wave = ap_stimplotting(subject,raster)
 %  
-
-% set(0,'DefaultAxesFontSize',10)
-% set(0,'DefaultTextInterpreter','none')
-
     
 % Load first block rate vector stimulus info
 block = raster(1).block;
+block = block(1);
 stimdir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
 stfs = dir(fullfile(stimdir,subject,sprintf('Block-%i_Stim',block),'*.mat'));
 stfns = {stfs.name};
@@ -20,6 +17,7 @@ Wave=struct();
 for ks = 1:numel(raster)
     
     data = raster(ks);
+    data.block = data.block(1);
     
     if block ~= data.block
         

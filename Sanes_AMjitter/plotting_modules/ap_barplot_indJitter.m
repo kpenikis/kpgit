@@ -107,7 +107,7 @@ for ib = blocks
         if numel(depths)==1
             str_dpth = num2str(depths*100);
         else
-            str_dpth = 'ROVED';
+            str_dpth = 'VARIED';
         end
         
         % Add stimulus info in title

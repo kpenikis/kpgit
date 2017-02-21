@@ -31,5 +31,5 @@ create_Data_struct( subject, session )
 
 %% Run analysis plots
 
-runALL_anPlots( subject, session, channel, clu );
+runALL_anPlots( subject, session );
 

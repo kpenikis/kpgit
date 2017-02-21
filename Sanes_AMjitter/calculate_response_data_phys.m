@@ -1,13 +1,15 @@
 
 function [pYes,nTrs] = calculate_response_data_phys(ngL,pHit,pFA,nGO,nNG)
-% Get response data ready for format to save in Data struct
+%  Get response data ready for format to save in Data struct
 %
-% Inputs
-%   ngL:  logical, True if called for nogo
-%   pHit: hit rate from classifier output for this go stim
-%   pFA:  FA rate from classifier output for all go stimuli
-%   nGO:  number of trials for this go stim
-%   nNG:  number of trials for the nogo stim
+%  Inputs
+%    ngL:  logical, True if called for nogo
+%    pHit: hit rate from classifier output for this go stim
+%    pFA:  FA rate from classifier output for all go stimuli
+%    nGO:  number of trials for this go stim
+%    nNG:  number of trials for the nogo stim
+% 
+%  KP, 2017-02
 % 
 
 %NOGO stimulus
