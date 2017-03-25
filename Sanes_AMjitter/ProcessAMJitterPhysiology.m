@@ -1,10 +1,12 @@
 
 
-subject   =  'IIIf230115' ;
+subject   =  'IIIf_230115' ;
 session   =  'LA' ;
 
 channel   =  1 ;
 clu       =  1 ;
+
+fn = set_paths_directories(subject,session);
 
 
 %% Process raw data (creates Info, Stim, and Phys files)
@@ -28,8 +30,20 @@ Spikes = pp_save_manual_sort( subject, session, Spikes, channel, spikes );
 
 create_Data_struct( subject, session )
 
+    %raster = pp_plot_rasters_wStim(subject,session,channel,clu);
+
 
 %% Run analysis plots
 
-runALL_anPlots( subject, session );
+getALL_anData( subject, session );
+
+    %ap_xJitter(subject,session,channel,clu,METRIC)
+    
+    
+%% Neurometric analyses
+
+Data = getALL_nmData(subject,session);
+
+    %cludata = ap_nmData_depth(cludata)
+
 
