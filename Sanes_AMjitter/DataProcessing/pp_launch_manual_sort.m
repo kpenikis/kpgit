@@ -7,23 +7,26 @@ function [subject, session, channel, Spikes] = pp_launch_manual_sort( subject, s
 %    manual sorting. ie. the output args here are the input args of
 %    pp_save_manual_sort function. 
 % 
-%  KP, 2016-04; last updated 2016-04
+%  KP, 2016-04; last updated 2017-04
 % 
 
-includePath='/Users/kpenikis/Documents/MATLAB/ums2k_02_23_2012';
+% Set directories based on processor used 
+fn = set_paths_directories;
+
+% Add UMS folder
+includePath='C:\gits\kpgit\ums2k_02_23_2012';
 addpath(genpath(includePath));
 
 
 % Load data structures
 
-datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
 fprintf('loading data...\n')
 if ~exist('Spikes','var')
     filename = sprintf('%s_sess-%s_Spikes',subject,session);
-    load(fullfile(datadir,subject,filename));
+    load(fullfile(fn.processed,subject,filename));
 end
 filename = sprintf('%s_sess-%s_Info',subject,session);
-load(fullfile(datadir,subject,filename));
+load(fullfile(fn.processed,subject,filename));
 
 
 % If a manual sort has already been saved, open from where left off

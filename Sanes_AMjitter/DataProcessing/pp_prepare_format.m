@@ -1,4 +1,3 @@
-
 function pp_prepare_format( BLOCKS, subject, session_label )
 %
 %  pp_prepare_format( BLOCKS, subject, session_label )  
@@ -19,66 +18,16 @@ function pp_prepare_format( BLOCKS, subject, session_label )
 %     SUBJECT_sess-XX_Stim.mat
 %     SUBJECT_sess-XX_LFP.mat
 %     SUBJECT_sess-XX_Wavlet.mat
-%
-%    Now working with data locally.
 %   
-%  KP, 2016-04; last updated 2016-10
+%  KP, 2016-04; last updated 2017-04
 % 
+
+%%
 
 tic
 
-    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    %To Add:
-    %   change time window with stim duration?
-    %   remove noisy trials altogether?
-    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-    
-%% Set directories for loading and saving data
-
+% Set directories for loading and saving data
 fn = set_paths_directories;
-
-% Check which computer
-
-[~,computername] = system('hostname');
-
-if strncmp(computername,'Regina',5)        % PC at 1012 rig
-    
-    % Raw data location
-    datadirlocal = fn.raw;
-    datadirdrive = 'G:\RawData';
-    
-    % Saving location
-    savedir  = 'G:\ProcessedData_temp';
-    if ~exist('session_label','var')
-        prompt = '\n--> please enter uppercase letters for session label and press enter.';
-        session_label = input(prompt,'s');
-    end
-    if ~exist(fullfile(savedir,subject),'dir')
-        [~,~,~] = mkdir(fullfile(savedir,subject));
-    end
-    
-else                                    % macbook pro
-    
-    % Raw data location
-    datadirlocal = fn.raw;
-    datadirdrive = '/Volumes/Seagate-1_KP/RawData';
-    
-    % Saving location
-    savedir  = fn.processed;
-    if ~exist('session_label','var')
-        prompt = '\n--> please enter uppercase letters for session label and press enter.';
-        session_label = input(prompt,'s');
-    end
-    
-    if ~exist(fullfile(savedir,subject),'dir')
-        [~,~,~] = mkdir(fullfile(savedir,subject));
-    end
-    
-end
-
-addpath('helpers')
-
 
 
 %% Process data...
@@ -101,13 +50,10 @@ for ib=1:numel(BLOCKS)
     % Load this block datafile
     
     block_str = sprintf('Block-%i.mat',BLOCKS(ib));
-    datafile = fullfile(datadirlocal,subject,block_str);
-    if ~exist(datafile,'file') %if doesnt exist locally, check for harddrive
-        datafile = fullfile(datadirdrive,subject,block_str);
-        if ~exist(datafile,'file')
-            warning('External hard drive not connected, and file not found locally.')
-            keyboard
-        end
+    datafile = fullfile(fn.raw,subject,block_str);
+    if ~exist(datafile,'file')
+        warning('raw epData file not found.')
+        keyboard
     end
     fprintf(' loading data file %s...',datafile)
     clear epData;
@@ -276,19 +222,19 @@ fprintf('\nsaving data...')
 try
 % Save Stim structure
 savename = sprintf('%s_sess-%s_Stim',subject,session_label);
-save(fullfile(savedir,subject,savename),'Stim','-v7.3');
+save(fullfile( fn.processed,subject,savename),'Stim','-v7.3');
 
 % Save Phys structure
 savename = sprintf('%s_sess-%s_Phys',subject,session_label);
-save(fullfile(savedir,subject,savename),'Phys','-v7.3');
+save(fullfile( fn.processed,subject,savename),'Phys','-v7.3');
 
 % Save LFP structure
 % savename = sprintf('%s_sess-%s_LFP',subject,session_label);
-% save(fullfile(savedir,subject,savename),'LFPdata','-v7.3');
+% save(fullfile( fn.processed,subject,savename),'LFPdata','-v7.3');
 
 % Save Info structure
 savename = sprintf('%s_sess-%s_Info',subject,session_label);
-save(fullfile(savedir,subject,savename),'Info','-v7.3');
+save(fullfile( fn.processed,subject,savename),'Info','-v7.3');
 
 catch
     keyboard

@@ -23,42 +23,30 @@ function Spikes = pp_sort_session( subject, session, Spikes )
 %    workspace and include as an input argument in order to begin sorting
 %    from a later channel. 
 %
+%  KP, 2016-04; last updated 2017-04
+%
 
-%%
-% cd \gits\kpgit\Sanes_AMJitter
-% rmpath('C:\gits\epsych\UserFiles\SanesLab\DataAnalysis\SanesLab_ephys_scripts')
 %%
 tic
 
 global fs
 
 % Set directories based on processor used 
-[~,computername] = system('hostname');
+fn = set_paths_directories;
 
-if strncmp(computername,'Regina',5)        % PC at 1012 rig
-    
-    datadir = 'G:\ProcessedData_temp';
-    includePath='C:\gits\kpgit\ums2k_02_23_2012';
-    
-else                                       % macbook pro
-    
-    includePath='/Users/kpenikis/Documents/MATLAB/ums2k_02_23_2012';
-    datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
-    
-end
-
+% Add UMS folder
+includePath='C:\gits\kpgit\ums2k_02_23_2012';
 addpath(genpath(includePath));
-addpath('helpers');
 
 
 % Load data structures
-fprintf('\nloading data...\n')
+fprintf('\nloading data...')
 filename = sprintf('%s_sess-%s_Phys',subject,session);
-load(fullfile(datadir,subject,filename));
+load(fullfile(fn.processed,subject,filename));
 filename = sprintf('%s_sess-%s_Info',subject,session);
-load(fullfile(datadir,subject,filename));
+load(fullfile(fn.processed,subject,filename));
 fs = Info.fs;
-
+fprintf(' done.\n')
 
 
 % Determine channel to begin sorting
@@ -73,6 +61,7 @@ end
 % Launch GUI to manually select clean data segments and set thresholds
 
 segment_length_s = diff(Info.t_win_ms)/1000;  %length of each data segment (sec)
+
 
 [thresh, reject] = calculate_thresholds(Phys, segment_length_s);
 
@@ -90,7 +79,9 @@ for ich = start_channel:n_channels
     data = Phys(:,:,ich);
     fprintf('sorting ch %i... ',ich)
     
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     spks = pp_sort_channel(data, thresh(ich), reject(ich));
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     Spikes.channel(ich)   = ich;
     Spikes.man_sort(ich)  = 0;
@@ -100,7 +91,7 @@ for ich = start_channel:n_channels
     
     % Save data after each channel
     savename = sprintf('%s_sess-%s_Spikes',subject,session);
-    save(fullfile(datadir,subject,savename),'Spikes','-v7.3');
+    save(fullfile(fn.processed,subject,savename),'Spikes','-v7.3');
     
 end
 
@@ -115,7 +106,7 @@ Spikes.sorted = Spikes.clustered;
 % Save completed Spikes file
 fprintf('\nsaving data...\n')
 savename = sprintf('%s_sess-%s_Spikes',subject,session);
-save(fullfile(datadir,subject,savename),'Spikes','-v7.3');
+save(fullfile(fn.processed,subject,savename),'Spikes','-v7.3');
 
 
 
