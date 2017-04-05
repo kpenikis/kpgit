@@ -4,7 +4,7 @@ function [options, plotOptions] = setOptions
 %This function sets the options for fitting behavioral data with psignifit,
 %and also sets options for the plotting features.
 %
-%Written by ML Caras Dec 5 2016
+
 
 %Set up fit options
 options.sigmoidName = 'norm'; %use cumulative gaussian fit
@@ -23,13 +23,13 @@ plotOptions.fontSize       = 10;
 plotOptions.fontName       = 'Arial';
 plotOptions.tufteAxis      = false;
 plotOptions.plotAsymptote  = false;
-plotOptions.plotThresh     = false;
+plotOptions.plotThresh     = true;
 plotOptions.aspectRatio    = false;
 plotOptions.extrapolLength = .2;
 plotOptions.CIthresh       = false;
 plotOptions.dataSize       = 25;
 plotOptions.dataColor = 'k';
 plotOptions.lineColor = plotOptions.dataColor;
-plotOptions.colSelect = {'0.13_depth' '0.23_depth' '0.41_depth' '0.75_depth'};
+plotOptions.colSelect = {'0_depth' '0.23_depth' '0.41_depth' '0.75_depth'};
 
 end

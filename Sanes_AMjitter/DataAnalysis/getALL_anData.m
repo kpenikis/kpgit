@@ -37,7 +37,7 @@ end
 end
 
 
-function run_analyses(raster, subject,session,channel,clu,cluname)
+function run_analyses(raster,subject,session,channel,clu,cluname)
 
 global fn
 

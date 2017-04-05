@@ -1,17 +1,17 @@
 
-function [VSmean,VS,RSmean,RS] = calc_VSRS(stim,subject)
+function [VSmean,VS,RSmean,RS] = calc_VSRS(raster,subject,trials)
 
 % Set stimulus file directory
-blocks = stim.block;
+blocks = raster.block;
 stimdir = fullfile('/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData',subject,sprintf('Block-%i_Stim',blocks(1)));
-rV = load(fullfile(stimdir,stim(1).stimfn));
+rV = load(fullfile(stimdir,raster(1).stimfn));
 
 % Set up empty vectors and get VS data
-VS = nan(numel(stim),length(rV.buffer)-2);
-RS = nan(numel(stim),length(rV.buffer)-2);
-for is = 1:numel(stim)
+VS = nan(numel(raster),length(rV.buffer)-2);
+RS = nan(numel(raster),length(rV.buffer)-2);
+for is = 1:numel(raster)
     
-    data = stim(is);
+    data = raster(is);
     
     % Get vectors of rates for this stimulus
     rateVec = load(fullfile(stimdir,data.stimfn));
@@ -19,7 +19,11 @@ for is = 1:numel(stim)
     tVec = round(data.AMonset + cumsum([0.75*(1000/rateVec(2)) 1000./rateVec(3:end)]));
     
     % collect spikes across trials for each period
-    trs = unique([data.y]);
+    if nargin<3
+        trs = unique([data.y]);
+    else
+        trs = trials;
+    end
     for ipd = 1:numel(tVec)-1
         AMpdms = (tVec(ipd+1)-tVec(ipd));
         

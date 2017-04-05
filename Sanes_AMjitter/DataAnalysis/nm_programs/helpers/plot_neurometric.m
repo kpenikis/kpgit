@@ -49,19 +49,20 @@ for ip = 1:numel(dprimes)
     
     
     % Plot threshold lines
-    threshold = fitdata(ip).dprime_threshold;
-    ylimits = get(gca,'ylim');
-    ymin = ylimits(1);
-    x = [threshold,threshold];
-    y = [ymin,1];
-    plot(x,y,'-','Color',colors(ip,:));
-    
-    xlimits = get(gca,'xlim');
-    xmin = xlimits(1);
-    x = [xmin,threshold];
-    y = [1 1];
-    plot(x,y,'-','Color',colors(ip,:));
-    
+    if plotOptions.plotThresh
+        threshold = fitdata(ip).dprime_threshold;
+        ylimits = get(gca,'ylim');
+        ymin = ylimits(1);
+        x = [threshold,threshold];
+        y = [ymin,1];
+        plot(x,y,'-','Color',colors(ip,:));
+        
+        xlimits = get(gca,'xlim');
+        xmin = xlimits(1);
+        x = [xmin,threshold];
+        y = [1 1];
+        plot(x,y,'-','Color',colors(ip,:));
+    end
     
     
     

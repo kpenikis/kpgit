@@ -9,9 +9,6 @@ NSpk	=	length(Spktime); %/ntr*1000/period
 
 VS1			=	(sqrt((sum(sin(2*pi*(Spktime/period))))^2 + (sum(cos(2*pi*(Spktime/period))))^2)) / NSpk;
 
-% S		=	sum(sin(2*pi*(Spktime/ISI)));
-% C		=	sum(cos(2*pi*(Spktime/ISI)));
-
 Hz		=	1000/period;
 
 S		=	sum(sin(2*pi*(Spktime/1000*Hz)));
@@ -23,6 +20,7 @@ if( isnan(VS1) || isnan(VS2) )
 else
 	if( round(VS1,3,'decimals') ~= round(VS2,3,'decimals') )
 		keyboard
+        VS	=	VS1;
 	else
 		VS	=	VS1;
 	end

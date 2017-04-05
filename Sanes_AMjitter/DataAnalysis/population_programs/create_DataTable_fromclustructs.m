@@ -1,4 +1,4 @@
-function create_DataTable(subject,METRIC)
+function create_DataTable_fromclustructs(subject,METRIC)
 
 close all
 % Set up useful variables

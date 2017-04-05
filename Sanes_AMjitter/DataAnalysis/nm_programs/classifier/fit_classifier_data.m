@@ -95,7 +95,8 @@ end
 
 
 
-%% Fit dprime data (same as dp from formua on FRs)
+%% Fit dprime data from classifier directly 
+%  (same fitting method as dp from formula on FRs)
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 fitdata.dprime = fit_calc_dprime_threshold( classifier_data.dprime.data, ntrials );
@@ -106,13 +107,10 @@ hL3 = plot_neurometric( classifier_data.dprime.data, fitdata.dprime, plotOptions
 title(hS(3),'Classifier dprime output fit with sigmoid (nlinfit)')
 
 % Finish plot
-try
-legend(hL1(~cellfun(@isempty,legtext)),legtext(~cellfun(@isempty,legtext)),'Interpreter','none')
-legend(hL2(~cellfun(@isempty,legtext)),legtext(~cellfun(@isempty,legtext)),'Interpreter','none')
-legend(hL3(~cellfun(@isempty,legtext)),legtext(~cellfun(@isempty,legtext)),'Interpreter','none')
-catch
-keyboard
-end
+legend(hL1(~cellfun(@isempty,legtext)),legtext(~cellfun(@isempty,legtext)),'Interpreter','none','Location','best')
+legend(hL2(~cellfun(@isempty,legtext)),legtext(~cellfun(@isempty,legtext)),'Interpreter','none','Location','best')
+legend(hL3(~cellfun(@isempty,legtext)),legtext(~cellfun(@isempty,legtext)),'Interpreter','none','Location','best')
+
 suptitle(title_str)
 
 

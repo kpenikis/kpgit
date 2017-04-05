@@ -1,6 +1,24 @@
-
 function create_Data_struct(subject,session)
-
+% create_Data_struct(subject,session)
+%  First function to call after spike sorting. 
+%  Creates a file called Data, which is in structure format. There is a
+%  field for every SU or MU cluster in the session. 
+%  Within the field for each cluster, is a reference of the cluster data,
+%  a field called "labels", containing a 3 element vector: 
+%       [ clu#  SU/MU  channel# ] 
+%  Next, the program calls plot_rasters, and creates the raster plots if 
+%  they don't already exist. 
+%  The other field created is stimdata, and this contains all of the
+%  various stimulus dimensions tested in this session, in a format
+%  organized by block, then sound params (HP LP AMrate dB). For each
+%  unique condition of these params, the raster entries are separated and
+%  saved. The remaining params that could vary are jitter, depth, and
+%  behavioral state. The rasters are saved in a field that reflects which
+%  feature was varied and can be discriminated (jitter or depth, both only 
+%  discriminated from 0 for now.)
+%   
+%  KP 2017-03
+%
 
 % Load Spikes file
 fn = set_paths_directories(subject,session);
@@ -16,24 +34,12 @@ for ic = 1:numel(Spikes.sorted)
     labels = [Spikes.sorted(ic).labels; 0 4];
     labels = labels((labels(:,2)==2)|(labels(:,2)==3),:);
     
-    
-    % Go through each cluster of this channel and create a variable for
-    % that cluster and a field in the Data struct with the same name
+    % Go through each cluster of this channel and create a field in the
+    % Data struct with the same name
     for iu = 1:size(labels,1)
-        
+        % labels is 3 element vector: [ clu#  SU/MU  channel# ] 
         varname = sprintf('ch%i_clu%i',ic,labels(iu,1));
-        
-        % Field labels is 3 element vector: [ clu#  SU/MU  channel# ] 
-        eval(sprintf('%s.labels = [labels(iu,:) %i];',varname,ic))
         eval(sprintf('Data.%s.labels = [labels(iu,:) %i];',varname,ic))
-        
-        % Save cluster file
-        filename = sprintf( '%s_sess-%s_%s',subject,session,varname);
-        if ~exist(fn.sess_data,'dir')
-            mkdir(fn.sess_data)
-        end
-        save(fullfile(fn.sess_data,filename),varname,'-v7.3');
-
     end
     
 end
@@ -59,16 +65,23 @@ for unit = allclusters'
         close all
         raster = plot_rasters_wStim(subject,session,channel,clu);
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
     end
     
-    % Add raster to Data struct
-    Data.(unit{:}).raster = raster;
+    
+    %% Oraganize stimuli within raster
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    stimdata = organize_raster_stim(raster);
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    
+    %% Add raster to Data struct
+    Data.(unit{:}).stimdata = stimdata;
+    
     
 end
 
 
-% Save Data file
+
+%% Save Data file
 fprintf('\n##Saving Data struct to file.\n')
 filename = sprintf( '%s_sess-%s_Data',subject,session); 
 save(fullfile(fn.processed,subject,filename),'Data','-v7.3');

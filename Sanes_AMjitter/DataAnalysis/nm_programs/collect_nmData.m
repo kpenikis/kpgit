@@ -1,4 +1,4 @@
-function [nmdata,cludata,Data_clu] = collect_nmData(cludata,is,ip,indVar,Data_clu)
+function nmdata = collect_nmData(rasterdata,indVar)
 % called by getALL_nmData
 % Plot 1) classifier PC fit and d' transformed, 1b) classifier d' formula fit, 2) FR d' formula fit.
 
@@ -9,11 +9,11 @@ nmdata = struct();
 % metric   = {'FR' 'SpV' 'SpV' 'SpV' 'SpV' 'SpV'};
 % binsizes = [ 0    250   100   50    25    10];
 
-metric   = {'FR' 'SpV' 'SpV' 'SpV' 'VS'};
-binsizes = [ 0    100    25   10];
+metric   = {'FR' 'SpV' 'SpV' 'SpV' 'Corr'};
+binsizes = [ 0    100    25    10     0  ];
 
-% metric   = {'FR'};
-% binsizes = [ 0 ];
+% metric   = {'Corr'};
+% binsizes = [  0  ];
 
 for ib = 1:numel(binsizes)
     
@@ -23,13 +23,12 @@ for ib = 1:numel(binsizes)
     fprintf('   Running classifier for %s binsize %i...\n',thismet,thisbin)
     
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    [this_output,stimC,cludata,Data_clu] = format_classifier_data( cludata, is, ip, thismet, thisbin, indVar, Data_clu );
+    [this_output,stimC] = format_classifier_data( rasterdata, thismet, thisbin, indVar );
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     nmdata.stim = stimC;
-    nmdata.classifier(ib).metric  = thismet;
-    nmdata.classifier(ib).binsize = thisbin;
-    nmdata.classifier(ib).output = [this_output.output];
+    fldnm = sprintf('classif%s%i',thismet,thisbin);
+    nmdata.(fldnm) = [this_output.output];
     
 end
 
@@ -40,10 +39,10 @@ end
 fprintf('   Getting FR formula data...\n')
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-[this_output,stimF,cludata] = format_formula_data( cludata, is, ip, indVar, Data_clu );
+[this_output,stimF] = format_formula_data( rasterdata, indVar );
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-nmdata.formulaFR.output = [this_output.output];
+nmdata.formulaFR = [this_output.output];
 
 
 % Compare the stim data

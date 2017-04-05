@@ -9,7 +9,7 @@ function [datastruct,fieldname,stim_values] = an_xJitter(subject,session,channel
 %   ap_timeseries_indJitter.
 %
 %   If runing through all clusters of a session, this program is called by
-%   the program runALL_anPlots.
+%   the program getALL_anData.
 %
 %   Inputs
 %     subject: subject name as string
@@ -52,7 +52,7 @@ for id = 1:max(ndpth)
         switch METRIC
             
             case 'Corr'
-                [r_mean,p_mean,shift,r_trials,Waves] = corr_spks(stim,subject);
+                [r_mean,p_mean,shift,~,r_trials,Waves] = corr_spks(stim,subject);
                 
                 % Format output to add to Data struct
                 datastruct(id).shift = shift;

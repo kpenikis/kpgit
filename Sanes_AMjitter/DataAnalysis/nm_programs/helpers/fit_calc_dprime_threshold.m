@@ -39,6 +39,7 @@ for ic = 1:numel(dprimemat)
         
         x = mat(:,1);
         y = mat(:,2);
+%         y(y==Inf) = 7;
         
         %Create a sigmoidal function:  f = y0 + a/(1 + exp(-(x - x0)/b))
         %Parameters (p):
@@ -56,7 +57,11 @@ for ic = 1:numel(dprimemat)
         options = statset('MaxIter',10000);
         
         %Do the fitting
+        try
         [p, ~, ~, ~, mse] = nlinfit(x,y,f,beta0,options); %#ok<NASGU>
+        catch
+            keyboard
+        end
         xfit = linspace(x(1),x(end),1000);
         yfit = f(p,xfit);
         yfit_corr = f(p,x);
