@@ -72,9 +72,13 @@ end
 % Code will always stop here for jitter stim blocks, and require user input
 % about subject's drinking behavior.
 N = 0; 
-if all(~strcmp(stimfiles,'basic_tuning')), keyboard, end
+if all(~strcmp(stimfiles,'basic_tuning'))
+    N = get_drinking_trials(block);
+end
 if N==0
     behaving = zeros(numel(onsets),1);
+elseif isnan(N)
+    behaving = 2*ones(1,numel(onsets));
 else
     behaving = [2*ones(1,N) zeros(1,numel(onsets)-N)];
 end
