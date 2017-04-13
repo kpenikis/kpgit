@@ -3,6 +3,8 @@ function Info = manually_mark_trials(Info_old,session,Stim)
 % Go through trials that have been flagged based on RMS deviations, and
 % mark clear or dirty.
 
+global fn
+
 subject = Info_old.subject;
 
 Info = Info_old;
@@ -10,7 +12,7 @@ Info = Info_old;
 flagged = Info_old.artifact_trs;
 
 % Load Phys struct
-datadir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
+datadir  = fn.processed;
 fprintf('\nloading Phys struct...\n')
 filename = sprintf('%s_sess-%s_Phys',subject,session);
 load(fullfile(datadir,subject,filename));

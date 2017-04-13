@@ -20,6 +20,8 @@ function create_Data_struct(subject,session)
 %  KP 2017-03
 %
 
+global fn
+
 % Load Spikes file
 fn = set_paths_directories(subject,session);
 fprintf('loading Spikes file...\n')
