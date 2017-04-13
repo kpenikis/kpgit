@@ -1,4 +1,4 @@
-function make_irreg_AM_chunks
+function drafting_irreg_AM_chunks
 % This stimulus recipe allows for 3 important criteria to be matched:
 %
 %   1) a few specific AM rate vector sequences (chunks) are repeated for

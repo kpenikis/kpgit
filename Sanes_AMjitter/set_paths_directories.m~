@@ -26,7 +26,6 @@ else
         fn.processed  = '/Volumes/KP_workingDataStore/NYUDrive/Sanes/DATADIR/AMJitter/ProcessedData'; %'/Volumes/Seagate-1_KP/ProcessedData_temp';
         
     else
-        disp('External disk not detected; setting directories to macbook built in harddrive')
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % local macbook harddrive
         fn.raw       = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';

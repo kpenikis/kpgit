@@ -12,7 +12,7 @@ fn = set_paths_directories;
 %%
 if nargin<2 && ~exist('METRICS','var')
 %****************************************%
-METRICS = {'FR' 'FF' 'FFavPds' 'VS' 'RS' 'standardFR' 'maxCorr' 'shftCorr'};
+METRICS = {'maxCorr' 'shftCorr'};% 'FR' 'FF' 'FFavPds' 'VS' 'RS' 'standardFR' 'maxCorr' 'shftCorr'};
 %****************************************%
 end
 
@@ -124,6 +124,19 @@ for ii = 1:numel(alldatafiles)
                         
                         this_metric = METRICS{im};
                         
+                        %% Get these datapoints
+                        
+                        rasters = stimdata(is).pars(ip).(nmfieldname);
+                        rasters = rasters(strcmp({rasters.behaving},behavs(ib)));
+                        
+                        % Skip the incomplete depth functions (due to not
+                        % enough trials while drinking
+                        if     numel(rasters)<9 && strcmp(behavs(ib),'D') && strcmp(indVar,'depth')
+                            continue
+                        elseif numel(rasters)<9 && strcmp(behavs(ib),'P') && strcmp(indVar,'depth')
+                            keyboard
+                        end
+                        
                         %% Set up figure handles
                         
                         parname = sprintf('%s_%i_%i_%i_%i_%s',this_metric,stimpars(1),stimpars(2),stimpars(3),stimpars(4),behavs(ib));
@@ -161,18 +174,7 @@ for ii = 1:numel(alldatafiles)
                         end
                         
                         
-                        %% Get response analysis data
-                        
-                        rasters = stimdata(is).pars(ip).(nmfieldname);
-                        rasters = rasters(strcmp({rasters.behaving},behavs(ib)));
-                        
-                        % Skip the incomplete depth functions (due to not
-                        % enough trials while drinking
-                        if     numel(rasters)<9 && strcmp(behavs(ib),'D') && strcmp(indVar,'depth')
-                            continue
-                        elseif numel(rasters)<9 && strcmp(behavs(ib),'P') && strcmp(indVar,'depth')
-                            keyboard
-                        end
+                        %% Calculate and plot the data
                         
                         % Plot
                         eval(sprintf('figure(%s)',Figs.(parname).anF))

@@ -22,6 +22,8 @@ dp_jitter = [];
 dp_data   = [];
 dp_baseFR = [];
 
+alphaval = 0.1;
+
 % Get independent and condition variable values
 switch indVar
     case 'jitter'
@@ -68,53 +70,69 @@ for ic = 1:numel(condVar_vals)
         switch METRIC
             case 'maxCorr'
                 % Get correlations at all lags for all stimuli
-                [Rs,~,sh,~,~,~] = corr_spks(cond_rasters,subject);
+                [Rs,Ps,sh,~,~,~] = corr_spks(cond_rasters,subject);
                 
                 % Go through each stimulus and find max corr at its best
                 % lag value.
                 for ii = 1:size(Rs,1)
                     
-                    [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.005);
-                    if numel(peakLag)<1
-                        [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.003);
-                    end
-                    if numel(peakLag)<1
-                        disp('weak correlations. setting lag to 0')
-                        peakLag = find(sh==0);
-                    elseif numel(peakLag)>1
+                    Rs(ii,Ps(ii,:)>alphaval) = nan;
+                    
+                    
+                    [~,peakLag]=findpeaks(Rs(ii,:));
+%                     if numel(peakLag)<1
+%                         [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.003);
+%                     end
+%                     if numel(peakLag)<1
+%                         disp('weak correlations. setting lag to 0')
+%                         peakLag = find(sh==0);
+%                     elseif numel(peakLag)>1
+                    if numel(peakLag)>1
                         [~,leastshift] = min(abs(peakLag-find(sh==0)));
                         peakLag = peakLag(leastshift);
                     end
+%                     
+%                     [~,~,~,Rtrs,~,~]   = corr_spks(cond_rasters(ii),subject,sh(peakLag));
                     
-                    [~,~,~,Rtrs,~,~]   = corr_spks(cond_rasters(ii),subject,sh(peakLag));
-                    
-                    data(ii,1) = mean(Rtrs);
+                    if ~isempty(peakLag)
+                        data(ii,1) = Rs(ii,peakLag);
+                    else
+                        data(ii,1) = nan;
+                    end
                     
                 end
                 
                 data_plot(ismember(check_x,xvals,'rows'),ic) = data;
                 
+                
             case 'shftCorr'
                 % Get correlations at all lags for all stimuli
-                [Rs,~,sh,~,~,~] = corr_spks(cond_rasters,subject);
+                [Rs,Ps,sh,~,~,~] = corr_spks(cond_rasters,subject);
                 
                 % Go through each stimulus and find its best lag value.
                 for ii = 1:size(Rs,1)
                     
-                    [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.005);
-                    if numel(peakLag)<1
-                        [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.003);
-                    end
-                    if numel(peakLag)<1
-                        disp('weak correlations. setting lag to 0')
-                        peakLag = find(sh==0);
-                    elseif numel(peakLag)>1
+                    Rs(ii,Ps(ii,:)>alphaval) = nan;
+                    
+                    [~,peakLag]=findpeaks(Rs(ii,:));
+%                     if numel(peakLag)<1
+%                         [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.003);
+%                     end
+%                     if numel(peakLag)<1
+%                         disp('weak correlations. setting lag to 0')
+%                         peakLag = find(sh==0);
+%                     else
+                    if numel(peakLag)>1
                         [~,leastshift] = min(abs(peakLag-find(sh==0)));
                         peakLag = peakLag(leastshift);
                     end
-                                        
-                    data(ii,1) = sh(peakLag);
-                
+                    
+                    if ~isempty(peakLag)
+                        data(ii,1) = sh(peakLag);
+                    else
+                        data(ii,1) = nan;
+                    end
+                    
                 end
                 
                 data_plot(ismember(check_x,xvals,'rows'),ic) = data;

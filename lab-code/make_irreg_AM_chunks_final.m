@@ -85,7 +85,7 @@ irreg_repeats_time = irreg_chunk_dur * 4 * n_irreg_trials;
 
 n_periodic_rates = numel(periodic_rates);
 n_periodic_trials = 26;
-periodic_time = n_periodic_rates * irreg_chunk_dur * n_periodic_trials;
+periodic_time = (n_periodic_rates+2) * irreg_chunk_dur * n_periodic_trials;
 
 standard_stim_time = irreg_repeats_time + periodic_time
 ml_consumed = standard_stim_time/60 * ml_flowrate

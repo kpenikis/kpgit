@@ -13,10 +13,7 @@ function [subject, session, channel, Spikes] = pp_launch_manual_sort( subject, s
 % Set directories based on processor used 
 fn = set_paths_directories;
 
-% Add UMS folder
-includePath='C:\gits\kpgit\ums2k_02_23_2012';
-addpath(genpath(includePath));
-
+clear spikes
 
 % Load data structures
 
