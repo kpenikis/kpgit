@@ -29,8 +29,8 @@ else
         disp('External disk not detected; setting directories to macbook built in harddrive')
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % local macbook harddrive
-        fn.raw       = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
-        fn.processed = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
+        fn.raw       = '/Users/kpenikis/Documents/SanesLab/LocalData/AMJitter/RawData';
+        fn.processed = '/Users/kpenikis/Documents/SanesLab/LocalData/AMJitter/ProcessedData';
         
     end
 end

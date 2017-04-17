@@ -27,6 +27,7 @@ function Spikes = pp_sort_session( subject, session, Spikes )
 %
 
 %%
+close all
 tic
 
 global fs
@@ -115,7 +116,7 @@ fprintf('\n**Finished sorting and saving data for this session.\n')
 fprintf('------------------------------------------------------------\n')
 
 toc
-
+close all
 
 
 

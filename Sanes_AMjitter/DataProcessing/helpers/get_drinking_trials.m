@@ -1,4 +1,5 @@
 function N = get_drinking_trials(block)
+    
 
 %  [ block n_drinking_trs ] 
 N_drinking_trials = [...
@@ -16,6 +17,9 @@ N_drinking_trials = [...
         46 0;
         50 139;
         55 216;
+        61 0;
+        62 0;
+        63 0;
         64 148;
         68 118;
         69 0;
@@ -50,6 +54,10 @@ N_drinking_trials = [...
        174 147;
        178 159  ];
 
+if sum(N_drinking_trials(:,1)==block)<1
+    disp('block not found in vector')
+    keyboard
+end
 
 N = N_drinking_trials(N_drinking_trials(:,1)==block,2);
 

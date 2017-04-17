@@ -1,11 +1,11 @@
 function Wave = ap_stimplotting(subject,raster)
 %  
-    
+global fn
+
 % Load first block rate vector stimulus info
 block = raster(1).block;
 block = block(1);
-stimdir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData';
-stfs = dir(fullfile(stimdir,subject,sprintf('Block-%i_Stim',block),'*.mat'));
+stfs = dir(fullfile(fn.raw,subject,sprintf('Block-%i_Stim',block),'*.mat'));
 stfns = {stfs.name};
 
 % Get vectors of rates for stimuli of this block

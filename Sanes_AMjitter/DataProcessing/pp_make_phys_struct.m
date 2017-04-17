@@ -79,7 +79,7 @@ end
 
 if any(isnan(ph(it,:,ic)))
     warning('recording cut off early. mark last trial for removal')
-    keyboard
+%     keyboard
 %     ph = ph(1:(it-1),:,:);  % must you remove the last row of Stim struct too then??
 end
 

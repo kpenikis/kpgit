@@ -48,11 +48,10 @@ end
 %%
 
 % GET STIM INFO
-
-    % Get unique stimuli from this block
-%     thisblk = raster(ks);
-%     [ust, uIDs, stID] = unique([thisblk.fileIDs]);
     
+% Remove basic tuning stimuli
+Stim = Stim(~strcmp({Stim.stimfile},'basic_tuning'));
+
 % Get AM jitter stimuli
 Par_matrix = [ [Stim.block]'...
                [Stim.fileID]'...
