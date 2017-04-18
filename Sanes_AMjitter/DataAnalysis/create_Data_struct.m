@@ -89,7 +89,7 @@ filename = sprintf( '%s_sess-%s_Data',subject,session);
 save(fullfile(fn.processed,subject,filename),'Data','-v7.3');
 
 
-
+close all
 
 end
 

@@ -1,5 +1,5 @@
 
-function Info = manually_mark_trials(Info_old,session,Stim)
+function Info = manually_mark_trials(Info_old,session,Stim,Phys)
 % Go through trials that have been flagged based on RMS deviations, and
 % mark clear or dirty.
 
@@ -11,12 +11,12 @@ Info = Info_old;
 
 flagged = Info_old.artifact_trs;
 
-% Load Phys struct
-datadir  = fn.processed;
-fprintf('\nloading Phys struct...\n')
-filename = sprintf('%s_sess-%s_Phys',subject,session);
-load(fullfile(datadir,subject,filename));
-
+if nargin<4
+    % Load Phys struct
+    fprintf('\nloading Phys struct...\n')
+    filename = sprintf('%s_sess-%s_Phys',subject,session);
+    load(fullfile(fn.processed,subject,filename));
+end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Prepare gui figure
@@ -105,7 +105,7 @@ end
 
 % Save new Info struct
 filename = sprintf('%s_sess-%s_Info',subject,session);
-save(fullfile(datadir,subject,filename),'Info','-v7.3');
+save(fullfile(fn.processed,subject,filename),'Info','-v7.3');
 
 
 

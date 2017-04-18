@@ -26,22 +26,20 @@ set(0,'DefaultTextInterpreter','none')
 
 % Load data files
 fn = set_paths_directories;
-datadir  = fn.processed;
 fprintf('loading data...\n')
-filename = sprintf( '%s_sess-%s_Spikes',subject,session); load(fullfile(datadir,subject,filename));
-filename = sprintf( '%s_sess-%s_Info'  ,subject,session); load(fullfile(datadir,subject,filename));
-filename = sprintf( '%s_sess-%s_Stim'  ,subject,session); load(fullfile(datadir,subject,filename));
+filename = sprintf( '%s_sess-%s_Spikes',subject,session); load(fullfile(fn.processed,subject,filename));
+filename = sprintf( '%s_sess-%s_Info'  ,subject,session); load(fullfile(fn.processed,subject,filename));
+filename = sprintf( '%s_sess-%s_Stim'  ,subject,session); load(fullfile(fn.processed,subject,filename));
 
 
 % Manually select which flagged trials contain disruptive artifact
 if ~any(strcmp(fieldnames(Info.artifact_trs),'manual'))
-    addpath('helpers')
     
     Info = manually_mark_trials(Info,session,Stim);
     
     % Re-save Info structure
     filename = sprintf( '%s_sess-%s_Info',subject,session);
-    save(fullfile(datadir,subject,filename),'Info','-v7.3');
+    save(fullfile(fn.processed,subject,filename),'Info','-v7.3');
     
 end
 
@@ -51,6 +49,9 @@ end
     
 % Remove basic tuning stimuli
 Stim = Stim(~strcmp({Stim.stimfile},'basic_tuning'));
+
+% Remove trials were not run (quit session)
+Stim = Stim(sign([Stim.stimDur])==1);
 
 % Get AM jitter stimuli
 Par_matrix = [ [Stim.block]'...
@@ -97,7 +98,8 @@ for ks = 1:size(unique_stim,1)
     raster(ir).HP       = unique_stim(ks,6);
     raster(ir).LP       = unique_stim(ks,7);
     raster(ir).AMrate   = 4;
-    raster(ir).jitter   = strtok(extractAfter(Stim(ks_trs(1)).stimfile, '4Hz_'),'.');
+%     raster(ir).jitter   = strtok(extractAfter(Stim(ks_trs(1)).stimfile, '4Hz_'),'.');
+    raster(ir).jitter   = string(strtok(Stim(ks_trs(1)).stimfile((strfind(Stim(ks_trs(1)).stimfile,'Hz')+3):end),'.'));
     raster(ir).AMonset  = round(mean([Stim(ks_trs).onsetAM] - [Stim(ks_trs).onset]));
     raster(ir).stimDur  = Stim(ks_trs(1)).stimDur;
     raster(ir).stimfn   = Stim(ks_trs(1)).stimfile;
@@ -261,22 +263,16 @@ for ks = 1:numel(raster)
     
     
     % SAVE FIGURE
-    
-    savedir  = '/Users/kpenikis/Documents/SanesLab/Data/AMJitter/ProcessedData';
-    if raster_y<6
-        savedirR = fullfile(savedir,subject,'^rasters',session,['ch' num2str(channel)],'tested');
-    else
-        savedirR = fullfile(savedir,subject,'^rasters',session,['ch' num2str(channel)]);
-    end
-    if ~exist(savedirR,'dir')
-        mkdir(savedirR)
+    fn = set_paths_directories(subject,session);
+    if ~exist(fn.rasterplots,'dir')
+        mkdir(fn.rasterplots)
     end
     savename = sprintf('%s_%s_ch%i_clu%i_AM%iHz_jitter%s_%idpth_%idB_%i-%i_%s_blk%i',subject,session,channel,clu,...
         raster(ks).AMrate, raster(ks).jitter, round(raster(ks).AMdepth*100),...
         raster(ks).dB, raster(ks).HP, raster(ks).LP, raster(ks).behaving, raster(ks).block);
-%     print(hF(ks),fullfile(savedir,subject,'^rasters',session,savename),'-depsc','-tiff')
+%     print(hF(ks),fullfile(fn.rasterplots,savename),'-depsc','-tiff')
     set(gcf,'PaperOrientation','landscape');
-    print(hF(ks),'-dpdf',fullfile(savedirR,savename),'-bestfit')
+    print(hF(ks),'-dpdf',fullfile(fn.rasterplots,savename),'-bestfit')
     
     if ks==60
         close all
@@ -289,19 +285,7 @@ for ks = 1:numel(raster)
         %count spikes during AM, divide by n trials, divide by seconds duration of AM stim
     
     
-end
-
-% SAVE RASTER STRUCT
-
-% savename = sprintf('%s_sess-%s_raster_ch%i_clu%i',subject,session,channel,clu);
-% save(fullfile(savedir,subject,savename),'raster','-v7.3')
-
-
-
-
-
-
-
+end %ks
 
 
 end

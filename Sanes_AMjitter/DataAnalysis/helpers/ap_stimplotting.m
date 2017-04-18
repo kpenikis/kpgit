@@ -23,7 +23,7 @@ for ks = 1:numel(raster)
         
         % Load new rate vector stimulus info
         block = data.block;
-        stfs = dir(fullfile(stimdir,subject,sprintf('Block-%i_Stim',block),'*.mat'));
+        stfs = dir(fullfile(fn.raw,subject,sprintf('Block-%i_Stim',block),'*.mat'));
         stfns = {stfs.name};
         
         % Get vectors of rates for stimuli of this block

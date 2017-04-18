@@ -35,20 +35,31 @@ global fs
 % Set directories based on processor used 
 fn = set_paths_directories;
 
-% Add UMS folder
-includePath='C:\gits\kpgit\ums2k_02_23_2012';
-addpath(genpath(includePath));
-
-
 % Load data structures
 fprintf('\nloading data...')
 filename = sprintf('%s_sess-%s_Phys',subject,session);
 load(fullfile(fn.processed,subject,filename));
 filename = sprintf('%s_sess-%s_Info',subject,session);
 load(fullfile(fn.processed,subject,filename));
+filename = sprintf('%s_sess-%s_Stim',subject,session);
+load(fullfile(fn.processed,subject,filename));
 fs = Info.fs;
 fprintf(' done.\n')
 
+
+%% MOVED THIS HERE FROM PLOT_RASTERS, BECAUSE ALREADY ASKING FOR USER INPUT
+% Manually select which flagged trials contain disruptive artifact
+if ~any(strcmp(fieldnames(Info.artifact_trs),'manual'))
+    
+    Info = manually_mark_trials(Info,session,Stim,Phys);
+    
+    % Re-save Info structure
+    filename = sprintf( '%s_sess-%s_Info',subject,session);
+    save(fullfile(fn.processed,subject,filename),'Info','-v7.3');
+    
+    clear Stim
+end
+%%
 
 % Determine channel to begin sorting
 if nargin>2
