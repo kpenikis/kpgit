@@ -9,7 +9,11 @@ fn = set_paths_directories;
 %%
 if nargin<2 && ~exist('METRICS','var')
 %****************************************%
+<<<<<<< Updated upstream
 METRICS = {'Corr0' 'maxCorr' 'shftCorr' 'FR' 'FF' 'FFavPds' 'VS' 'RS' 'standardFR'};
+=======
+METRICS = {'maxCorr' 'shftCorr' 'FR' 'FF' 'FFavPds' 'VS' 'RS' 'standardFR'};
+>>>>>>> Stashed changes
 %****************************************%
 end
 
