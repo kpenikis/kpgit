@@ -1,15 +1,22 @@
 
 function [FFmean] = calc_FF_periods(stim,subject)
 
+
+global fn
+
 % Set stimulus file directory and load rate vectors
 blocks = stim.block;
-stimdir = fullfile('/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData',subject,sprintf('Block-%i_Stim',blocks(1)));
+stimdir = fullfile(fn.raw,subject,sprintf('Block-%i_Stim',blocks(1)));
 rV = load(fullfile(stimdir,stim(1).stimfn));
 
 % Find minimum number of trials for each stimulus
 ntc=nan(numel(stim),1);
 for is = 1:numel(stim)
-    ntc(is) = max(stim(is).y);
+    try
+        ntc(is) = max(stim(is).y);
+    catch
+        ntc(is) = 0;
+    end
 end
 min_nt = min(ntc);
 
@@ -21,6 +28,12 @@ FF = nan( numel(stim), length(rV.buffer)-1, iterations );
 for is = 1:numel(stim)
     
     data = stim(is);
+    
+    % if FR is too low, set data output to nans
+    if isempty(data.x) || (numel(data.x)/max(data.y) / (data.stimDur/1000)) < 5
+        disp('skipping datapoint with too few spikes')
+        continue  %FF(is,:,:) is already full of nans
+    end
     
     % Get vectors of rates for this stimulus
     rateVec = load(fullfile(stimdir,data.stimfn));

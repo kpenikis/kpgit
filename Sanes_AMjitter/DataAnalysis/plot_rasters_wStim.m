@@ -6,6 +6,9 @@ function raster = plot_rasters_wStim(subject, session, channel, clu)
 %
 %  KP, 2016-04; last updated 2017-01
 
+%~~~~~~~~~~~~
+rm_last = 1;
+%~~~~~~~~~~~~
 
 % set(0,'DefaultAxesFontSize',6)
 % set(0,'defaulttextfontsize',50)
@@ -21,11 +24,11 @@ rasterLineWidth  = 0.5;
 % rasterLineWidth  = 1;
 
 set(0,'DefaultTextInterpreter','none')
-
+set(0,'DefaultAxesFontSize',16)
 
 
 % Load data files
-fn = set_paths_directories;
+fn = set_paths_directories(subject,session);
 fprintf('loading data...\n')
 filename = sprintf( '%s_sess-%s_Spikes',subject,session); load(fullfile(fn.processed,subject,filename));
 filename = sprintf( '%s_sess-%s_Info'  ,subject,session); load(fullfile(fn.processed,subject,filename));
@@ -47,6 +50,8 @@ end
 
 % GET STIM INFO
     
+last_trial = numel(Stim);
+
 % Remove basic tuning stimuli
 Stim = Stim(~strcmp({Stim.stimfile},'basic_tuning'));
 
@@ -74,6 +79,11 @@ for ks = 1:size(unique_stim,1)
     end
     
     ks_trs = []; ks_trs=find(StimID==StimID(unique_IDs(ks)));
+    
+    % Remove last trial if required
+    if rm_last
+        ks_trs(ks_trs==last_trial)=[];
+    end
     
     % Skip stimuli whose duration is longer than data saved to Phys
     if (Stim(ks_trs(1)).stimDur > Info.t_win_ms(2))
@@ -263,16 +273,16 @@ for ks = 1:numel(raster)
     
     
     % SAVE FIGURE
-    fn = set_paths_directories(subject,session);
-    if ~exist(fn.rasterplots,'dir')
-        mkdir(fn.rasterplots)
+    savedir = fullfile(fn.rasterplots,['ch' num2str(channel)]);
+    if ~exist(savedir,'dir')
+        mkdir(savedir)
     end
     savename = sprintf('%s_%s_ch%i_clu%i_AM%iHz_jitter%s_%idpth_%idB_%i-%i_%s_blk%i',subject,session,channel,clu,...
         raster(ks).AMrate, raster(ks).jitter, round(raster(ks).AMdepth*100),...
         raster(ks).dB, raster(ks).HP, raster(ks).LP, raster(ks).behaving, raster(ks).block);
-%     print(hF(ks),fullfile(fn.rasterplots,savename),'-depsc','-tiff')
+%     print(hF(ks),fullfile(savedir,savename),'-depsc','-tiff')
     set(gcf,'PaperOrientation','landscape');
-    print(hF(ks),'-dpdf',fullfile(fn.rasterplots,savename),'-bestfit')
+    print(hF(ks),'-dpdf',fullfile(savedir,savename),'-bestfit')
     
     if ks==60
         close all

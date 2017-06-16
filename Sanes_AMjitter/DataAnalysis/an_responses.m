@@ -1,4 +1,4 @@
-function dp = an_responses(METRIC,rasters,indVar,subject,plotOptions,ALLcolors,xlimits,PLOT_DIFF)
+function dp = an_responses(METRIC,rasters,indVar,subject,plotOptions,ALLcolors,xlimits,PLOT_DIFF,dp)
 % an_responses(METRIC,rasters,indVar,parname,which_classifier,figHandle)
 %   Calculates the response of this cluster to each stimulus, reflected by
 %   the response measure specified by input variable METRIC. Plots and
@@ -14,7 +14,10 @@ function dp = an_responses(METRIC,rasters,indVar,subject,plotOptions,ALLcolors,x
 %
 % KP, 04-2017.
 %
-% global session unit
+
+
+% ~~~~  MUST CORRECT FOR CLUS/STIMULI WITH FEW SPIKES
+
 
 % Prepare variables for output
 dp_depth  = [];
@@ -27,13 +30,13 @@ alphaval = 0.1;
 % Get independent and condition variable values
 switch indVar
     case 'jitter'
-        indVar_vals = unique([rasters.jitter]);
+        indVar_vals = str2double(strtok(unique([rasters.jitter],'stable'),'_'))';
         condVar = 'AMdepth';
-        condVar_vals = unique([rasters.AMdepth]);
+        condVar_vals = unique([rasters.AMdepth])';
         condVar_vals(condVar_vals==0) = []; %if jitter on x axis, leave out depth of 0
     case 'depth'
         indVar = 'AMdepth';
-        indVar_vals = unique([rasters.AMdepth]);
+        indVar_vals = convert_depth_proptodB(unique([rasters.AMdepth]))';
         condVar = 'jitter';
         condVar_vals = unique([rasters.jitter]);
 end
@@ -65,9 +68,17 @@ for ic = 1:numel(condVar_vals)
     
     
     %% GET DATAPOINTS
-    %
+    
     try
         switch METRIC
+            case 'Corr0'
+                
+                [Rs,Ps,~,~] = corr_psth(cond_rasters,subject);
+                
+                Rs((Ps>alphaval)|isnan(Ps) ) = nan;
+                data = Rs;
+                data_plot(ismember(check_x,xvals,'rows'),ic) = data;
+                
             case 'maxCorr'
                 % Get correlations at all lags for all stimuli
                 [Rs,Ps,sh,~,~,~] = corr_spks(cond_rasters,subject);
@@ -76,23 +87,15 @@ for ic = 1:numel(condVar_vals)
                 % lag value.
                 for ii = 1:size(Rs,1)
                     
-                    Rs(ii,Ps(ii,:)>alphaval) = nan;
+                    Rs(ii, (Ps(ii,:)>alphaval)|isnan(Ps(ii,:)) ) = nan;
                     
                     
                     [~,peakLag]=findpeaks(Rs(ii,:));
-%                     if numel(peakLag)<1
-%                         [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.003);
-%                     end
-%                     if numel(peakLag)<1
-%                         disp('weak correlations. setting lag to 0')
-%                         peakLag = find(sh==0);
-%                     elseif numel(peakLag)>1
+                    
                     if numel(peakLag)>1
                         [~,leastshift] = min(abs(peakLag-find(sh==0)));
                         peakLag = peakLag(leastshift);
                     end
-%                     
-%                     [~,~,~,Rtrs,~,~]   = corr_spks(cond_rasters(ii),subject,sh(peakLag));
                     
                     if ~isempty(peakLag)
                         data(ii,1) = Rs(ii,peakLag);
@@ -112,16 +115,10 @@ for ic = 1:numel(condVar_vals)
                 % Go through each stimulus and find its best lag value.
                 for ii = 1:size(Rs,1)
                     
-                    Rs(ii,Ps(ii,:)>alphaval) = nan;
+                    Rs(ii, (Ps(ii,:)>alphaval)|isnan(Ps(ii,:)) ) = nan;
                     
                     [~,peakLag]=findpeaks(Rs(ii,:));
-%                     if numel(peakLag)<1
-%                         [~,peakLag]=findpeaks(Rs(ii,:),'MinPeakProminence',0.003);
-%                     end
-%                     if numel(peakLag)<1
-%                         disp('weak correlations. setting lag to 0')
-%                         peakLag = find(sh==0);
-%                     else
+                    
                     if numel(peakLag)>1
                         [~,leastshift] = min(abs(peakLag-find(sh==0)));
                         peakLag = peakLag(leastshift);
@@ -174,6 +171,7 @@ for ic = 1:numel(condVar_vals)
                 [data,data_std] = calc_standardFR(cond_rasters,subject);
                 data_plot(ismember(check_x,xvals,'rows'),ic) = data;
         end
+        
     catch
         keyboard
     end
@@ -189,7 +187,7 @@ for ic = 1:numel(condVar_vals)
     
 end %ic
 
-% Apploy same value to both jitters for AM depth of 0
+% Apply same value to both jitters for AM depth of 0
 if strcmp(indVar,'AMdepth') && isnan(data_plot(1,1))
     data_plot(1,1) = data_plot(1,2);
 end
@@ -198,14 +196,14 @@ end
 try
     if ~PLOT_DIFF
         for ic = 1:numel(condVar_vals)
-            plot(xvals,data_plot(:,ic),'.-','MarkerSize',30,...
+            plot(indVar_vals,data_plot(:,ic),'.-','MarkerSize',30,...
                 'Color', ALLcolors( strcmp(strtok(icondVar{ic},'_'),strtok(plotOptions.colSelect,'_')), : ), ...
                 'LineWidth', 2)
         end
         ylabel(METRIC)
         
     elseif PLOT_DIFF && numel(condVar_vals)==2 && strcmp(icondVar{1},'0')
-        plot(xvals,diff(data_plot,1,2),'.-','MarkerSize',30,...
+        plot(indVar_vals,diff(data_plot,1,2),'.-','MarkerSize',30,...
             'Color', ALLcolors( strcmp(strtok(icondVar{2},'_'),strtok(plotOptions.colSelect,'_')), : ), ...
             'LineWidth', 2)
         plot([min(xlimits) max(xlimits)],[0 0],'--k','LineWidth',0.75)
@@ -220,9 +218,13 @@ end
 
 set(gca,'xlim',xlimits)
 
+if ~PLOT_DIFF
+    dp.depth = dp_depth;
+    dp.jitter = dp_jitter;
+    dp.baselineFR = dp_baseFR;
+    dp.(METRIC) = dp_data;
+end
 
-dp = table(dp_depth,dp_jitter,dp_data,dp_baseFR);
-dp.Properties.VariableNames = {'depth' 'jitter' METRIC 'baselineFR' };
 
 end
 

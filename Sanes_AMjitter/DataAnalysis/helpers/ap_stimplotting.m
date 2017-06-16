@@ -68,7 +68,7 @@ for ks = 1:numel(raster)
 %     xlim([0 length(stim)]/fs*1000)
 %     xlabel('time (ms)')
 %     title(data.stimfn)
-    
+%     
 
     % Print comparison between Wav and Stim durations, as a check
 %     fprintf('\nraster %i \nWav dur %i, Stim dur %i \nWav AM %i, Stim AM %i',...

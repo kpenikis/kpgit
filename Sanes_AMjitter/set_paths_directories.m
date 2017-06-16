@@ -11,8 +11,7 @@ addpath(genpath('DataAnalysis'), genpath('DataProcessing'))
 if strncmp(computername,'Regina',5)  
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     % PC at 1012 rig
-    fn.raw = 'G:\NYUDrive\Sanes\DATADIR\AMJitter\RawData'; %'G:\RawData';
-    fn.processed  = 'G:\NYUDrive\Sanes\DATADIR\AMJitter\ProcessedData'; %'G:\ProcessedData_temp';
+    basefolder  = 'G:\NYUDrive\Sanes\DATADIR\AMJitter'; %'G:\ProcessedData_temp';
     
     includePath='C:\gits\kpgit\ums2k_02_23_2012';
     
@@ -22,19 +21,24 @@ else
     if exist('/Volumes/KP_workingDataStore','dir')~=0
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % external harddrive connected to macbook
-        fn.raw = '/Volumes/KP_workingDataStore/NYUDrive/Sanes/DATADIR/AMJitter/RawData'; %'/Volumes/Seagate-1_KP/RawData';
-        fn.processed  = '/Volumes/KP_workingDataStore/NYUDrive/Sanes/DATADIR/AMJitter/ProcessedData'; %'/Volumes/Seagate-1_KP/ProcessedData_temp';
+        basefolder = '/Volumes/KP_workingDataStore/NYUDrive/Sanes/DATADIR/AMJitter'; %'/Volumes/Seagate-1_KP/RawData';
         
     else
         disp('External disk not detected; setting directories to macbook built in harddrive')
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % local macbook harddrive
-        fn.raw       = '/Users/kpenikis/Documents/SanesLab/LocalData/AMJitter/RawData';
-        fn.processed = '/Users/kpenikis/Documents/SanesLab/LocalData/AMJitter/ProcessedData';
+        basefolder = '/Users/kpenikis/Documents/SanesLab/LocalData/AMJitter';
         
     end
 end
 addpath(genpath(includePath));
+
+% Set basic folders
+fn.raw        = fullfile(basefolder,'RawData');
+fn.processed  = fullfile(basefolder,'ProcessedData');
+fn.stim       = fullfile(basefolder,'Stimuli');
+fn.population = fullfile(fn.processed,'^Population');
+fn.standardPd = fullfile(fn.population,'StandardPd');
 
 % Set subject and session directories
 if nargin==2

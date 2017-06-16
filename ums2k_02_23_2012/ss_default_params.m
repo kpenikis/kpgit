@@ -36,9 +36,9 @@ function spikes = ss_default_params(Fs, varargin )
     spikes.params.cross_time = 0.6;          % ms, alignment point for peak of waveform
  
     % sorting parameters
-    spikes.params.refractory_period = 2.5;  % ms, refractory period (for calculation refractory period violations)
+    spikes.params.refractory_period = 3;    % ms, refractory period (for calculation refractory period violations)
     spikes.params.max_jitter = 0.6;         % ms, width of window used to detect peak after threshold crossing
-    spikes.params.agg_cutoff = .07;         %  higher = less aggregation, lower = more aggregation   default: 0.05? 
+    spikes.params.agg_cutoff = .05;         %  higher = less aggregation, lower = more aggregation   default: 0.05? 
     spikes.params.kmeans_clustersize = 1000; %  target size for miniclusters
 
     %%

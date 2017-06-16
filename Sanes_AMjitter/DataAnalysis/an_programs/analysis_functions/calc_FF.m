@@ -4,7 +4,11 @@ function [FFmean,FFpctl] = calc_FF(stim,binsize)
 % Find minimum number of trials for each stimulus
 ntc=nan(numel(stim),1);
 for is = 1:numel(stim)
-    ntc(is) = max(stim(is).y);
+    try
+        ntc(is) = max(stim(is).y);
+    catch
+        ntc(is) = 0;
+    end
 end
 min_nt = min(ntc);
 
@@ -16,6 +20,12 @@ FF     = nan(numel(stim),iterations);
 for is = 1:numel(stim)
     
     data = stim(is);
+    
+    % if FR is too low, set data output to nans
+    if isempty(data.x) || (numel(data.x)/max(data.y) / (data.stimDur/1000)) < 5
+        disp('skipping datapoint with too few spikes')
+        continue
+    end
     
     if binsize==0
         tVec = [data.AMonset data.stimDur];

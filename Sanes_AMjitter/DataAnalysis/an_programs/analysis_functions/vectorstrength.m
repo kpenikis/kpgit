@@ -1,6 +1,7 @@
 function [VS,RS,P] = vectorstrength(Spktime,period,ntr)
 % Vector Strength is a measure of the degree of phase-locking or
 % synchronization. 
+% Input Spktime must be indices, not a sparse matrix/vector.
 
 NSpk	=	length(Spktime); %/ntr*1000/period
                                             %need this be normalized across 
@@ -18,7 +19,8 @@ VS2		=	sqrt(C^2 + S^2) / length(Spktime);
 if( isnan(VS1) || isnan(VS2) )
 	VS	=	NaN;
 else
-	if( round(VS1,3,'decimals') ~= round(VS2,3,'decimals') )
+% 	if( round(VS1,3,'decimals') ~= round(VS2,3,'decimals') )
+	if( abs(VS1-VS2)>0.00001 )
 		keyboard
         VS	=	VS1;
 	else

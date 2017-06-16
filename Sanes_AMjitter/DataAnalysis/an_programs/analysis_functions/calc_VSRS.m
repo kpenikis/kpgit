@@ -1,9 +1,10 @@
-
 function [VSmean,VS,RSmean,RS] = calc_VSRS(raster,subject,trials)
+
+global fn
 
 % Set stimulus file directory
 blocks = raster.block;
-stimdir = fullfile('/Users/kpenikis/Documents/SanesLab/Data/AMJitter/RawData',subject,sprintf('Block-%i_Stim',blocks(1)));
+stimdir = fullfile(fn.raw,subject,sprintf('Block-%i_Stim',blocks(1)));
 rV = load(fullfile(stimdir,raster(1).stimfn));
 
 % Set up empty vectors and get VS data
@@ -12,6 +13,12 @@ RS = nan(numel(raster),length(rV.buffer)-2);
 for is = 1:numel(raster)
     
     data = raster(is);
+    
+    % if FR is too low, set data output to nans
+    if isempty(data.x) || (numel(data.x)/max(data.y) / (data.stimDur/1000)) < 5
+        disp('skipping datapoint with too few spikes')
+        continue  %VS already full of nans
+    end
     
     % Get vectors of rates for this stimulus
     rateVec = load(fullfile(stimdir,data.stimfn));

@@ -32,18 +32,53 @@ create_Data_struct( subject, session )
 
     %raster = pp_plot_rasters_wStim(subject,session,channel,clu);
 
-
+    
+    
 %% Run analysis plots
 
-getALL_anData( subject, session );
+anResponsePopulationPlots( subject )
 
-    %ap_xJitter(subject,session,channel,clu,METRIC)
-    
+
     
 %% Neurometric analyses
 
 Data = getALL_nmData(subject,session);
 
     %cludata = ap_nmData_depth(cludata)
+
+    
+    
+%% Collect Standard Period Responses from the population
+
+StandardPd_Responses( subject )
+
+
+% Plot various measures of activity during standard period
+
+standardPd_anyPlot( subject, plottype, var1, var2, categorization)
+
+% ('IIIf_230115', psth,   '',   '',   'ALL')
+% ('IIIf_230115', psth,   '',   '',   'Corr')
+% ('IIIf_230115', psth,   '',   '',   'VS')
+% ('IIIf_230115', psth_diff,  '',   '',   'ALL')
+% ('IIIf_230115', comparison, 'FR',         '', 'ALL')
+% ('IIIf_230115', comparison, 'FRnorm',     '', 'ALL')
+% ('IIIf_230115', comparison, 'PeakTime',   '', 'ALL')
+% ('IIIf_230115', comparison, 'PeakTrough', '', 'ALL')
+% ('IIIf_230115', regression, 'FRidx', 'FR100ms_idx', 'ALL')
+% ('IIIf_230115', regression, 'FRidx', 'FR250ms_idx', 'ALL')
+% ('IIIf_230115', regression, 'FRidx', 'prevRate',    'ALL')
+
+
+%%  - - - - OR - - - - - 
+
+%% Plot SU psths and within unit metrics
+
+ScreenUnitResponses( subject )
+
+
+
+
+
 
 

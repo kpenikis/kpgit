@@ -10,6 +10,12 @@ FRvec = nan(numel(stim),1); FRstd = nan(numel(stim),2); FRtr=struct();
 
 for ir = 1:numel(stim)
     
+    % if FR is too low, set data output to nans
+    if isempty(stim(ir).x) || (numel(stim(ir).x)/max(stim(ir).y) / (stim(ir).stimDur/1000)) < 5
+        disp('skipping datapoint with too few spikes')
+        continue 
+    end
+    
     x = stim(ir).x;
     y = stim(ir).y;
     

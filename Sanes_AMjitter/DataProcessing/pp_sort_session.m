@@ -30,7 +30,7 @@ function Spikes = pp_sort_session( subject, session, Spikes )
 close all
 tic
 
-global fs
+global fs fn
 
 % Set directories based on processor used 
 fn = set_paths_directories;

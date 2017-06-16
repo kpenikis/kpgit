@@ -61,11 +61,11 @@ IR_rateVec_2_inv = [IR_D IR_B];
 figure; hold on
 xstart = 0;
 plot(xstart+1:xstart+length(IR_rateVec_1),IR_rateVec_1,'+k')
-xstart = xstart+length(IR_rateVec_1);
+xstart = 10+ xstart+length(IR_rateVec_1);
 plot(xstart+1:xstart+length(IR_rateVec_1_inv),IR_rateVec_1_inv,'+b')
 xstart = 10 + xstart+length(IR_rateVec_1_inv);
 plot(xstart+1:xstart+length(IR_rateVec_2),IR_rateVec_2,'+k')
-xstart = xstart+length(IR_rateVec_2);
+xstart = 10+ xstart+length(IR_rateVec_2);
 plot(xstart+1:xstart+length(IR_rateVec_2_inv),IR_rateVec_2_inv,'+b')
 set(gca,'yscale','log')
 set(gca,'ytick',AMrates)
