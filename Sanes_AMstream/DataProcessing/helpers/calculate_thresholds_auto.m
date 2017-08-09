@@ -33,8 +33,12 @@ for channel = [1 5 9 13]
         
         % Skip if unmodulated noise, silence, or irrelevant time in
         % recording
+        try
         if SoundData(8,AllBlocks(ibs)) > 10 || SoundData(8,AllBlocks(ibs))==0
             continue
+        end
+        catch
+            keyboard
         end
         
         % Check these segments for artifact

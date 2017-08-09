@@ -1,4 +1,4 @@
-function [thresh, reject] = calculate_thresholds_auto( Phys, SoundData, Info )
+function [thresh, reject] = calculate_thresholds_auto_tuning( Phys, SoundData, Info )
 %  [thresh, reject] = calculate_thresholds( Phys, trial_length_s )
 %    Called by pp_sort_session. Launches a gui in which a random trial is
 %    selected and filtered Phys data is displayed for 4 channels at a time.
@@ -33,14 +33,18 @@ for channel = [1 5 9 13]
         
         % Skip if unmodulated noise, silence, or irrelevant time in
         % recording
+        try
         if SoundData(8,AllBlocks(ibs)) > 10 || SoundData(8,AllBlocks(ibs))==0
             continue
+        end
+        catch
+            keyboard
         end
         
         % Check these segments for artifact
         use_segment = 1; %default is to use it, mark with 0 if noisy
         for isp = 0:3
-            if ~isempty(intersect(Info.artifact(channel+isp).SDsamples,AllBlocks(ibs):(AllBlocks(ibs+1)-1)))
+            if ~isempty( intersect( Info.artifact(channel+isp).SDsamples, AllBlocks(ibs):(AllBlocks(ibs+1)-1) ) )
                 use_segment = 0;
             end
         end
@@ -97,8 +101,6 @@ reject = std_cln .* -20 ;
 
 
 end
-
-
 
 
 

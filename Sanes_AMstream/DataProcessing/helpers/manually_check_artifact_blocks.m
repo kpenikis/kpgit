@@ -69,6 +69,9 @@ for ich = 1:size(Phys,1)
             hold on
             plot( round(Info.fs_sound+1):(round(Info.fs_sound)+length(samples)), Phys(ich,ds.*samples), 'Color',[0.3 0.3 0.3])
         catch
+            if size(Phys,2) < (ds*samples(end))
+                samples = samples(1:end-1);
+            end
             plot( round(Info.fs_sound+1):(round(Info.fs_sound)+length(samples)), Phys(ich,ds.*samples), 'Color',[0.3 0.3 0.3])
             hold on
         end

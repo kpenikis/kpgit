@@ -1,4 +1,4 @@
-function Spikes = pp_sort_session( subject, session, Spikes )
+function Spikes = pp_sort_tuning_session( subject, session, Spikes )
 % 
 %  pp_sort_session( subject, session) 
 %    Loads Phys struct to run data through UMS spike sorting algorithm, and
@@ -41,12 +41,24 @@ filename = sprintf('%s_sess-%s_Phys',subject,session);
 load(fullfile(fn.processed,subject,filename));
 filename = sprintf('%s_sess-%s_Info',subject,session);
 load(fullfile(fn.processed,subject,filename));
-filename = sprintf('%s_sess-%s_SoundData',subject,session);
+filename = sprintf('%s_sess-%s_Stim',subject,session);
 load(fullfile(fn.processed,subject,filename));
 fs = Info.fs;
 fprintf(' done.\n')
 
 
+%% MOVED THIS HERE FROM PLOT_RASTERS, BECAUSE ALREADY ASKING FOR USER INPUT
+% Manually select which flagged trials contain disruptive artifact
+if ~any(strcmp(fieldnames(Info.artifact_trs),'manual'))
+    
+    Info = manually_mark_trials(Info,session,Stim,Phys);
+    
+    % Re-save Info structure
+    filename = sprintf( '%s_sess-%s_Info',subject,session);
+    save(fullfile(fn.processed,subject,filename),'Info','-v7.3');
+    
+    clear Stim
+end
 %%
 
 % Determine channel to begin sorting
@@ -58,12 +70,8 @@ else
 end
 
 
-% Launch GUI to manually select clean data segments and set thresholds
-
-segment_length_s = diff(Info.t_win_ms)/1000;  %length of each data segment (sec)
-
-
-[thresh, reject] = calculate_thresholds(Phys, SoundData, Info);
+% Automatically set thresholds from clean data segments 
+[thresh, reject] = calculate_thresholds(Phys, Info, Stim);
 
 
 % Sort each channel, individually for now, and fill Spikes struct

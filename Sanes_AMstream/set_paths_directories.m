@@ -1,7 +1,7 @@
 function fn = set_paths_directories(subject,session)
 
 % Add Processing and Analysis folders to path
-addpath(genpath('DataAnalysis'), genpath('DataProcessing'))
+addpath(genpath('DataAnalysis'), genpath('DataProcessing'), genpath('Tuning'))
 
 
 % Set basic folders based on where runnuing from 
@@ -24,7 +24,7 @@ else
         basefolder = '/Volumes/KP_workingDataStore/NYUDrive/Sanes/DATADIR/AMStream'; %'/Volumes/Seagate-1_KP/RawData';
         
     else
-        disp('External disk not detected; setting directories to macbook built in harddrive')
+%         disp('External disk not detected; setting directories to macbook built in harddrive')
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % local macbook harddrive
         basefolder = '/Users/kpenikis/Documents/SanesLab/LocalData/AMStream';
@@ -45,6 +45,7 @@ if nargin==2
     fn.sess_data   = fullfile(fn.processed,subject,session);
     fn.rasterplots = fullfile(fn.processed,subject,'^rasters',session);
     fn.anplots     = fullfile(fn.processed,subject,'^an_plots',session);
+    fn.tuning      = fullfile(fn.processed,subject,'^tuning',session);
     fn.nmplots     = fullfile(fn.processed,subject,'^nm_plots',session);
 end
 

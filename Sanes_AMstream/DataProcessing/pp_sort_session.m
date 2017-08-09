@@ -41,19 +41,54 @@ filename = sprintf('%s_sess-%s_Phys',subject,session);
 load(fullfile(fn.processed,subject,filename));
 filename = sprintf('%s_sess-%s_Info',subject,session);
 load(fullfile(fn.processed,subject,filename));
-filename = sprintf('%s_sess-%s_SoundData',subject,session);
-load(fullfile(fn.processed,subject,filename));
+
+if isfield('Info','t_win_ms') %diff(Info.t_win_ms)<1000
+    filename = sprintf('%s_sess-%s_Stim',subject,session);
+    load(fullfile(fn.processed,subject,filename));
+else
+    filename = sprintf('%s_sess-%s_SoundData',subject,session);
+    load(fullfile(fn.processed,subject,filename));
+end
+
 fs = Info.fs;
 fprintf(' done.\n')
 
 
 %%
 
-% ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-% Call program to automatically select clean data segments and set thresholds
-[thresh, reject] = calculate_thresholds_auto(Phys, SoundData, Info);
-% ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+if exist('SoundData','var')
+    
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    % Call program to automatically select clean data segments and set thresholds
+    [thresh, reject] = calculate_thresholds_auto(Phys, SoundData, Info);
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
+else
+    
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    % Manually select which flagged trials contain disruptive artifact
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    if ~any(strcmp(fieldnames(Info.artifact_trs),'manual'))
+        
+        Info = manually_mark_trials(Info,session,Stim,Phys);
+        
+        % Re-save Info structure
+        filename = sprintf( '%s_sess-%s_Info',subject,session);
+        save(fullfile(fn.processed,subject,filename),'Info','-v7.3');
+        
+        clear Stim
+    end
+    
+    
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    % And calculate thresholds
+    
+    segment_length_s = diff(Info.t_win_ms)/1000;  %length of each data segment (sec)
+    [thresh, reject] = calculate_thresholds(Phys, segment_length_s);
+
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+
+end
 
 %%
 Spikes = struct();

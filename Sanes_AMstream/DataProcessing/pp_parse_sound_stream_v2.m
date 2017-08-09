@@ -156,11 +156,15 @@ switch protocol
 %         plot(adjustedS(2:end),diff(sound_smooth)./max(diff(sound_smooth)),'r','LineWidth',2)
 %         plot(adjustedS(ipks(2)),pks(2),'*k','MarkerSize',10,'LineWidth',3)
         %
+        
         hf=figure; hold on 
         plot(SoundData(2,1:AMrateTrans_output(2)),'Color',[0.4 0.4 0.4])
-        plot([1 ipks(2)+1 ipks(2)+1 AMrateTrans_output(2)-1 AMrateTrans_output(2)-1 AMrateTrans_output(2)],[0 0 1 1 0 0],'--','LineWidth',2,'Color',[255,140,0]./255)
-        plot([1 unmON unmON ipks(2) ipks(2) AMrateTrans_output(2)],[0 0 1 1 0 0],'--g','LineWidth',2)
-        plot([1 AMrateTrans_output(1) AMrateTrans_output(1) unmON-1 unmON-1 AMrateTrans_output(2)],[0 0 1 1 0 0],'--k','LineWidth',2)
+        ip(1)=plot([1 AMrateTrans_output(1) AMrateTrans_output(1) unmON-1 unmON-1 AMrateTrans_output(2)],[0 0 1 1 0 0],'--k','LineWidth',2); %silence
+        ip(2)=plot([1 unmON unmON ipks(2) ipks(2) AMrateTrans_output(2)],[0 0 1 1 0 0],'--g','LineWidth',2); %unmodulated noise
+        ip(3)=plot([1 ipks(2)+1 ipks(2)+1 AMrateTrans_output(2)-1 AMrateTrans_output(2)-1 AMrateTrans_output(2)],[0 0 1 1 0 0],'--','LineWidth',2,'Color',[255,140,0]./255); %AM
+        
+        legend(ip,{'silence' 'unmod.' 'AM'})
+        
         %
         
         
@@ -169,6 +173,7 @@ switch protocol
             keyboard
         else 
             close(hf)
+            clear ip
         end        
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -195,9 +200,11 @@ switch protocol
         %
         hf=figure; hold on
         plot( SoundData(2, AMrateTrans_output(end-1):end) ,'Color',[0.4 0.4 0.4])
-        plot( SoundData(2, AMrateTrans_output(end-1):end) ~= 0 , '--g', 'LineWidth',2 ) %unmod
-        plot( SoundData(2, AMrateTrans_output(end-1):end) == 0 , '--k', 'LineWidth',2 )%silence
+        ip(1)=plot( post_AM     , '--g', 'LineWidth',2 ); %unmod
+        ip(2)=plot( silence_end , '--k', 'LineWidth',2 ); %silence
+%         plot( SoundData(2, AMrateTrans_output(end-2):end) ,'Color',[0.4 0.4 0.4])
         xlim([1 size(SoundData,2)-AMrateTrans_output(end-1)])
+        legend(ip,{'unmod.' 'silence'})
         %
         
         if sum(diff(post_AM)) ~= -1
@@ -209,25 +216,32 @@ switch protocol
             keyboard
         end
         
-        result = input('\ndoes the plot look ok?\n');
-        if ~isempty(result)
-            keyboard
-        else 
+        result = input('\ndoes the plot look ok?\ntype 4 if ended early\n');
+        if isempty(result)
             close(hf)
+            clear ip
+        elseif result==4
+            aaa=234;
+        else
+            keyboard
         end
         
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % As long as the UNMODULATED portion is longer than 5 seconds, add
         % it to Blocks_SoundData
-        if length(find(post_AM)) > (Info.fs_sound*5) 
+        if ( length(find(post_AM)) > (Info.fs_sound*5) ) && isempty(result)
             Blocks_SoundData(1, find(post_AM)+AMrateTrans_output(end-1)-1 ) = 11;
+        elseif result==4
+            Blocks_SoundData(1, find(post_AM)+AMrateTrans_output(end-1)-1 ) = 0;
         end
         
         % As long as the SILENCE portion is longer than 5 seconds, add
         % it to Blocks_SoundData
-        if length(find(post_AM)) > (Info.fs_sound*5) 
+        if ( length(find(post_AM)) > (Info.fs_sound*5) ) && isempty(result)
             Blocks_SoundData(1, find(silence_end)+AMrateTrans_output(end-1)-1 ) = 12;
+        elseif result==4
+            Blocks_SoundData(1, find(silence_end)+AMrateTrans_output(end-1)-1 ) = 0;
         end
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         
