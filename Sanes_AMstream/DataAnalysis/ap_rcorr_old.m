@@ -19,17 +19,19 @@ mspad = 500;
 
 fn = set_paths_directories(subject);
 SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
-
-% Get list of all sessions with Spikes file
-Sessions = cell(1,1);
+    
+Sessions = [];
+Sessions2 = [];
 for ifn = 1:numel(SpkFns)
     splitStr = regexp(SpkFns(ifn).name,'_','split');
     splitStr2 = regexp(splitStr{3},'-','split');
     if length(splitStr2{2})==2
-        Sessions{end+1,1} = splitStr2{2};
+        Sessions = [Sessions; splitStr2{2}];
     end
+%     if length(char(extractBetween(SpkFns(ifn).name,'sess-','_Spikes')))==2
+%         Sessions2 = [Sessions2; extractBetween(SpkFns(ifn).name,'sess-','_Spikes')];
+%     end
 end
-Sessions = Sessions(2:end,:);
 
 
 % Set some plotting params
@@ -49,7 +51,7 @@ end
 % Step through each session
 for sess = Sessions'
     
-session = sess{:};
+session = char(sess);
 
 %%
 % Load data files
@@ -171,8 +173,8 @@ for channel = channels
                     fprintf('calculating RCORR vals for ch %i clu %i...\n',channel,clu)
                     
                     %~~~~~~~~
-                    sws = [1 2 4 8 16 32 64 128 256];
-                    nTemps = 500;
+                    sws = [1 2 4];% 8 16 32 64 128 256];
+                    nTemps = 5;
                     %~~~~~~~~
                     
                     percentCorrectMat = nan(numel(sws),2,nTemps);
