@@ -1,23 +1,13 @@
-function ap_plot_rasters(subject, session, channels, clus)
+function ap_mph(subject, session, channels, clus)
 %
-%  pp_plot_rasters(subject, session, channel, clu)
+%  pp_mph(subject, session, channel, clu)
 %    Plots a raster and psth for each unique stimulus. Clu is the label
 %    given by UMS (not an index), found in Spikes.sorted.labels.
-%
-%  KP, 2016-04; last updated 2017-06
-%  (1,:) = Instantaneous AM rate <-- if Trials stim set, just this
-%  (2,:) = Sound output          <-- if Trials stim set, just this
-%  (3,:) = AM depth
-%  (4,:) = dB SPL
-%  (5,:) = HP
-%  (6,:) = LP
-%  (7,:) = Spout TTL
-%  (8,:) = Block label
 %
 
 
 %!!!!!!!!!!!
-SUonly = 0;
+SUonly = 1;
 %!!!!!!!!!!!
 
 

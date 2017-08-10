@@ -19,13 +19,17 @@ mspad = 500;
 
 fn = set_paths_directories(subject);
 SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
-    
-Sessions = [];
+
+% Get list of all sessions with Spikes file
+Sessions = cell(1,1);
 for ifn = 1:numel(SpkFns)
-    if length(char(extractBetween(SpkFns(ifn).name,'sess-','_Spikes')))==2
-        Sessions = [Sessions; extractBetween(SpkFns(ifn).name,'sess-','_Spikes')];
+    splitStr = regexp(SpkFns(ifn).name,'_','split');
+    splitStr2 = regexp(splitStr{3},'-','split');
+    if length(splitStr2{2})==2
+        Sessions{end+1,1} = splitStr2{2};
     end
 end
+Sessions = Sessions(2:end,:);
 
 
 % Set some plotting params
@@ -45,7 +49,7 @@ end
 % Step through each session
 for sess = Sessions'
     
-session = char(sess);
+session = sess{:};
 
 %%
 % Load data files
