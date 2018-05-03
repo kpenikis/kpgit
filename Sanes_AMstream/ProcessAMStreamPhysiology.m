@@ -20,4 +20,19 @@ Spikes = pp_save_manual_sort( subject, session, Spikes, channel, spikes );
 
 ap_plot_rasters(subject, session, [channels], [clus] )
 
+ap_transitions
+ap_mph
+ap_zscore_plots
+ap_rcorr
+
+
+%% Population level analyses
+ap_zFR_population
+
+
+%% ICAC Poster
+
+ap_zFR_population
+ap_mph_matched
+ap_IRtrans_diffspks_v2
 

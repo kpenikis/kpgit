@@ -1,14 +1,17 @@
 
 function [AP_new, DV_new, MLcoord] = convert_to_atlas_coordinates(AP,ML,SD)
 
-% Convert my coordinates to slightly smaller brain
+% Convert lab coordinates to slightly smaller brain
+% (tried scaling to see if this could reduce the discrepency
+%  between our A1 coords and where that brings you to in the atlas)
 % AP = AP*(4.45/5);
 % ML = ML*(4.45/5);
 % SD = SD*(4.45/5);
 
 % Convert surgical depth to DV axis depth
-DV = SD * cos(deg2rad(25));
-MLcoord = SD * sin(deg2rad(25)) + ML;
+electrode_angle = 25;%deg
+DV = SD * cos(deg2rad(electrode_angle));
+MLcoord = SD * sin(deg2rad(electrode_angle)) + ML;
 
 % Get angle for coordinate shift
 % Based on the distance between lambda and bregma, and the amount that

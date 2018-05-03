@@ -1,4 +1,4 @@
-function ap_zFR_population(subject)
+function ap_zFR_population(select_subject,select_session,select_channel,Clus)
 %
 %  ap_zFR_population(subject)
 %    
@@ -6,101 +6,138 @@ function ap_zFR_population(subject)
 %  KP, 2016-04; last updated 2017-08
 %
 
-%  (1,:) = Instantaneous AM rate <-- if Trials stim set, just this
-%  (2,:) = Sound output          <-- if Trials stim set, just this
-%  (3,:) = AM depth
-%  (4,:) = dB SPL
-%  (5,:) = HP
-%  (6,:) = LP
-%  (7,:) = Spout TTL
-%  (8,:) = Block label
 
+close all
 
+%!!!!!!!!!!!!!!!!!
+SUonly   =  1;
+%!!!!!!!!!!!!!!!!!
+FRcutoff =  3;%Hz 
+%!!!!!!!!!!!!!!!!!
+minTrs   =  10;
+%!!!!!!!!!!!!!!!!!
 
-% IF SAVING PDF FILES
-figFontSize      = 14;
-rasterMarkerSize = 10;
-rasterLineWidth  = 0.5;
-
-% IF SAVING EPS FILES
-% figFontSize      = 24;
-% rasterMarkerSize = 18;
-% rasterLineWidth  = 1;
-
+%%
 set(0,'DefaultTextInterpreter','none')
 set(0,'DefaultAxesFontSize',16)
 
-
 scrsz = get(0,'ScreenSize');
-figsize1 = [1 scrsz(4)*3/4 scrsz(3)*2/3 scrsz(4)*3/4];
+figsize1 = [1 scrsz(4)/4 scrsz(3)/4 scrsz(4)/4];
 figsize2 = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
-
 
 % Prepare the figure
 hf1 = figure;
 set(hf1,'Position',figsize1,'NextPlot','add')
-plot([-0.5 1],[0 0],'Color',[0.7 0.7 0.7])
+plot([-1 2],[0 0],'Color',[0.7 0.7 0.7])
 hold on
-plot([0 0],[-0.5 1],'Color',[0.7 0.7 0.7])
-plot([-0.5 1],[-0.5 1],'Color',[0.7 0.7 0.7])
+plot([0 0],[-1 2],'Color',[0.7 0.7 0.7])
+plot([-1 1.5],[-1 1.5],'Color',[0.7 0.7 0.7])
 axis square
-
-xlabel('Predicted IR response (zFR)')
-ylabel('Observed IR response (zFR)')
-
+xlim([-1 1.5])
+ylim([-1 1.5])
+xlabel('Predicted')
+ylabel('Observed')
 
 % Prepare another figure, for individual sequences' observed responses
 hf2 = figure;
 set(hf2,'Position',figsize1,'NextPlot','add')
-plot([-0.5 1],[0 0],'Color',[0.7 0.7 0.7])
+plot([-1 2],[0 0],'Color',[0.7 0.7 0.7])
 hold on
-plot([0 0],[-0.5 1],'Color',[0.7 0.7 0.7])
-plot([-0.5 1],[-0.5 1],'Color',[0.7 0.7 0.7])
+plot([0 0],[-1 2],'Color',[0.7 0.7 0.7])
+plot([-1 2],[-1 2],'Color',[0.7 0.7 0.7])
 axis square
+xlim([-1 1.5])
+ylim([-1 1.5])
+xlabel('Predicted')
+ylabel('Observed')
 
-xlabel('Predicted IR response (zFR)')
-ylabel('Observed IR response (zFR)')
+subjshapes = {'o' 'o'};
 
-switch subject
-    case 'WWWf_244303'
-        title('caudal A1')
-    case 'WWWr_244300'
-        title('DP/VP')
-end
+colors = [ 84  24  69;...
+           120  10  41;...
+           181   0  52;...
+           255  87  51;...
+           255 153   0;...
+           255 205  60 ]./255;
+colors = [colors; 0.7.*bone(4)];
 
+
+%%
+unType = {'' 'SU' 'MU'};
+
+N = 0;
 
 histbinsize = 20;
 anbinsize   = 50;
 smthbinsize = 50;
 
 
-colors = hsv(6);
-colors = [colors; 0.5.*hsv(4)];
+% Make empty data table
+Zdata = table;
+Zdata.Subject  = ' ';
+Zdata.Session  = ' ';
+Zdata.ch       = 0;
+Zdata.clu      = 0;
+Zdata.UnitN    = 0;
+Zdata.IRblock  = 0;
+Zdata.stimpars = [0 0];
+Zdata.zFR_pred = 0;
+Zdata.zFR_obs  = 0;
+% Zdata.preUNM   = 0;
+% Zdata.postUNM  = 0;
 
-unType = {'' 'SU' 'MU'};
 
-N = 0;
+%%
+% Set a datapoint (or a few?) to highlight
 
+ex_subj = 'WWWr_244300';
+ex_sess = 'IA';
+ex_ch   = 1;
+ex_clu  = 20;
+
+
+
+%%  SUBJECTS
+
+if nargin>0 && exist('select_subject','var')
+    subjects = {select_subject};
+else
+    subjects = {'WWWf_244303' 'WWWr_244300'};
+end
+
+for subj = 1:numel(subjects)
+
+    subject = subjects{subj};
+    
+    switch subject
+        case 'WWWf_244303'
+            subjcol = 'k';
+        case 'WWWr_244300'
+            subjcol = 'k';
+    end
+     
 
 %%  SESSIONS
 
 % Get list of sessions to check for sorted data
 
 fn = set_paths_directories(subject);
-SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
 
-try
+if nargin>1 && exist('select_session','var')
+    Sessions = {select_session};
+else
     
-Sessions = [];
-for ifn = 1:numel(SpkFns)
-    if length(char(extractBetween(SpkFns(ifn).name,'sess-','_Spikes')))==2
-        Sessions = [Sessions; extractBetween(SpkFns(ifn).name,'sess-','_Spikes')];
+    SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
+    
+    Sessions = [];
+    for ifn = 1:numel(SpkFns)
+        if length(char(extractBetween(SpkFns(ifn).name,'sess-','_Spikes')))==2
+            Sessions = [Sessions; extractBetween(SpkFns(ifn).name,'sess-','_Spikes')];
+        end
     end
+    
 end
-
-catch
-    keyboard
-end
+% Sessions = flipud(Sessions);
 
 % Step through each session
 for sess = Sessions'
@@ -157,17 +194,15 @@ AMdepth(rm_i) = [];
 
 
 
+%% STEP THROUGH EACH CHANNEL
 
-%% GET SPIKE TIMES
-
-% Step through all channels if not specified
-if nargin<3 && ~exist('channels','var')
-    channels = [1:7 9:16];
+if nargin>2 && exist('select_channel','var')
+    Channels = select_channel;
+else
+    Channels =  [1:7 9:16];
 end
 
-
-%% STEP THROUGH EACH CHANNEL
-for channel = channels
+for channel = Channels
         
     % Artifact for this channel
     ArtifactFlag = Info.artifact(channel).SDsamples;
@@ -176,23 +211,21 @@ for channel = channels
     spikes = Spikes.sorted(channel);
     if nargin<4
         if all(spikes.labels(:,2)==1)
-%             disp(' SESSION MAY NOT BE MANUALLY SORTED YET')
             continue
         end
         if ~any(spikes.labels(:,2)==2 | spikes.labels(:,2)==3)
-%             disp(' !! no valid clus for this channel')
             continue
         else
-            clus = spikes.labels(spikes.labels(:,2)==2 |spikes.labels(:,2)==3, 1);
+            Clus = spikes.labels(spikes.labels(:,2)==2 |spikes.labels(:,2)==3, 1);
         end
     end
     
     %% STEP THROUGH EACH CLU
     
-    for clu = clus'
+    for clu = Clus'
         
         % !! Only SU for now !!
-        if spikes.labels(spikes.labels(:,1)==clu,2) ~= 2
+        if SUonly && spikes.labels(spikes.labels(:,1)==clu,2) ~= 2
             continue
         end
         
@@ -201,31 +234,29 @@ for channel = channels
         catch
             keyboard
         end
-        % spiketrials = spikes.trials(unit_in);
         
-        if isempty(spiketimes)
-            error('no spike events found for this clu')
-            %also skip clus with few events 
-        elseif numel(spiketimes) < round(3*length(SoundData)/Info.fs_sound)
+        % Skip units with overall FR in session below a cutoff (3 hz)
+        if numel(spiketimes) < round(FRcutoff*length(SoundData)/Info.fs_sound)
             continue
         end
         
-        
+                
         
         %%
         %~~~~~~~~~~~~~~~~~~~~~~~~
         % Convert FR to z-score
         %~~~~~~~~~~~~~~~~~~~~~~~~
         
+        % Make constant stream of 
         Stream_Spks = zeros(1,1000*ceil((size(SoundData,2)/Info.fs_sound)));
         Stream_Spks(spiketimes) = 1;
         
         %either with standard 20 ms bin
-        Stream_FRbin = 1000*(binspikecounts(Stream_Spks,histbinsize)/histbinsize);
-        Stream_FRbin(isinf(Stream_FRbin)) = nan;
-        foo = repmat(Stream_FRbin,histbinsize,1);
-        Stream_FR = reshape(foo,1,histbinsize*length(Stream_FRbin));
-        Stream_FR = Stream_FR(1:ceil(length(SoundData)/Info.fs_sound*1000));
+%         Stream_FRbin = 1000*(binspikecounts(Stream_Spks,histbinsize)/histbinsize);
+%         Stream_FRbin(isinf(Stream_FRbin)) = nan;
+%         foo = repmat(Stream_FRbin,histbinsize,1);
+%         Stream_FR = reshape(foo,1,histbinsize*length(Stream_FRbin));
+%         Stream_FR = Stream_FR(1:ceil(length(SoundData)/Info.fs_sound*1000));
         
         %or with sliding 50 ms boxcar
         Stream_FRsmooth = smoothFR(Stream_Spks,smthbinsize);
@@ -237,50 +268,80 @@ for channel = channels
         sampStart = find(diff(SoundData(8,:))==-1);
         msStart   = max( spiketimes(1), round(sampStart(1)/Info.fs_sound*1000)-5000 );
         
+        
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+        
         % Convert FR to z-score
-        Stream_zscore = zscore(Stream_FRsmooth(msStart:end));
-        Stream_zscore = [nan(1,msStart-1) Stream_zscore];
+        
+        REFERENCE = 'unmod';'stream';
+        markRED = 0;
+        
+        switch REFERENCE
+            
+            case 'stream'
+                Stream_zscore = zscore(Stream_FRsmooth(msStart:end));
+                Stream_zscore = [nan(1,msStart-1) Stream_zscore];
+            
+            case 'unmod'
+                
+                if ~any(strcmp(Zdata.Properties.VariableNames,'preUNM'))
+                    Zdata.preUNM   = 0;
+                    Zdata.postUNM  = 0;
+                end
+                
+                % Get samples of unmodulated sound and of silence
+                unmod_samps  = find(SoundData(8,:)==11);
+                
+                % Split unmod portion into before and after
+                try
+                    if ~isempty(find(diff(unmod_samps)>1))
+                        unmod1_ms = round( [unmod_samps(1)   unmod_samps(0+find(diff(unmod_samps)>1))] /Info.fs_sound*1000 );
+                        unmod2_ms = round( [unmod_samps(1+find(diff(unmod_samps)>1)) unmod_samps(end)] /Info.fs_sound*1000 );
+                        
+%                         diff(unmod1_ms)/1000
+%                         diff(unmod2_ms)/1000
+                        
+                        meanFR = mean([Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)) Stream_FRsmooth(unmod2_ms(1):unmod2_ms(2))]);
+                        stdFR = std([Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)) Stream_FRsmooth(unmod2_ms(1):unmod2_ms(2))]);
+                        
+                    else
+                        unmod1_ms = round( [unmod_samps(1) unmod_samps(end)]/Info.fs_sound*1000 );
+                        unmod2_ms = [0 0];
+                        
+                        meanFR = mean(Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)));
+                        stdFR = std(Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)));
+                        
+                        fprintf(' !! not much unmod data for sess %s ch%i clu%i \n',session,channel,clu)
+%                         markRED = 1;
+                    end
+                    
+                catch
+                    keyboard
+                end
+                
+                Stream_zscore = (Stream_FRsmooth(msStart:end) - meanFR) / stdFR;
+                Stream_zscore = [nan(1,msStart-1) Stream_zscore];
+                
+        end
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
-        
-        % And set y limits
-        ylimvals = [min(Stream_zscore) max(Stream_zscore)];
-                
+             
         
         
         %%        
         
-        % Also step through each combo of dBSPL, HP, AMdepth
+        % Step through each combo of dBSPL, LP noise, AMdepth
         for spl = dBSPL
             for lpn = LP
                 for amd = AMdepth
                     
-                    % Get this unit/stimulus combo's N clean blocks (trials) 
-                   blocks_N = get_N_clean_blocks(SoundData,Info,ArtifactFlag,spl,lpn,amd);
+                    % Get this unit/stimulus combo's N clean blocks (trials)
+                    [blocks_N, minTime] = get_N_clean_blocks(SoundData,Info,ArtifactFlag,spl,lpn,amd);
                     
                     
                     %%
                     % Set up figure
                     fprintf('plotting ch %i clu %i...\n',channel,clu)
-%                     hf_t = figure;
-%                     set(hf_t,'Position',figsize1,'NextPlot','add')
-%                     hf_cv = figure;
-%                     set(hf_cv,'Position',figsize1,'NextPlot','add')
-                    
-                    
-                    % Create empty vectors for data
-                    FR_pdc_pd = nan(90,4,6);
-                    Zresp_pdc = nan(60,6);
-                    trtrR = nan(1,10);
-                    CV = nan(1,10);
-                    for ir = 1:numel(AMrates)
-                        eval(sprintf( 'FRresp_IR_%i = [];',AMrates(ir) ))
-                        eval(sprintf( 'FRresp_info_%i = [];',AMrates(ir) ))
-                    end
-                    
                     
                     
                     % Go through each stiulus
@@ -289,131 +350,33 @@ for channel = channels
                         %if unmodulated or silent, skip for now
                         if ib>=11, continue, end
                         
-                        % Get samples of beginning and end of block
-                        bkStart_samps = 1+find( diff(SoundData(8,:)==ib) ==  1 );
-                        bkStop_samps  =   find( diff(SoundData(8,:)==ib) == -1 );
-                        
-                        % Remove blocks not this spl, lp noise, am depth,
-                        % OR that contain artifact
-                        rm_bk = [];
-                        for it = 1:numel(bkStart_samps)
-                            if ib==5 && (SoundData(8,bkStart_samps(it)-1)==11)
-                                rm_bk = [rm_bk it];
-                            elseif ib~=5 && (SoundData(8,bkStart_samps(it)-1)==11)
-                                keyboard
-                            end
-                            if ~all(SoundData(4,bkStart_samps(it):bkStop_samps(it))==spl)...               
-                                    || ~all(SoundData(6,bkStart_samps(it):bkStop_samps(it))==lpn)...      
-                                    || ~all(SoundData(3,bkStart_samps(it):bkStop_samps(it))==amd)...      
-                                    || any( intersect(bkStart_samps(it):bkStop_samps(it),ArtifactFlag))...  
-                                    || ~all(SoundData(7,bkStart_samps(it):bkStop_samps(it))==1)          
-                                rm_bk = [rm_bk it];
-                            end
-                        end
-                        bkStart_samps(rm_bk) = [];
-                        bkStop_samps(rm_bk) = [];
-                        
-                        % Convert to ms
-                        bkStart_ms = round( bkStart_samps / Info.fs_sound*1000 );
-                        bkStop_ms  = round( bkStop_samps  / Info.fs_sound*1000 );
-                        
-                        
-                        if numel(bkStart_ms) ~= numel(bkStop_ms)
-                            keyboard
-                        end
-                        %view preceeding blocks:  hpb = hist(SoundData(8,bkStart_samps-1),0:12)
-                        
-                        
-                        % Skip if few trials 
-                        if blocks_N(ib)<8
+                        % Skip if few trials
+                        if blocks_N(ib)<minTrs
                             continue
                         end
+                        
+                        % Get this block start times
+                        [~,~,bkStart_ms,bkStop_ms]  =  get_blockOnsets( SoundData,...
+                            ib,spl,lpn,amd,ArtifactFlag,Info.fs_sound);
                         
                         
                         %% Now prepare to collect response
                         
-                        raster_x   = []; 
-                        raster_y   = [];
-                        stim       = nan(numel(bkStart_ms),max(bkStop_samps-bkStart_samps));
-                        hist_raw   = zeros(numel(bkStart_ms),max(bkStop_ms-bkStart_ms));
-                        FRresp     = nan(numel(bkStart_ms),1);
-                        SpkTs_pdc  = [];
-                        SpkTs_pdc2  = [];
-                        z_resp     = nan(numel(bkStart_ms),max(bkStop_ms-bkStart_ms));
+                        z_resp = nan(numel(bkStart_ms),max(bkStop_ms-bkStart_ms));
                         
+                        % Collect z-score data for each trial
                         for it = 1:numel(bkStart_ms)
                             
-                            % Sound rms envelope
-                            stim(it,1:(bkStop_samps(it)-bkStart_samps(it))) = envelope(SoundData(2, bkStart_samps(it):(bkStop_samps(it)-1)),50,'rms');
-                            
-                            % Get z-score data for this trial
                             z_resp(it,1:(bkStop_ms(it)-bkStart_ms(it))) = Stream_zscore(bkStart_ms(it):bkStop_ms(it)-1);
-                            
-                            psth_smooth(it,1:(bkStop_ms(it)-bkStart_ms(it))) = Stream_FRsmooth(bkStart_ms(it):bkStop_ms(it)-1);
-                            
-                            
-                            % Get overall spiking data for this block
-                            sp=[]; sp = spiketimes( spiketimes>=bkStart_ms(it) & spiketimes<bkStop_ms(it) ) - bkStart_ms(it) +1;
-                            hist_raw(it,sp) = 1;
-                            raster_x = [raster_x sp];
-                            raster_y = [raster_y it .* ones(1,numel(sp))];
-                            % Save concatenated spiketimes for VS
-%                             SpkTs_pdc2 = [SpkTs_pdc2 sp + (it-1)*(1000/AMrates(ib))];
-                            
-                            FRresp(it) = numel(sp) / ((bkStop_ms(it)-bkStart_ms(it))/1000);                            
-                            
-                            % Get spiking data for individual PERIODIC periods
-                            if ib<=6 
-                                % Estimate samples of period restarts
-                                % (phase=0)
-                                pd_starts = 0 : round(Info.fs_sound/AMrates(ib)) : (bkStop_samps(it)-bkStart_samps(it));
-                                                                
-                                % Get spikes
-                                which_pd_sec = [0 0.5 1 1.5];
-                                for ipd = 1:4
-                                    [~,pdc_pd] = min(abs(pd_starts-which_pd_sec(ipd)*Info.fs_sound));
-                                    pd_start_ms = round( ( pd_starts(pdc_pd) + bkStart_samps(it) ) /Info.fs_sound *1000 );
-                                    FR_pdc_pd(it,ipd,ib) = sum( spiketimes>=pd_start_ms  &  spiketimes<(pd_start_ms + 1000/AMrates(ib)) ) / (1/AMrates(ib));
-                                    SpkTs_pdc = [SpkTs_pdc spiketimes(spiketimes>=pd_start_ms  &  spiketimes<(pd_start_ms + 1000/AMrates(ib)) ) - pd_start_ms + (it-1)*(1000/AMrates(ib))];
-                                end
-                                
-                                % Calculate VS, periodic blocks
-                                [VS(ib),RS(ib),P(ib)] = vectorstrength( SpkTs_pdc, AMrates(ib) );
-                                
-                            end
-                            
-                            
-                            % Get spiking data for each period of IR blocks
-                            if ib>6 && ib<11
-                                
-                                find(cell2mat(cellfun(@eval,strsplit(Info.blockKey{ib}),'UniformOutput',0))==2);
-                                
-                                newRate = -1+bkStart_samps(it) + find(diff( [SoundData(1, (bkStart_samps(it)-1):(bkStop_samps(it)) ) 0] ));
-                                if numel(newRate)~=13
-                                    keyboard
-                                end
-                                for ir = 1:(numel(newRate)-1)
-                                    this_rate = SoundData(1, newRate(ir));
-                                    t = round( [newRate(ir) newRate(ir+1)-1] / Info.fs_sound*1000 );
-                                    sp=[]; sp = spiketimes( spiketimes>=t(1) & spiketimes<=t(2) ) - t(1) +1;
-                                    eval(sprintf('FRresp_IR_%i = [FRresp_IR_%i; numel(sp) / (diff(t)/1000)];',this_rate, this_rate ))
-                                    eval(sprintf('FRresp_info_%i = [FRresp_info_%i; (newRate(ir)-bkStart_samps(it))/Info.fs_sound ib];', this_rate, this_rate ))
-                                end
-                                
-                                % Calculate VS, IR blocks
-                                
-                            end
-                            
-                            
-                            
+                             
                         end %it
                         
                         
-                        
-                        % Calculate the normalized mean FR for this block
-                        
-                        zFRmeans(ib) = mean(mean(z_resp,2,'omitnan'),'omitnan');
-                        zFRvars(ib)  = var(mean(z_resp,2,'omitnan'),'omitnan');
+                        % Calculate the mean normalized FR for this block
+                           % now excludes time bins that were not present
+                           % for every trial
+                        zFRmeans(ib) = mean(mean(z_resp,1),'omitnan');
+                        zFRvars(ib)  = var(mean(z_resp(:,~isnan(mean(z_resp,1))),2));
                         
                         
                         
@@ -425,39 +388,118 @@ for channel = channels
                     IR_Prediction = sum( zFRmeans(1:6) .* ((1./AMrates)/sum(1./AMrates)) );
                     
                     % add error bars 
-                        % var(a+b) = var(a) + var(b)
-                    IR_Pred_sem2  = sqrt(sum(zFRvars(1:6) .* ((1./AMrates)/sum(1./AMrates)))) / sqrt(6);
-                    IR_Pred_sem = sum( ( sqrt( zFRvars(1:6))./sqrt(blocks_N(1:6)) ) .* ((1./AMrates)/sum(1./AMrates)) );
+                        %weighted sum of variances, then converted to overall SEM [--> var(a+b)=var(a)+var(b) ]
+                    IR_Pred_sem2 = sqrt( sum( zFRvars(1:6) .* ((1./AMrates)/sum(1./AMrates)) ) ) / sqrt(6);
+                        %weighted sum of SEMs
+                    IR_Pred_sem  = sum( ( sqrt(zFRvars(1:6))./sqrt(blocks_N(1:6)) ) .* ((1./AMrates)/sum(1./AMrates)) );
                     
                     
-                    
-                    %% Add datapoint to plots
+                    %%
+                    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    if nargin>3              % INDIVIDUAL UNIT ZFR MTF
+                        
+                        xx = [1:6 10:13];
+                        msize = [((1./AMrates)/sum(1./AMrates)) 0.2 0.2 0.2 0.2];
+                        
+                        hmtf = figure; hold on
+                        axis square
+                        for ir = 1:10
+                            plot(xx(ir),zFRmeans(ir),'o','MarkerSize',15,...
+                                'MarkerFaceColor',colors(ir,:),'MarkerEdgeColor','none')
+                            plot([xx(ir) xx(ir)],[zFRmeans(ir)-(sqrt(zFRvars(ir))/sqrt(blocks_N(ir))) zFRmeans(ir)+(sqrt(zFRvars(ir))/sqrt(blocks_N(ir)))],...
+                                '-','Color',colors(ir,:),'LineWidth',2)
+                        end
+                        
+                        plot(8,IR_Prediction,'o','MarkerSize',15,'LineWidth',2,'Color',[32 129 255]./255)
+                        plot([8 8],[IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],'-','LineWidth',2,'Color',[32 129 255]./255)
+                        
+                        set(gca,'XTick',1:13,...
+                            'XTickLabel',[cellfun(@(x) horzcat(x,' Hz'), Info.blockKey(1:6) ,'UniformOutput',0) ' ' 'Linear Prediction' ' ' Info.blockKey(7:10) ],...
+                            'TickLabelInterpreter','none')
+                        xtickangle(45)
+                        
+                        xlim([0 14])
+%                         ylim([-0.5 1])
+                        ylabel(sprintf('normalized FR response\n(ref''d to %s)', REFERENCE))
+                        
+                        % Save MTF figure
+%                         savedir = fullfile(fn.processed,'zFRpopulation');
+                        savedir = fn.anplots;
+                        if ~exist(savedir,'dir')
+                            mkdir(savedir)
+                        end
+                        savename = sprintf('%s_%s_ch%i_clu%i_%s_%idB_LP%ihz_ref-%s_zFR-MTF',...
+                            subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn,REFERENCE);
+                        print_eps_kp(hmtf,fullfile(savedir,savename),1)
+                        
+                        
+                        
+                        
+                    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                    elseif nargin<1          % POPULATION ZFR COMPARISON
+                        
+                    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+                    % Add datapoint to plots
+                    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
                     
                     N = N+1;
                     
                     figure(hf1); hold on
                     
                     % horizontal errorbars (prediction error)
-                    plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[mean(zFRmeans(7:10)) mean(zFRmeans(7:10))],'k')
+                    plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[mean(zFRmeans(7:10)) mean(zFRmeans(7:10))],subjcol)
                     % vertical errorbars (observation error)
-                    plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4) mean(zFRmeans(7:10))+sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4)],'k')
+                    plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-mean(sqrt(zFRvars(7:10))./sqrt(blocks_N(7:10))) mean(zFRmeans(7:10))+mean(sqrt(zFRvars(7:10))./sqrt(blocks_N(7:10)))],subjcol)
+%                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10))) mean(zFRmeans(7:10))+sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10)))],subjcol)
+%                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4) mean(zFRmeans(7:10))+sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4)],subjcol)
                     % mean point
-                    plot(IR_Prediction,mean(zFRmeans(7:10)),'ok','LineWidth',2,'MarkerSize',10,'MarkerFaceColor',[1 1 1])
-                    
+                    ip=scatter(IR_Prediction,mean(zFRmeans(7:10)),100,subjshapes{subj},'MarkerFaceAlpha',0.45,'MarkerFaceColor','none','MarkerEdgeColor',subjcol);
+                    if markRED
+                        ip.MarkerFaceColor = 'r';
+                    end
+                    if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
+                        ip.MarkerFaceColor = [32 129 255]./255;
+                        ip.MarkerFaceAlpha = 0.65;
+                    end
                     
                     figure(hf2); hold on
                     
                     for ib = 7:10
                         
-                    % horizontal errorbars (prediction error)
-                    plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[zFRmeans(ib) zFRmeans(ib)],'k')
-                    % vertical errorbars (observation error)
-                    plot([IR_Prediction IR_Prediction],[zFRmeans(ib)-sqrt(zFRvars(ib))./sqrt(blocks_N(ib)) zFRmeans(ib)+sqrt(zFRvars(ib))./sqrt(blocks_N(ib))],'k')
-                    % mean point
-                    plot(IR_Prediction,zFRmeans(ib),'ok','LineWidth',2,'MarkerSize',10,'MarkerFaceColor',colors(ib,:))
+                        % horizontal errorbars (prediction error)
+                        plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[zFRmeans(ib) zFRmeans(ib)],subjcol)
+                        % vertical errorbars (observation error)
+                        plot([IR_Prediction IR_Prediction],[zFRmeans(ib)-sqrt(zFRvars(ib))./sqrt(blocks_N(ib)) zFRmeans(ib)+sqrt(zFRvars(ib))./sqrt(blocks_N(ib))],subjcol)
+                        % mean point
+                        ip=scatter(IR_Prediction,zFRmeans(ib),100,subjshapes{subj},'MarkerFaceAlpha',0.45,'MarkerFaceColor','none','MarkerEdgeColor',subjcol);
+                        if markRED
+                            ip.MarkerFaceColor = 'r';
+                        end
+                        if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
+                            ip.MarkerFaceColor = [32 129 255]./255;
+                            ip.MarkerFaceAlpha = 0.65;
+                        end
+                        
+                        
+                        % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+                        % Save data to table
+                        % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+                        switch REFERENCE
+                            case 'stream'
+                                Zdata_addrow = { subject session channel clu N ib [spl lpn] IR_Prediction zFRmeans(ib)};
+                                
+                            case 'unmod'
+                                Zdata_addrow = { subject session channel clu N ib [spl lpn] IR_Prediction zFRmeans(ib) diff(unmod1_ms)/1000 diff(unmod2_ms)/1000};
+                        end
+                        
+                        Zdata = [Zdata; Zdata_addrow];
+                        
+                        
+                        
+                    end %ib
                     
-                    end
-                    
+                    end %if nargin<1
+                    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     
 
                 end %amd
@@ -469,23 +511,46 @@ end %channel
 
 end % sessions
 
+end % subject
+
+
 
 %% FINISH AND SAVE FIGURES
 
-% Add title
-switch subject
-    case 'WWWf_244303'
-        region = 'caudal A1';
-    case 'WWWr_244300'
-        region = 'DP/VP';
+if nargin>0
+    return
 end
-figure(hf1); title(sprintf('%s\nIR responses  |  N = %i',region,N))
-figure(hf2); title(sprintf('%s\nIR responses  |  N = %i',region,N))
+
+
+% Calculate and print Pearson's r statistic
+
+% For datapoints of each IR block separately 
+[r,p]=corrcoef(Zdata.zFR_pred,Zdata.zFR_obs);
+figure(hf2)
+text(0.75,-0.5,sprintf('r = %4.3f\np = %4.2g',r(2,1),p(2,1)))
+text(0.75,-0.2,['N = ' num2str(N)])
+
+% And for datapoints of IR block means
+% must recalculate the means from table data
+zFR_pred = [];
+zFR_obs  = [];
+for unN = 1:N
+    zFR_pred = [zFR_pred mean(Zdata(Zdata.UnitN==unN,:).zFR_pred)];
+    zFR_obs  = [zFR_obs  mean(Zdata(Zdata.UnitN==unN,:).zFR_obs)];
+    if (mean(Zdata(Zdata.UnitN==unN,:).zFR_obs) - mean(Zdata(Zdata.UnitN==unN,:).zFR_pred)) > 0.2
+        fprintf('obs - pred = %4.3f\n',(mean(Zdata(Zdata.UnitN==unN,:).zFR_obs) - mean(Zdata(Zdata.UnitN==unN,:).zFR_pred)))
+        disp(Zdata(Zdata.UnitN==unN,:))
+    end
+end
+[r,p]=corrcoef(zFR_pred,zFR_obs);
+figure(hf1)
+text(0.75,-0.5,sprintf('r = %4.3f\np = %4.2g',r(2,1),p(2,1)))
+text(0.75,-0.2,['N = ' num2str(N)])
 
 
 % Set save directory
 
-savedir = fullfile(fn.processed,subject,'^an_plots','Population');
+savedir = fullfile(fn.processed,'zFRpopulation');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
@@ -493,20 +558,26 @@ end
 % Save figs
 
 % mean of IR blocks
-savename = sprintf('%s_allSU_%idB_LP%ihz_ObsVsPred-meanIR',...
-    subject,spl,lpn);
+savename = sprintf('zFR_ObsPred_SU_%s_IA120',REFERENCE);
 set(hf1,'PaperOrientation','landscape');
-print(hf1,'-dpdf',fullfile(savedir,savename),'-bestfit')
+print_eps_kp(hf1,fullfile(savedir,savename),1)
 
-% each IR sequence plotted
-savename = sprintf('%s_allSU_%idB_LP%ihz_ObsVsPred-eachIR',...
-    subject,spl,lpn);
+% each IR sequence plotted out
+savename = sprintf('zFR_ObsPred_SU_eachIR_%s_IA120',REFERENCE);
 set(hf2,'PaperOrientation','landscape');
-print(hf2,'-dpdf',fullfile(savedir,savename),'-bestfit')
+print_eps_kp(hf2,fullfile(savedir,savename),1)
+
+
+%% Finish and save table
+% Zdata(1,:)=[];
+% 
+% savename = sprintf('zFR_ObsPred_SU_%s',REFERENCE);
+% writetable(Zdata,fullfile(savedir,savename));
+
 
 
 end %function
 
-
+%}
 
 

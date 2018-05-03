@@ -37,6 +37,8 @@ set(0,'DefaultAxesFontSize',16)
 scrsz = get(0,'ScreenSize');
 figsize1 = [1 scrsz(4)*3/4 scrsz(3)*2/3 scrsz(4)*3/4];
 figsize2 = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
+figsize1 = 1+0.7.*[1 scrsz(4)/5 scrsz(3)/6 scrsz(4)/5];
+
 
 
 histbinsize = 20;
@@ -44,9 +46,16 @@ anbinsize   = 10;
 smthbinsize = 50;
 
 
-colors = hsv(6);
-colors = [colors; 0.5.*hsv(4)];
+% colors = hsv(6);
+% colors = [colors; 0.5.*hsv(4)];
 
+colors = [ 84  24  69;...
+           120  10  41;...
+           181   0  52;...
+           255  87  51;...
+           255 153   0;...
+           255 205  60 ]./255;
+colors = [colors; 0.7.*bone(4)];
 
 
 
@@ -124,12 +133,8 @@ for channel = channels
     % Find clus to plot
     spikes = Spikes.sorted(channel);
     if nargin<4
-        if all(spikes.labels(:,2)==1)
-            disp(' SESSION MAY NOT BE MANUALLY SORTED YET')
-            return
-        end
         if ~any(spikes.labels(:,2)==2 | spikes.labels(:,2)==3)
-            disp(' !! no valid clus for this channel')
+%             disp(' !! no valid clus for this channel')
             continue
         else
             clus = spikes.labels(spikes.labels(:,2)==2 |spikes.labels(:,2)==3,1);
@@ -144,7 +149,7 @@ for channel = channels
         if SUonly && (spikes.labels(spikes.labels(:,1)==clu,2) ~= 2)
             continue
         end        
-        close all
+%         close all
         
         try
         spiketimes = round(spikes.spiketimes(spikes.assigns==clu') * 1000);  %ms
@@ -205,7 +210,7 @@ for channel = channels
         
         % Set ymax based on overall FR of unit
         
-        yvals = [50 100 200 300 400];
+        yvals = [50 120 200 300 400];
         yin = find( ( max(yvals, 2.5 * numel(spiketimes)/(size(SoundData,2)/Info.fs_sound)) - yvals )==0 );
         ymaxval = yvals(yin(1));
         
@@ -252,39 +257,15 @@ for channel = channels
                         %if unmodulated or silent, skip for now
                         if ib>=11, continue, end
                         
-                        % Get samples of beginning and end of block
-                        bkStart_samps = 1+find( diff(SoundData(8,:)==ib) ==  1 );
-                        bkStop_samps  =   find( diff(SoundData(8,:)==ib) == -1 );
+                        % Skip if few trials
+%                         if blocks_N(ib)<minTrs
+%                             continue
+%                         end
                         
-                        % Remove blocks not this spl, lp noise, am depth,
-                        % OR that contain artifact
-                        rm_bk = [];
-                        for it = 1:numel(bkStart_samps)
-                            if ib==5 && (SoundData(8,bkStart_samps(it)-1)==11)
-                                rm_bk = [rm_bk it];
-                            elseif ib~=5 && (SoundData(8,bkStart_samps(it)-1)==11)
-                                keyboard
-                            end
-                            if ~all(SoundData(4,bkStart_samps(it):bkStop_samps(it))==spl)...               
-                                    || ~all(SoundData(6,bkStart_samps(it):bkStop_samps(it))==lpn)...      
-                                    || ~all(SoundData(3,bkStart_samps(it):bkStop_samps(it))==amd)...      
-                                    || any( intersect(bkStart_samps(it):bkStop_samps(it),ArtifactFlag))...  
-                                    || ~all(SoundData(7,bkStart_samps(it):bkStop_samps(it))==1)          
-                                rm_bk = [rm_bk it];
-                            end
-                        end
-                        bkStart_samps(rm_bk) = [];
-                        bkStop_samps(rm_bk) = [];
-                        
-                        % Convert to ms
-                        bkStart_ms = round( bkStart_samps / Info.fs_sound*1000 );
-                        bkStop_ms  = round( bkStop_samps  / Info.fs_sound*1000 );
-                        
-                        
-                        if numel(bkStart_ms) ~= numel(bkStop_ms)
-                            keyboard
-                        end
-                        %view preceeding blocks:  hpb = hist(SoundData(8,bkStart_samps-1),0:12)
+                        % Get this block start times
+                        [bkStart_samps,bkStop_samps,...
+                            bkStart_ms,bkStop_ms]  =  get_blockOnsets( SoundData,...
+                            ib,spl,lpn,amd,ArtifactFlag,Info.fs_sound);
                         
                         
 %                         % Sort trials by preceding block
@@ -310,7 +291,7 @@ for channel = channels
                         for it = 1:numel(bkStart_ms)
                             
                             % Sound rms envelope
-                            stim(it,1:(bkStop_samps(it)-bkStart_samps(it))) = envelope(SoundData(2, bkStart_samps(it):(bkStop_samps(it)-1)),50,'rms');
+                            stim(it,1:(bkStop_samps(it)-bkStart_samps(it))) = envelope(SoundData(2, bkStart_samps(it):(bkStop_samps(it)-1)),20,'rms');
                             
                             % Get overall spiking data for this block
                             sp=[]; sp = spiketimes( spiketimes>=bkStart_ms(it) & spiketimes<bkStop_ms(it) ) - bkStart_ms(it) +1;
@@ -409,31 +390,36 @@ for channel = channels
                             subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,SoundData(5,bkStart_samps(1)),lpn,amd);
                         
                         
-                        % RASTER/PSTH
+                        % MAKE THE FIGURE
                         
-                        figure;
-                        set(gcf,'Position',figsize1)
-                        subplot(5,1,1:2); hold on
-                        plot(  raster_x  ,  raster_y  , 'k+','MarkerSize',rasterMarkerSize, 'LineWidth', rasterLineWidth)
-                        for ii=1:it
-                            plot([0 max(bkStop_ms-bkStart_ms)], [ii ii], 'k', 'LineWidth', rasterLineWidth)
-                        end
-                        ylim([0 it+1])
-                        xlim([0 max(bkStop_ms-bkStart_ms)])
-                        set(gca,'xtick',[])
-                        ylabel('trials')
-                        set(gca,'FontSize',figFontSize)
+                        hfr=figure;
+                        set(hfr,'Position',figsize1)
                         
-                        title(titlestr1)
-                        
-                        subplot(5,1,3)
+                        % STIMULUS
+                        subplot(5,1,1)
                         plot(stim(:,1:round(Info.fs_sound/1000):end)','Color',colors(ib,:))
                         xlim([0 size(stim(:,1:round(Info.fs_sound/1000):end),2)])
                         set(gca,'xtick',[],'ytick',[])
                         ylabel('stim rms')
                         set(gca,'FontSize',figFontSize)
                         
+%                         title(titlestr1)
                         
+                        % RASTER
+                        subplot(5,1,2:3); hold on
+                        scatter(  raster_x  ,  raster_y,  3, 'o',...
+                            'MarkerFaceColor',[0 0 0],'MarkerEdgeColor','none',...
+                            'LineWidth', rasterLineWidth,'MarkerFaceAlpha',1)
+%                         for ii=1:it
+%                             plot([0 max(bkStop_ms-bkStart_ms)], [ii ii], 'k', 'LineWidth', rasterLineWidth)
+%                         end
+                        ylim([0 it+1])
+                        xlim([0 max(bkStop_ms-bkStart_ms)])
+                        set(gca,'xtick',[])
+                        ylabel('trials')
+                        set(gca,'FontSize',figFontSize,'ytick',[it+1])
+                        
+                        % PSTH
                         subplot(5,1,4:5); hold on
 %                         hist_smooth = binspikecounts(hist_raw,histbinsize)./histbinsize*1000;
 %                         plot(histbinsize:histbinsize:size(hist_raw,2),mean(hist_smooth,1),'k','LineWidth',3)
@@ -441,7 +427,8 @@ for channel = channels
                         ylim([0 ymaxval])
                         xlabel('time (ms)')
                         ylabel('spikes/s')
-                        set(gca,'FontSize',figFontSize)
+                        set(gca,'FontSize',figFontSize,'ytick',[0 ymaxval])
+                        
                         
                         
                         % SAVE RASTER/PSTH FIGURE
@@ -452,10 +439,11 @@ for channel = channels
                         end
                         savename = sprintf('%s_%s_ch%i_clu%i_%s_bk%s_%idB_LP%ihz',...
                             subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},blockstr,spl,lpn);
-                        set(gcf,'PaperOrientation','landscape');
-                        print(gcf,'-dpdf',fullfile(savedir,savename),'-bestfit')
+%                         set(hfr,'PaperOrientation','landscape');
+%                         print(hfr,'-dpdf',fullfile(savedir,savename),'-bestfit')
+                        print_eps_kp(hfr,fullfile(savedir,savename),1)
                         
-                        
+                        %{
                         
                         %% Plot FR response for this block type
                         
@@ -494,10 +482,11 @@ for channel = channels
                             ee.MarkerEdgeColor = [0 0 0];
                         end
                         
-                        
+                        %}
                         
                     end %ib
                     
+                    %{
                     % Finish FR fig
                     figure(hf_b)
                     % Plot mean of means for PDC and IR
@@ -563,17 +552,17 @@ for channel = channels
                     savename = sprintf('%s_%s_ch%i_clu%i_%s_MTF-FR_%idB_LP%ihz',...
                         subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn);
                     set(hf_b,'PaperOrientation','landscape');
-                    print(hf_b,'-dpdf',fullfile(savedir,savename),'-bestfit')
+%                     print(hf_b,'-dpdf',fullfile(savedir,savename),'-bestfit')
                     % tr-tr corr
                     savename = sprintf('%s_%s_ch%i_clu%i_%s_MTF-trCorr_%idB_LP%ihz',...
                         subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn);
                     set(hf_t,'PaperOrientation','landscape');
-                    print(hf_t,'-dpdf',fullfile(savedir,savename),'-bestfit')
+%                     print(hf_t,'-dpdf',fullfile(savedir,savename),'-bestfit')
                     % FF
                     savename = sprintf('%s_%s_ch%i_clu%i_%s_MTF-FF_%idB_LP%ihz',...
                         subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn);
                     set(hf_ff,'PaperOrientation','landscape');
-                    print(hf_ff,'-dpdf',fullfile(savedir,savename),'-bestfit')
+%                     print(hf_ff,'-dpdf',fullfile(savedir,savename),'-bestfit')
                     
                     
                     
@@ -640,17 +629,18 @@ for channel = channels
                     % SAVE FIGURE
                     savename = sprintf('%s_%s_ch%i_clu%i_%s_pdFR-time_%idB_LP%ihz',...
                         subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn);
-                    %     print(hf_b,fullfile(savedir,savename),'-depsc','-tiff')
-                    set(hf_p,'PaperOrientation','landscape');
-                    print(hf_p,'-dpdf',fullfile(savedir,savename),'-bestfit')
+                     
+%                     set(hf_p,'PaperOrientation','landscape');
+%                     print(hf_p,'-dpdf',fullfile(savedir,savename),'-bestfit')
+%                     print(hf_p,fullfile(savedir,savename),'-depsc','-tiff')
+%                     print(hf_p,fullfile(savedir,savename),'-dsvg')
                     
-                    
-                    
+                    %}
                     
                 end %amd
             end %lpn
         end %spl
-        keyboard
+%         keyboard
     end %clu
 end %channel
 

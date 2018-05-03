@@ -1,4 +1,4 @@
-function ap_transitions(subject,session,channels,clus)
+function ap_transitions(subject,select_session,channels,clus)
 %
 %  ap_zscore_plots(subject, session, channel, clu)
 %    Similar to ap_plot_rasters, but converts FR to a zscore.
@@ -6,7 +6,15 @@ function ap_transitions(subject,session,channels,clus)
 %  KP, 2017-08
  
 
-close all
+
+%!!!!!!!!!!!!!!!!!
+SUonly   =  1;
+%!!!!!!!!!!!!!!!!!
+FRcutoff =  3;%Hz 
+%!!!!!!!!!!!!!!!!!
+minTrs   =  10; 
+%!!!!!!!!!!!!!!!!!
+
 
 set(0,'DefaultTextInterpreter','none')
 set(0,'DefaultAxesFontSize',16)
@@ -28,28 +36,33 @@ N = 0;
 
 %%  SESSIONS
 
-% Get list of sessions to check for sorted data
+if ~exist('select_session','var')
+    
+    % Get list of sessions to check for sorted data
+    
+    fn = set_paths_directories(subject);
+    SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
+    
+    % Get list of all sessions with Spikes file
+    Sessions = cell(1,1);
+    for ifn = 1:numel(SpkFns)
+        splitStr = regexp(SpkFns(ifn).name,'_','split');
+        splitStr2 = regexp(splitStr{3},'-','split');
+        if length(splitStr2{2})==2
+            Sessions{end+1,1} = splitStr2{2};
+        end
+    end
+    Sessions = Sessions(2:end,:);
+    
+else
+    Sessions = {select_session};
+end
 
-% fn = set_paths_directories(subject);
-% SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
-% 
-% try
-%     
-% Sessions = [];
-% for ifn = 1:numel(SpkFns)
-%     if length(char(extractBetween(SpkFns(ifn).name,'sess-','_Spikes')))==2
-%         Sessions = [Sessions; extractBetween(SpkFns(ifn).name,'sess-','_Spikes')];
-%     end
-% end
-% 
-% catch
-%     keyboard
-% end
-% 
-% % Step through each session
-% for sess = Sessions'
-%     
-% session = char(sess);
+
+% Step through each session
+for sess = Sessions'
+    
+session = sess{:};
 
 %%
 % Load data files
@@ -136,8 +149,10 @@ for channel = channels
     
     for clu = clus'
         
+        close all
+        
         % !! Only SU for now !!
-        if spikes.labels(spikes.labels(:,1)==clu,2) ~= 2
+        if SUonly && (spikes.labels(spikes.labels(:,1)==clu,2) ~= 2)
             continue
         end
         
@@ -151,7 +166,7 @@ for channel = channels
         if isempty(spiketimes)
             error('no spike events found for this clu')
             %also skip clus with few events 
-        elseif numel(spiketimes) < round(3*length(SoundData)/Info.fs_sound)
+        elseif numel(spiketimes) < round(FRcutoff*length(SoundData)/Info.fs_sound)
             continue
         end
         
@@ -216,6 +231,8 @@ for channel = channels
                     % Get this unit/stimulus combo's N clean blocks (trials)
                     blocks_N = get_N_clean_blocks(SoundData,Info,ArtifactFlag,spl,lpn,amd);
                     
+                    if any(blocks_N<minTrs), continue, end
+                    
                     t1 = -999;
                     t2 = 1000;
 
@@ -261,8 +278,8 @@ for channel = channels
                             % Plot data
                             subplot(4,1,2:4); hold on
                             fill( [t1:(t2-1) (t2-1):-1:t1], [(mean(psth_smooth(:,1:(t2-t1)),1) - std(psth_smooth(:,1:(t2-t1)),1)/sqrt(jj)) fliplr(mean(psth_smooth(:,1:(t2-t1)),1) + std(psth_smooth(:,1:(t2-t1)),1)/sqrt(jj))],...
-                                colors(pb,:),'EdgeColor','none','FaceAlpha',0.6)
-                            ip(pb==prevBlocks) = plot(t1:(t2-1),mean(psth_smooth(:,1:(t2-t1)),1),'Color',colors(pb,:),'LineWidth',jj/2);
+                                colors(pb,:),'EdgeColor','none','FaceAlpha',0.4)
+                            ip(pb==prevBlocks) = plot(t1:(t2-1),mean(psth_smooth(:,1:(t2-t1)),1),'Color',colors(pb,:),'LineWidth',jj/4);
                             legstr{pb==prevBlocks} = [Info.blockKey{pb} ', n=' num2str(jj)];
                             
                         end
@@ -292,9 +309,20 @@ for channel = channels
                         title(titlestr1)
                         
                         
-                        % Save the figure
-                        
-                        
+%                         %% Save figure
+%                         if ib>6
+%                             
+%                             savedir = fullfile(fn.processed,subject,'^an_plots','Transitions');
+%                             if ~exist(savedir,'dir')
+%                                 mkdir(savedir)
+%                             end
+%                             
+%                             savename = sprintf('%s_%s_ch%i_clu%i_%s_%idB_LP%ihz_%s',...
+%                                 subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn,Info.blockKey{ib});
+%                             set(hf,'PaperOrientation','landscape');
+%                             print(hf,'-dpdf',fullfile(savedir,savename),'-bestfit')
+%                             
+%                         end
                         
                     end %ib
                     
@@ -337,6 +365,7 @@ for channel = channels
                             for itr = 1:numel(bkStart_ms)
                                                                 
                                 % Find time that second sequence begins
+                                
                                 pdOnsets = find(diff( SoundData(1,(bkStart_samps(itr)-1):bkStop_samps(itr)) ));
                                 samp_2ndSeqOnset = pdOnsets(7)+bkStart_samps(itr);
                                 
@@ -354,16 +383,20 @@ for channel = channels
                                 
                             end %itr
                             
+                            
                             % Plot this one
+                            
                             subplot(4,1,2:4); hold on
                             fill( [1:diff(seqms) diff(seqms):-1:1], [(mean(psth_smooth(:,1:diff(seqms)),1,'omitnan') - std(psth_smooth(:,1:diff(seqms)),1,'omitnan')/sqrt(itr)) fliplr(mean(psth_smooth(:,1:diff(seqms)),1,'omitnan') + std(psth_smooth(:,1:diff(seqms)),1,'omitnan')/sqrt(itr))],...
-                                linecol,'EdgeColor','none','FaceAlpha',0.6)
+                                linecol,'EdgeColor','none','FaceAlpha',0.4)
                             ip(ib==blocks)=plot(1:diff(seqms),mean(psth_smooth(:,1:diff(seqms)),1,'omitnan'),'Color',linecol,'LineWidth',2);
                             legstr{ib==blocks} = [pos ', n=' num2str(itr)];
                             
                             % Plot stimulus amplitude above
+                            
                             subplot(4,1,1); hold on
                             plot(stim','Color',linecol,'LineWidth',0.75);
+                            
                             
                         end %ib
                         
@@ -378,8 +411,17 @@ for channel = channels
                         xlim([1 diff(seqms)])
                         
                         
-                        % Save figure
+                        %% Save figure
                         
+                        savedir = fullfile(fn.processed,subject,'^an_plots','IRorder');
+                        if ~exist(savedir,'dir')
+                            mkdir(savedir)
+                        end
+                        
+                        savename = sprintf('%s_%s_ch%i_clu%i_%s_%idB_LP%ihz_%s',...
+                            subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn,x{:});
+                        set(hf,'PaperOrientation','landscape');
+                        print(hf,'-dpdf',fullfile(savedir,savename),'-bestfit')
                         
                         
                         
@@ -393,44 +435,7 @@ for channel = channels
     end %clu
 end %channel
 
-return
-% end % sessions
-
-
-%% FINISH AND SAVE FIGURES
-
-% Add title
-switch subject
-    case 'WWWf_244303'
-        region = 'caudal A1';
-    case 'WWWr_244300'
-        region = 'DP/VP';
-end
-figure(hf1); title(sprintf('%s\nIR responses  |  N = %i',region,N))
-figure(hf2); title(sprintf('%s\nIR responses  |  N = %i',region,N))
-
-
-% Set save directory
-
-savedir = fullfile(fn.processed,subject,'^an_plots','Population');
-if ~exist(savedir,'dir')
-    mkdir(savedir)
-end
-
-% Save figs
-
-% mean of IR blocks
-savename = sprintf('%s_allSU_%idB_LP%ihz_ObsVsPred-meanIR',...
-    subject,spl,lpn);
-set(hf1,'PaperOrientation','landscape');
-print(hf1,'-dpdf',fullfile(savedir,savename),'-bestfit')
-
-% each IR sequence plotted
-savename = sprintf('%s_allSU_%idB_LP%ihz_ObsVsPred-eachIR',...
-    subject,spl,lpn);
-set(hf2,'PaperOrientation','landscape');
-print(hf2,'-dpdf',fullfile(savedir,savename),'-bestfit')
-
+end %session
 
 end %function
 

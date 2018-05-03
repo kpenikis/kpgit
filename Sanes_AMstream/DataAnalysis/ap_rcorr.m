@@ -8,8 +8,32 @@ function ap_rcorr(subject)
 
 global mspad
 
+
 % Add some time before and after block, to pad the convolution
 mspad = 500;
+
+
+%!!!!!!!!!!!!!!!!!
+SUonly   =  1;
+%!!!!!!!!!!!!!!!!!
+FRcutoff =  3;%Hz 
+%!!!!!!!!!!!!!!!!!
+minTrs   =  10; 
+%!!!!!!!!!!!!!!!!!
+
+
+% Set some plotting params
+set(0,'DefaultTextInterpreter','none')
+set(0,'DefaultAxesFontSize',16)
+
+scrsz = get(0,'ScreenSize');  % [ left bottom width height ]
+figsize = [1 scrsz(4)/2 scrsz(3)*2/3 scrsz(4)/2];
+
+% Set save directory
+savedir = fullfile(fn.processed,subject,'^an_plots','RCorr');
+if ~exist(savedir,'dir')
+    mkdir(savedir)
+end
 
 
 
@@ -30,20 +54,6 @@ for ifn = 1:numel(SpkFns)
     end
 end
 Sessions = Sessions(2:end,:);
-
-
-% Set some plotting params
-set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',16)
-
-scrsz = get(0,'ScreenSize');  % [ left bottom width height ]
-figsize = [1 scrsz(4)/2 scrsz(3)*2/3 scrsz(4)/2];
-
-% Set save directory
-savedir = fullfile(fn.processed,subject,'^an_plots','RCorr');
-if ~exist(savedir,'dir')
-    mkdir(savedir)
-end
 
 
 % Step through each session
@@ -136,7 +146,7 @@ for channel = channels
     for clu = clus'
         
         % !! Only SU for now !!
-        if spikes.labels(spikes.labels(:,1)==clu,2) ~= 2
+        if spikes.labels(spikes.labels(:,1)==clu,2) ~= 2 && SUonly
             continue
         end
         
@@ -145,12 +155,11 @@ for channel = channels
         catch
             keyboard
         end
-        % spiketrials = spikes.trials(unit_in);
         
         if isempty(spiketimes)
             error('no spike events found for this clu')
             %also skip clus with few events 
-        elseif numel(spiketimes) < round(3*length(SoundData)/Info.fs_sound)
+        elseif numel(spiketimes) < round(FRcutoff*length(SoundData)/Info.fs_sound)
             continue
         end
         
@@ -166,13 +175,13 @@ for channel = channels
                     % Get this unit/stimulus combo's N clean blocks (trials) 
                     [blocksN,minDur] = get_N_clean_blocks(SoundData,Info,ArtifactFlag,spl,lpn,amd);
                     
-                    if any(blocksN<10), continue, end
+                    if any(blocksN<minTrs), continue, end
                     
                     fprintf('calculating RCORR vals for ch %i clu %i...\n',channel,clu)
                     
                     %~~~~~~~~
                     sws = [1 2 4 8 16 32 64 128 256];
-                    nTemps = 500;
+                    nTemps = 1000;
                     %~~~~~~~~
                     
                     percentCorrectMat = nan(numel(sws),2,nTemps);

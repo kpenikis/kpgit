@@ -1,7 +1,7 @@
 function fn = set_paths_directories(subject,session)
 
 % Add Processing and Analysis folders to path
-addpath(genpath('DataAnalysis'), genpath('DataProcessing'), genpath('Tuning'))
+addpath(genpath('DataAnalysis'), genpath('DataProcessing'), genpath('Tuning'), genpath('DataAnalysis_SS'))
 
 
 % Set basic folders based on where runnuing from 
@@ -18,18 +18,22 @@ if strncmp(computername,'Regina',5)
 else
     includePath='/Users/kpenikis/Documents/kpgit/ums2k_02_23_2012';
     
-    if exist('/Volumes/KP_workingDataStore','dir')~=0
-        %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        % external harddrive connected to macbook
-        basefolder = '/Volumes/KP_workingDataStore/NYUDrive/Sanes/DATADIR/AMStream'; %'/Volumes/Seagate-1_KP/RawData';
-        
-    else
-%         disp('External disk not detected; setting directories to macbook built in harddrive')
-        %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        % local macbook harddrive
-        basefolder = '/Users/kpenikis/Documents/SanesLab/LocalData/AMStream';
-        
-    end
+%     if exist('/Volumes/KP_workingDataStore','dir')~=0
+%         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%         % external harddrive connected to macbook
+%         basefolder = '/Volumes/KP_workingDataStore/NYUDrive/Sanes/DATADIR/AMStream'; %'/Volumes/Seagate-1_KP/RawData';
+%         
+%     else
+% %         disp('External disk not detected; setting directories to macbook built in harddrive')
+%         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%         % local macbook harddrive
+%         basefolder = '/Users/kpenikis/Documents/SanesLab/LocalData/AMStream';
+%         
+%     end
+
+    % New Google Backup & Sync app
+    basefolder = '/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMStream'; 
+
 end
 addpath(genpath(includePath));
 

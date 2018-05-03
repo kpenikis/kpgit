@@ -50,9 +50,6 @@ fn = set_paths_directories;
 fprintf('\n------------------------------------------------------------')
 fprintf('\nProcessing ephys data from: %s',subject)
 
-
-% Choose folder containing WAV files used in this block
-
 fprintf('\n BLOCK %s\n',num2str(BLOCK))
 
 
@@ -73,6 +70,29 @@ else
 end
 
 
+% Determine recording type
+if isfield(epData.streams,'rVrt')
+    datafn = 'rVrt';
+    sound_rows = {'Instantaneous AM rate';...
+                     'Sound output';...
+                     'AM depth';...
+                     'dB SPL';...
+                     'HP';...
+                     'LP';...
+                     'Spout TTL' };
+elseif isfield(epData.streams,'rVcf')
+    datafn = 'rVcf';
+    sound_rows = {'Instantaneous AM rate';...
+                     'Sound output';...
+                     'AM depth';...
+                     'dB SPL';...
+                     'CF';...
+                     'Spout TTL';...
+                     'placeholder'};
+else
+    keyboard
+end
+
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 % Create INFO struct
 Info = struct;
@@ -81,19 +101,14 @@ Info.session      = session_label;
 Info.date         = epData.info.date;
 Info.block        = BLOCK';
 Info.fs           = epData.streams.Wave.fs;
-Info.fs_sound     = epData.streams.rVrt.fs;
+Info.fs_sound     = epData.streams.(datafn).fs;
 Info.stimfiles    = epData.info.stimpath;
-Info.sound_rows   = {'Instantaneous AM rate';...
-                     'Sound output';...
-                     'AM depth';...
-                     'dB SPL';...
-                     'HP';...
-                     'LP';...
-                     'Spout TTL' };
+Info.sound_rows   = sound_rows;
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
 
 if ~strcmp(epData.info.stimpath,'IR_AM_trials')
+    
 
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 % Filter PHYS data and keep in one long stream
@@ -102,16 +117,15 @@ try
     Phys=[];
     Phys = pp_filter_phys_data( epData );
     fprintf('       done.')
-catch
-    keyboard
-end
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-
+for ich = [1:7 9:16]
+    Phys(ich,1:1.42e6) = nan;
+end
 
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 % Parse and save SOUNDDATA matrix
 
-SoundData = epData.streams.rVrt.data;
+SoundData = epData.streams.(datafn).data;
 
 [SoundData,Info] = pp_parse_sound_stream_v2(SoundData,Info);
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
@@ -122,7 +136,9 @@ SoundData = epData.streams.rVrt.data;
 [Info,SoundData] = identify_artifact_regions(Info,Phys,SoundData);
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
-
+catch
+    keyboard
+end
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 % Label clean blocks and calculate threshold for sorting
 % [Info.thresh, Info.reject] = calculate_thresholds(Phys, SoundData, Info);
@@ -135,6 +151,9 @@ else %if trials
 
 end
 
+for ich = [1:7 9:16]
+    Phys(ich,1:1.42e6) = 0;
+end
 
 %% SAVE DATA
 

@@ -15,6 +15,13 @@ function ap_zscore_plots(subject, session, channels, clus)
 %
 
  
+%!!!!!!!!!!!!!!!!!
+SUonly   =  1;
+%!!!!!!!!!!!!!!!!!
+FRcutoff =  3;%Hz 
+%!!!!!!!!!!!!!!!!!
+minTrs   =  10;
+%!!!!!!!!!!!!!!!!!
 
 
 
@@ -43,9 +50,13 @@ anbinsize   = 50;
 smthbinsize = 50;
 
 
-colors = hsv(6);
-colors = [colors; 0.5.*hsv(4)];
-
+colors = [ 84  24  69;...
+           120  10  41;...
+           181   0  52;...
+           255  87  51;...
+           255 153   0;...
+           255 205  60 ]./255;
+colors = [colors; 0.7.*bone(4)];
 
 
 
@@ -124,14 +135,12 @@ for channel = channels
     spikes = Spikes.sorted(channel);
     if nargin<4
         if all(spikes.labels(:,2)==1)
-            disp(' SESSION MAY NOT BE MANUALLY SORTED YET')
-            return
+            continue
         end
         if ~any(spikes.labels(:,2)==2 | spikes.labels(:,2)==3)
-            disp(' !! no valid clus for this channel')
             continue
         else
-            clus = spikes.labels(spikes.labels(:,2)==2 |spikes.labels(:,2)==3,1);
+            clus = spikes.labels(spikes.labels(:,2)==2 |spikes.labels(:,2)==3, 1);
         end
     end
     
@@ -141,18 +150,20 @@ for channel = channels
         
         close all
         
+        % !! Only SU for now !!
+        if SUonly && spikes.labels(spikes.labels(:,1)==clu,2) ~= 2
+            continue
+        end
+        
         try
         spiketimes = round(spikes.spiketimes(spikes.assigns==clu') * 1000);  %ms
         catch
             keyboard
         end
-        % spiketrials = spikes.trials(unit_in);
         
-        if isempty(spiketimes)
-            error('no spike events found for this clu')
-        elseif spikes.labels(spikes.labels(:,1)==clu,2) == 4
-            warning('  this clu is labeled as noise. are you sure you want to plot?')
-            keyboard
+        % Skip units with overall FR in session below a cutoff (3 hz)
+        if numel(spiketimes) < round(FRcutoff*length(SoundData)/Info.fs_sound)
+            continue
         end
         
         
@@ -162,15 +173,16 @@ for channel = channels
         % Convert FR to z-score
         %~~~~~~~~~~~~~~~~~~~~~~~~
         
+        % Make constant stream of 
         Stream_Spks = zeros(1,1000*ceil((size(SoundData,2)/Info.fs_sound)));
         Stream_Spks(spiketimes) = 1;
         
         %either with standard 20 ms bin
-        Stream_FRbin = 1000*(binspikecounts(Stream_Spks,histbinsize)/histbinsize);
-        Stream_FRbin(isinf(Stream_FRbin)) = nan;
-        foo = repmat(Stream_FRbin,histbinsize,1);
-        Stream_FR = reshape(foo,1,histbinsize*length(Stream_FRbin));
-        Stream_FR = Stream_FR(1:ceil(length(SoundData)/Info.fs_sound*1000));
+%         Stream_FRbin = 1000*(binspikecounts(Stream_Spks,histbinsize)/histbinsize);
+%         Stream_FRbin(isinf(Stream_FRbin)) = nan;
+%         foo = repmat(Stream_FRbin,histbinsize,1);
+%         Stream_FR = reshape(foo,1,histbinsize*length(Stream_FRbin));
+%         Stream_FR = Stream_FR(1:ceil(length(SoundData)/Info.fs_sound*1000));
         
         %or with sliding 50 ms boxcar
         Stream_FRsmooth = smoothFR(Stream_Spks,smthbinsize);
@@ -182,14 +194,64 @@ for channel = channels
         sampStart = find(diff(SoundData(8,:))==-1);
         msStart   = max( spiketimes(1), round(sampStart(1)/Info.fs_sound*1000)-5000 );
         
+        
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+        
         % Convert FR to z-score
-        Stream_zscore = zscore(Stream_FRsmooth(msStart:end));
-        Stream_zscore = [nan(1,msStart-1) Stream_zscore];
+        
+        REFERENCE = 'unmod';'stream';
+%         markRED = 0;
+        
+        switch REFERENCE
+            
+            case 'stream'
+                Stream_zscore = zscore(Stream_FRsmooth(msStart:end));
+                Stream_zscore = [nan(1,msStart-1) Stream_zscore];
+            
+            case 'unmod'
+                
+                if ~any(strcmp(Zdata.Properties.VariableNames,'preUNM'))
+                    Zdata.preUNM   = 0;
+                    Zdata.postUNM  = 0;
+                end
+                
+                % Get samples of unmodulated sound and of silence
+                unmod_samps  = find(SoundData(8,:)==11);
+                
+                % Split unmod portion into before and after
+                try
+                    if ~isempty(find(diff(unmod_samps)>1))
+                        unmod1_ms = round( [unmod_samps(1)   unmod_samps(0+find(diff(unmod_samps)>1))] /Info.fs_sound*1000 );
+                        unmod2_ms = round( [unmod_samps(1+find(diff(unmod_samps)>1)) unmod_samps(end)] /Info.fs_sound*1000 );
+                        
+%                         diff(unmod1_ms)/1000
+%                         diff(unmod2_ms)/1000
+                        
+                        meanFR = mean([Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)) Stream_FRsmooth(unmod2_ms(1):unmod2_ms(2))]);
+                        stdFR = std([Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)) Stream_FRsmooth(unmod2_ms(1):unmod2_ms(2))]);
+                        
+                    else
+                        unmod1_ms = round( [unmod_samps(1) unmod_samps(end)]/Info.fs_sound*1000 );
+                        unmod2_ms = [0 0];
+                        
+                        meanFR = mean(Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)));
+                        stdFR = std(Stream_FRsmooth(unmod1_ms(1):unmod1_ms(2)));
+                        
+                        fprintf(' !! not much unmod data for sess %s ch%i clu%i \n',session,channel,clu)
+%                         markRED = 1;
+                    end
+                    
+                catch
+                    keyboard
+                end
+                
+                Stream_zscore = (Stream_FRsmooth(msStart:end) - meanFR) / stdFR;
+                Stream_zscore = [nan(1,msStart-1) Stream_zscore];
+                
+        end
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        
+             
         
         % And set y limits
         ylimvals = [min(Stream_zscore) max(Stream_zscore)];
@@ -236,39 +298,16 @@ for channel = channels
                         %if unmodulated or silent, skip for now
                         if ib>=11, continue, end
                         
-                        % Get samples of beginning and end of block
-                        bkStart_samps = 1+find( diff(SoundData(8,:)==ib) ==  1 );
-                        bkStop_samps  =   find( diff(SoundData(8,:)==ib) == -1 );
-                        
-                        % Remove blocks not this spl, lp noise, am depth,
-                        % OR that contain artifact
-                        rm_bk = [];
-                        for it = 1:numel(bkStart_samps)
-                            if ib==5 && (SoundData(8,bkStart_samps(it)-1)==11)
-                                rm_bk = [rm_bk it];
-                            elseif ib~=5 && (SoundData(8,bkStart_samps(it)-1)==11)
-                                keyboard
-                            end
-                            if ~all(SoundData(4,bkStart_samps(it):bkStop_samps(it))==spl)...               
-                                    || ~all(SoundData(6,bkStart_samps(it):bkStop_samps(it))==lpn)...      
-                                    || ~all(SoundData(3,bkStart_samps(it):bkStop_samps(it))==amd)...      
-                                    || any( intersect(bkStart_samps(it):bkStop_samps(it),ArtifactFlag))...  
-                                    || ~all(SoundData(7,bkStart_samps(it):bkStop_samps(it))==1)          
-                                rm_bk = [rm_bk it];
-                            end
+                        % Skip if few trials
+                        if blocks_N(ib)<minTrs
+                            continue
                         end
-                        bkStart_samps(rm_bk) = [];
-                        bkStop_samps(rm_bk) = [];
                         
-                        % Convert to ms
-                        bkStart_ms = round( bkStart_samps / Info.fs_sound*1000 );
-                        bkStop_ms  = round( bkStop_samps  / Info.fs_sound*1000 );
+                        % Get this block start times
+                        [bkStart_samps,bkStop_samps,...
+                            bkStart_ms,bkStop_ms]  =  get_blockOnsets( SoundData,...
+                            ib,spl,lpn,amd,ArtifactFlag,Info.fs_sound);
                         
-                        
-                        if numel(bkStart_ms) ~= numel(bkStop_ms)
-                            keyboard
-                        end
-                        %view preceeding blocks:  hpb = hist(SoundData(8,bkStart_samps-1),0:12)
                         
                         
                         % Now prepare to collect response
