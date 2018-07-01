@@ -16,6 +16,9 @@ function AssessResponses(select_subject, select_session, select_channel, select_
 %  KP, 2018-03
 %
 
+figure; 
+ylim([0 2*360])
+hold on
 
 global fn 
 
@@ -25,7 +28,7 @@ rng('shuffle')
 %!!!!!!!!!!!!!!!!!
 SUonly   =  1;
 %!!!!!!!!!!!!!!!!!
-runRCorr =  1;  nIterations = 1000;
+runRCorr =  0;  nIterations = 1000;
 %!!!!!!!!!!!!!!!!!
 FRcutoff =  1;%Hz 
 %!!!!!!!!!!!!!!!!!
@@ -45,7 +48,7 @@ if RERUN == 1
     
     Resp = struct;
     N=0;
-
+    
 else  %to add units to pre-existing struct
     
     if SUonly==1
@@ -72,6 +75,7 @@ end
 allUn_FR_raw = nan(0,8);
 allUn_FR_nrm = nan(0,8);
 
+RedundantUnit = zeros(1,58);
 
 
 %%  SUBJECTS
@@ -122,6 +126,10 @@ end
 for sess = Sessions'
     
 session = char(sess);
+
+if any(strcmp(session,{'QA' 'SB'}))
+    continue
+end
 
 %%
 % Load data files
@@ -302,9 +310,10 @@ for channel = Channels
 %                 nSnips = min(Ntrials);
                 Spks_per_tr = nan(max(Ntrials),1,8);
                 FRtrs_raw = nan(max(Ntrials),8);
-                FR_nrm = nan(1,8);
-                VSdata = nan(3,8);
-                
+                FR_nrm    = nan(1,8);
+                VSdata    = nan(3,8);
+                MeanPhase = nan(1,8);
+                ntrs      = nan(1,8);
                 
                 for istim = allStim'
                     
@@ -351,6 +360,8 @@ for channel = Channels
                         
                     end %it
                     
+                    ntrs(1,istim) = nt;
+                    
                     if any(any(isnan(raster)))
                         keyboard
                     end
@@ -365,6 +376,8 @@ for channel = Channels
                     % Save VS data
                     if (istim>1 && istim<7)
                         [VSdata(1,istim),VSdata(2,istim),VSdata(3,istim)] = vectorstrength(Spktimes,period);
+                        MeanPhase(1,istim) = meanphase(sort(Spktimes),period);
+                        if MeanPhase(1,istim)<0, keyboard, end
                     end
                     
                     end %iti
@@ -426,6 +439,26 @@ for channel = Channels
                 
                 
                 
+                %% Calculate integration time
+                
+                % Wrap latency around to next cycle where necessary
+                PdcPhase = MeanPhase(2:6);
+                resets = 1+find(diff(PdcPhase)<(-pi/32));
+                for ii = 1:numel(resets)
+                    PdcPhase(resets(ii):end) = PdcPhase(resets(ii):end) + 2*pi;
+                end
+                
+                plot(AMrates,rad2deg(PdcPhase),'-','LineWidth',1.5)
+%                 ylim([0 max(PdcPhase)+pi/2])
+                
+                [IntegrationTime_nt,~,IT_mse] = lscov(AMrates',rad2deg(PdcPhase'),ntrs(2:6));
+                [IntegrationTime,~,IT_mse] = lscov(AMrates',rad2deg(PdcPhase'),VSdata(1,2:6));
+                
+                if any(rad2deg(PdcPhase)<0)
+                    keyboard
+                end
+                
+                
                 
                 %% Save data to structure
                 
@@ -440,6 +473,10 @@ for channel = Channels
                 Resp(N).kw_p       = kw_p;
                 Resp(N).wx_p       = wx_p;
                 Resp(N).VSdata     = VSdata;
+                Resp(N).Phase_deg  = rad2deg(PdcPhase);
+                Resp(N).IntTime    = IntegrationTime;
+                Resp(N).IntTime_nt    = IntegrationTime_nt;
+                Resp(N).IT_ntr     = ntrs(2:6);
                 Resp(N).FR_nrm     = FR_nrm;
                 Resp(N).dp_mat     = dprime_mat;
                 Resp(N).RCorr.data = best_data;
@@ -458,14 +495,24 @@ end %subjects
 %% Finish and save Resp structure
 
 if SUonly==1
-    filename = 'RespStruct_allSU';
+    filename = 'RespStruct_SU_slim';
 elseif SUonly==0
     filename = 'RespStruct_allUnits';
 end
 
 save(fullfile(fn.processed,filename),'Resp','-v7.3');
 
+
+%% Label each unit as sparse or sustained
+
+separateSparseSustainedUnits(Resp)
+
+
 return
+
+
+
+
 
 
 %% Play with data if wanted 

@@ -28,7 +28,7 @@ colorswitch = 'iBMF_FR'; 'iBMF_VS'; 'subject';
 %!!!!!!!!!!!!!!!!!
 spktimeSHIFT = -0;
 %!!!!!!!!!!!!!!!!!
-USE_MEASURE = 'FF'; 'TrV'; 'FR';
+USE_MEASURE = 'FR'; 'TrV'; 'FF';
 %!!!!!!!!!!!!!!!!!
 
 switch USE_MEASURE
@@ -145,7 +145,7 @@ for subj = 1:numel(subjects)
         case 'WWWf_253400'
             subjcol = 0.6*[1 1 1];
         case 'WWWlf_253395'
-            subjcol = 'k';
+            subjcol = [1 1 1];
     end
      
 
@@ -221,20 +221,20 @@ for channel = Channels
     
     % Find clus to plot
     spikes = Spikes.sorted(channel);
-    if AMrespFilt==0
-        if nargin<4
-            if ~any(spikes.labels(:,2)==2 | spikes.labels(:,2)==3) %no valid clus for this channel
-                continue
-            else
-                Clus = spikes.labels(spikes.labels(:,2)==2 |spikes.labels(:,2)==3,1);
-            end
-        else
-            Clus = select_clu;
-        end
+    if nargin>3
+        Clus = select_clu;
     else
-        Clus = SessResp([SessResp.Channel]==channel).Clu;
+        if AMrespFilt==0
+            Clus = select_clu;
+            keyboard
+        else
+            try
+                Clus = SessResp([SessResp.Channel]==channel).Clu;
+            catch
+                continue
+            end
+        end
     end
-    
     
     %% STEP THROUGH EACH CLU
     
@@ -261,9 +261,9 @@ for channel = Channels
             continue
         end
         
-        
+        if nargin<1
         ThisResp = SessResp([SessResp.Channel]==channel & [SessResp.Clu]==clu);
-        
+        end
 %         fprintf('-----------------------------\n')
         
 
@@ -394,48 +394,58 @@ for channel = Channels
                 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                 if nargin>3              % INDIVIDUAL UNIT ZFR MTF
                     
-                    xx = [1:6 8+(1:numel(allStim(7:end)))];
+                    xx = [1:5 8+(1:numel(allStim(7:end)))];
                     msize = Ntrials./5;
                     
                     hmtf = figure; hold on
-                    axis square
+%                     axis square
                     % Plot Warn stim
-                    plot(xx(1),FRmeans(1),'s','MarkerSize',15,...
-                        'MarkerFaceColor','none','MarkerEdgeColor',colors(1,:),'LineWidth',1.5)
-                    plot([xx(1) xx(1)],[FRmeans(1)-(sqrt(FRvars(1))/sqrt(Ntrials(1))) FRmeans(1)+(sqrt(FRvars(1))/sqrt(Ntrials(1)))],...
-                        '-','Color',colors(1,:),'LineWidth',1.5)
+%                     plot(xx(1),FRmeans(1),'s','MarkerSize',15,...
+%                         'MarkerFaceColor','none','MarkerEdgeColor',colors(1,:),'LineWidth',1.5)
+%                     plot([xx(1) xx(1)],[FRmeans(1)-(sqrt(FRvars(1))/sqrt(Ntrials(1))) FRmeans(1)+(sqrt(FRvars(1))/sqrt(Ntrials(1)))],...
+%                         '-','Color',colors(1,:),'LineWidth',1.5)
                     
                     % Plot periodic stimuli
-                    for ir = 2:numel(FRmeans)
-                        plot(xx(ir),FRmeans(ir),'o','MarkerSize',15,...
-                            'MarkerFaceColor',colors(ir,:),'MarkerEdgeColor','none')
-                        plot([xx(ir) xx(ir)],[FRmeans(ir)-(sqrt(FRvars(ir))/sqrt(Ntrials(ir))) FRmeans(ir)+(sqrt(FRvars(ir))/sqrt(Ntrials(ir)))],...
-                            '-','Color',colors(ir,:),'LineWidth',2)
+                    for ir = 1:5
+                        plot(xx(ir),FRmeans(ir+1),'o','MarkerSize',15,...
+                            'MarkerFaceColor',colors(ir+1,:),'MarkerEdgeColor','none')
+                        plot([xx(ir) xx(ir)],[FRmeans(ir+1)-(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1))) FRmeans(ir+1)+(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1)))],...
+                            '-','Color',colors(ir+1,:),'LineWidth',2)
                     end
                     
                     % Plot IR prediction
-                    plot(8,IR_Prediction,'o','MarkerSize',15,'LineWidth',2,'Color',[32 129 255]./255)
-                    plot([8 8],[IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],'-','LineWidth',2,'Color',[32 129 255]./255)
+                    plot(7,IR_Prediction,'o','MarkerSize',15,'LineWidth',2,'Color',[32 129 255]./255)
+                    plot([7 7],[IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],'-','LineWidth',2,'Color',[32 129 255]./255)
+                    
+                    % Plot IR observed
+                    for ir = 6:length(xx)
+                        plot(xx(ir),FRmeans(ir+1),'o','MarkerSize',15,...
+                            'MarkerFaceColor',colors(ir+1,:),'MarkerEdgeColor','none')
+                        plot([xx(ir) xx(ir)],[FRmeans(ir+1)-(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1))) FRmeans(ir+1)+(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1)))],...
+                            '-','Color',colors(ir+1,:),'LineWidth',2)
+                    end
                     
                     % Finish formatting
                     set(gca,'XTick',min(xx):max(xx),...
-                        'XTickLabel',[Info.stim_ID_key(1:6)' ' ' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
+                        'XTickLabel',[Info.stim_ID_key(2:6)' ' ' 'Linear Prediction' ' ' Info.stim_ID_key(allStim(7:end))' ],...
                         'TickLabelInterpreter','none')
                     xtickangle(45)
                     
                     xlim([-1+min(xx) max(xx)+1])
-                    REFERENCE = 'silence';
-                    ylabel(sprintf('FR response\n(%s, ref''d to %s)', units,REFERENCE))
+%                     REFERENCE = 'silence';
+                    ylabel(sprintf('FR response\n(%s)', units))
                     
                     % Save MTF figure
-                    % savedir = fullfile(fn.processed,'zFRpopulation');
-%                     savedir = fn.anplots;
-%                     if ~exist(savedir,'dir')
-%                         mkdir(savedir)
-%                     end
-%                     savename = sprintf('%s_%s_ch%i_clu%i_%s_%idB_LP%ihz_ref-%s_zFR-MTF',...
-%                         subject,session,channel,clu,unType{spikes.labels(spikes.labels(:,1)==clu,2)},spl,lpn,REFERENCE);
-%                     print_eps_kp(hmtf,fullfile(savedir,savename),1)
+                    savedir = fullfile(fn.processed,'LinearityFRpopulation');
+                    if ~exist(savedir,'dir')
+                        mkdir(savedir)
+                    end
+                    savename = sprintf('%s_%s_ch%i_clu%i_%s_%s_FR-MTF',...
+                        subject,session,channel,clu,unType,units);
+                    print_eps_kp(hmtf,fullfile(savedir,savename),1)
+                    print_svg_kp(hmtf,fullfile(savedir,savename),1)
+                    
+                    
                     
                     
                     
@@ -532,10 +542,11 @@ if nargin<1
     % STATS
     
     p_wsr   = signrank( Zdata.zFR_pred(~isnan(Zdata.zFR_obs)), Zdata.zFR_obs(~isnan(Zdata.zFR_obs)), 'method', 'exact');
+    [r,p_r] = corrcoef(Zdata.zFR_pred(~isnan(Zdata.zFR_obs)), Zdata.zFR_obs(~isnan(Zdata.zFR_obs)));
     
     
     % Finish figure (hf2)
-    text(axmax/6,2*axmin/4,sprintf('N = %i units\nWSR p=%2.3f',N,p_wsr),'FontSize',12)
+    text(axmax/6,2*axmin/4,sprintf('N = %i units\nWSR p=%2.3f\nr=%0.2f, p=%0.2e',N,p_wsr,r(1,2),p_r(1,2)),'FontSize',12)
     
     if SUonly
         if AMrespFilt==0

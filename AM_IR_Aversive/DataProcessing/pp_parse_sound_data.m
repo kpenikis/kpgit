@@ -223,13 +223,13 @@ for it = 1:numel(trialID)
     %  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 
     % ITI periodic rate  
     
-    % Currently not collecting ITIs following Warn trials
+    % Currently NOT COLLECTING ITIs FOLLOWING Warn TRIALS
     
     % onset and offset (samples)
     ITI_BlockOnsets(nt+nw)  = 1+trialOffset(it);% - ITI_up(minidx)
     if it<length(trialOnset)
         ITI_BlockOffsets(nt+nw) = trialOnset(it+1)-1;
-    else
+    else  %if it's the last stim in the recording session
         ITI_BlockOffsets(nt+nw) = size(SoundData,2);
     end
     

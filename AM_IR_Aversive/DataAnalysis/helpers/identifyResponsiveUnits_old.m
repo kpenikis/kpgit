@@ -1,4 +1,4 @@
-function [sigUnits,UnitData] = identifyResponsiveUnits(UnitData)
+function [sigUnits,Resp] = identifyResponsiveUnits_old(Resp)
 % sig_indices = identifyResponsiveUnits(Resp)
 %
 %  Identifies the units in the Resp input struct that are responsive to the
@@ -8,9 +8,9 @@ function [sigUnits,UnitData] = identifyResponsiveUnits(UnitData)
 %   - Rcorr classifier performance
 %   - FR dprime formula (all stimuli compared to Silence)
 % 
-%  Called by plotUnitDistributions, and re-saved.
+%  Next, add which stimuli are significant, and BMF for rate and VS.
 %
-%  KP, 2018-04 
+%  KP, 2018-04  
 % 
 
 
@@ -19,14 +19,14 @@ p_bonferonni_VS  =  0.0002;
 % RC_M             =  3;
 
 sigUnits = [];
-for iUn = 1:numel(UnitData)
+for ii = 1:numel(Resp)
     
     % Rate tuning
-    KW   =  UnitData(iUn).kw_p < 0.01;
-    WX   =  UnitData(iUn).wx_p < 0.01;
+    KW   =  Resp(ii).kw_p < 0.01;
+    WX   =  Resp(ii).wx_p < 0.01;
     
     % Synchronization
-    VS   =  any(UnitData(iUn).VSdata_spk(3,:) < p_bonferonni_VS);
+    VS   =  any(Resp(ii).VSdata(3,:) < p_bonferonni_VS);
     
 %     % Rcorr performance
 %     RC_chance = 1/sum(~isnan(Resp(ii).FR_nrm));
@@ -34,21 +34,21 @@ for iUn = 1:numel(UnitData)
     
     % IF EITHER FR OR VS IS SIGNIFICANT, KEEP UNIT
     if  (KW && WX)   ||   VS
-        sigUnits = [sigUnits iUn];
+        sigUnits = [sigUnits ii];
     end
     
     if  KW && WX
         % BMF - Rate
-        FRpdc_tr = UnitData(iUn).FR_raw_tr(:,2:6);
-        [~,UnitData(iUn).iBMF_FR] = max(mean(FRpdc_tr(sum(isnan(FRpdc_tr),2)==0,:),1));
+        FRpdc_tr = Resp(ii).FR_raw_tr(:,2:6);
+        [~,Resp(ii).iBMF_FR] = max(mean(FRpdc_tr(sum(isnan(FRpdc_tr),2)==0,:),1));
     end
     
     if VS
         % BMF - Synchronization 
-        BVS = max(UnitData(iUn).VSdata_spk(1,(UnitData(iUn).VSdata_spk(3,:) < p_bonferonni_VS)));
-        UnitData(iUn).iBMF_VS = find(UnitData(iUn).VSdata_spk(1,:)==BVS) - 1;
+        BVS = max(Resp(ii).VSdata(1,(Resp(ii).VSdata(3,:) < p_bonferonni_VS)));
+        Resp(ii).iBMF_VS = find(Resp(ii).VSdata(1,:)==BVS) - 1;
         % Significantly synchronized stimuli
-        UnitData(iUn).iSync = find(UnitData(iUn).VSdata_spk(3,:) < p_bonferonni_VS) - 1;
+        Resp(ii).iSync = find(Resp(ii).VSdata(3,:) < p_bonferonni_VS) - 1;
     end
     
 end

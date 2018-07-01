@@ -21,7 +21,7 @@ global fn
 close  all
 
 if nargin<1
-    PlotThis = 'FR'; 'FF'; 'TrV'; 'VS'; 'CV'; 'r_all'; 'r_pdc';
+    PlotThis = 'FR'; 'FF'; 'TrV'; 'VS'; 'MP'; 'CV'; 'r_all'; 'r_pdc';
     select_stim = 'iBMF_FR'; 'iBMF_VS'; 'iSync'; 'all';
 elseif nargin==1
     select_stim = 'iBMF_FR'; 'iBMF_VS'; 'iSync'; 'all';
@@ -32,7 +32,7 @@ SUonly   =  1;
 %!!!!!!!!!!!!!!!!!
 AMrespFilt =  1;
 %!!!!!!!!!!!!!!!!!
-FRcutoff =  1;%Hz 
+FRcutoff =  2;%Hz 
 %!!!!!!!!!!!!!!!!!
 minTrs   =  10;
 %!!!!!!!!!!!!!!!!!
@@ -71,7 +71,10 @@ switch PlotThis
     case 'VS'
         yminval = 0;
         ymaxval = 1;
-    case {'r_all' 'r_pdc'}
+    case 'MP'
+        yminval = 0;
+        ymaxval = 2*pi;
+    case {'r_all' 'r_pdc' 'avTrCorr'}
         yminval = 0;
         ymaxval = 1;
     otherwise
@@ -84,7 +87,7 @@ SeqPosStr = {'Early' 'Late'};
 
 % Set up figs for population scatterplots
 
-% Each rate separately
+% Each rate and time separately
 hfe = figure;
 set(hfe,'Position',narrow)
 for ir = 1:numel(AMrates)
@@ -102,6 +105,25 @@ for isp=1:2
 end
 end
 linkaxes(hsp,'xy')
+xlim([yminval ymaxval])
+ylim([yminval ymaxval])
+hold off
+
+
+% Each rate separately, time merged
+hfr = figure;
+set(hfr,'Position',narrow)
+for ir = 1:numel(AMrates)
+    hspr(ir)=subplot(numel(AMrates),1,ir); hold on
+    plot([yminval ymaxval],[yminval ymaxval],':k'); 
+    axis square
+    title([num2str(AMrates(ir)) ' Hz'])
+    if ir==5
+        ylabel('Irregular context')
+        xlabel('Periodic context')
+    end
+end
+linkaxes(hspr,'xy')
 xlim([yminval ymaxval])
 ylim([yminval ymaxval])
 hold off
@@ -345,6 +367,10 @@ for channel = Channels
         
         ThisResp = SessResp([SessResp.Channel]==channel & [SessResp.Clu]==clu);
         
+        if mean(mean(ThisResp.FR_raw_tr,1,'omitnan'),2,'omitnan')>8
+            continue
+        end
+        
 %         fprintf('-----------------------------\n')
         
         
@@ -537,7 +563,7 @@ for channel = Channels
                                     MPH_temp(ipd).Prev100msFR(it) = sum( spiketimes>=(newPds(ipd)-100) & spiketimes<=newPds(ipd))/100*1000;
                                     if ipd>1
                                         MPH_temp(ipd).PrevPd       = allPds(ipd-1);
-                                    else
+                                     else
                                         prevTrID = TrialData(find([TrialData.onset]==t2(it))-1,:).trID;
                                         if prevTrID < 7 && prevTrID >1 %if previous stim was pdc
                                             MPH_temp(ipd).PrevPd   = AMrates(prevTrID-1);
@@ -609,6 +635,14 @@ for channel = Channels
                     continue
                 end
                 
+                
+                if strcmp(PlotThis,'VS') && strcmp(select_stim,'iBMF_FR')
+                    if ~ismember(ThisResp.(select_stim), ThisResp.iSync)
+%                         keyboard
+                    end
+                end
+                
+                
                 anThisRate = AMrates(ThisResp.(select_stim));
                 
                 for this_rate = anThisRate
@@ -656,6 +690,8 @@ for channel = Channels
                             TrV      = nan(1,numel(subMPH(subMPH.SeqPos==iseq,:).raster));
                             CV       = nan(1,numel(subMPH(subMPH.SeqPos==iseq,:).raster));
                             VS       = nan(1,numel(subMPH(subMPH.SeqPos==iseq,:).raster));
+                            VSp      = nan(1,numel(subMPH(subMPH.SeqPos==iseq,:).raster));
+                            MP       = nan(1,numel(subMPH(subMPH.SeqPos==iseq,:).raster));
                             rMPH_all = nan(2,numel(subMPH(subMPH.SeqPos==iseq,:).raster));
                             rMPH_pdc = nan(2,numel(subMPH(subMPH.SeqPos==iseq,:).raster));
                             
@@ -681,9 +717,19 @@ for channel = Channels
                                 for it = 1:size(raster,1)
                                     spktimes = [spktimes find(raster(it,:)) + (it-1)*Period];
                                 end
-                                VS(ipst) = vectorstrength(spktimes,Period);
+                                [VS(ipst),~,VSp(ipst)] = vectorstrength(spktimes,Period);
+                                
+                                % Also calculate mean phase
+                                [MP(ipst),R(ipst)] = meanphase(spktimes,Period);
+                                
                                 
                             end
+                            
+%                             % Remove VS if sync ns
+%                             if mean(VSp,'omitnan') > 0.001
+%                                 VS = 0;
+%                             end
+                            
                             
                             % Average over previous stimuli and save for
                             % comparison
@@ -699,6 +745,7 @@ for channel = Channels
                             PdData(idx,1).TrV = mean(TrV,'omitnan');
                             PdData(idx,1).CV  = mean(CV,'omitnan');
                             PdData(idx,1).VS  = mean(VS,'omitnan');
+                            PdData(idx,1).MP  = mean(MP,'omitnan');
                             PdData(idx,1).r_all  = mean(rMPH_all(1,:));
                             PdData(idx,1).p_all  = mean(rMPH_all(2,:));
                             PdData(idx,1).r_pdc  = mean(rMPH_pdc(1,:));
@@ -741,6 +788,8 @@ for channel = Channels
                         TrV = nan(1,numel(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).raster));
                         CV  = nan(1,numel(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).raster));
                         VS  = nan(1,numel(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).raster));
+                        VSp = nan(1,numel(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).raster));
+                        MP  = nan(1,numel(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).raster));
                         rMPH_all = nan(2,numel(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).raster));
                         rMPH_pdc = nan(2,numel(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).raster));
                         
@@ -766,9 +815,18 @@ for channel = Channels
                             for it = 1:size(raster,1)
                                 spktimes = [spktimes find(raster(it,:)) + (it-1)*Period];
                             end
-                            VS(ipst) = vectorstrength(spktimes,Period);
+                            [VS(ipst),~,VSp(ipst)] = vectorstrength(spktimes,Period);
+                            
+                            % Also calculate mean phase
+                            [MP(ipst),R(ipst)] = meanphase(spktimes,Period);
                             
                         end %ipst
+                        
+                        
+%                         % Remove VS if sync ns
+%                         if mean(VSp,'omitnan') > 0.001
+%                             VS = 0;
+%                         end
                         
                         
                         PdData(idx,2).stimID = this_rate;
@@ -780,6 +838,7 @@ for channel = Channels
                         PdData(idx,2).TrV = mean(TrV,'omitnan');
                         PdData(idx,2).CV  = mean(CV,'omitnan');
                         PdData(idx,2).VS  = mean(VS,'omitnan');
+                        PdData(idx,2).MP  = mean(MP,'omitnan');
                         PdData(idx,2).r_all  = mean(rMPH_all(1,:));
                         PdData(idx,2).p_all  = mean(rMPH_all(2,:));
                         PdData(idx,2).r_pdc  = mean(rMPH_pdc(1,:));
@@ -792,7 +851,9 @@ for channel = Channels
                         % Save MTF data
                         MTFdata = [MTFdata; PdData(idx,1).stimID  iseq  find(AMrates==this_rate) PdData(idx,2).(PlotThis) PdData(idx,1).(PlotThis) ];
 
-                        
+%                         if strcmp(session,'MA') && channel==13
+%                             keyboard
+%                         end
                         
                         %% Add datapoints to population plots
                         
@@ -811,7 +872,28 @@ for channel = Channels
                                     'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
                                     'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)
                                 
-                            case {'FF' 'TrV' 'VS' 'CV' 'r_all' 'r_pdc'}
+                            case {'FF' 'TrV' 'VS' 'MP' 'CV' 'r_all' 'r_pdc'}
+                                scatter(PdData(idx,2).(PlotThis), PdData(idx,1).(PlotThis),dotsize,'o',...
+                                    'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
+                                    'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)
+                                
+                        end
+                        hold off
+                        
+                        % Each AM rate merged
+                        figure(hfr); hold on
+                        subplot(hspr(AMrates==this_rate)); hold on
+                        
+                        switch PlotThis
+                            
+                            case 'FR'
+                                errorbar(PdData(idx,2).FR, PdData(idx,1).FR, PdData(idx,2).SEM,'horizontal','Color',colors(subMPH.ThisStimID(1),:))
+                                errorbar(PdData(idx,2).FR, PdData(idx,1).FR, PdData(idx,1).SEM,'vertical','Color',colors(subMPH.ThisStimID(1),:))
+                                scatter(PdData(idx,2).FR, PdData(idx,1).FR,dotsize,'o',...
+                                    'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
+                                    'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)
+                                
+                            case {'FF' 'TrV' 'VS' 'MP' 'CV' 'r_all' 'r_pdc'}
                                 scatter(PdData(idx,2).(PlotThis), PdData(idx,1).(PlotThis),dotsize,'o',...
                                     'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
                                     'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)
@@ -830,7 +912,7 @@ for channel = Channels
                                     'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
                                     'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)
                                 
-                            case {'FF' 'TrV' 'VS' 'CV' 'r_all' 'r_pdc'}
+                            case {'FF' 'TrV' 'VS' 'MP' 'CV' 'r_all' 'r_pdc'}
                                 scatter(PdData(idx,2).(PlotThis), PdData(idx,1).(PlotThis),dotsize,'o',...
                                     'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
                                     'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)                                
@@ -849,7 +931,7 @@ for channel = Channels
                                     'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
                                     'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)
                                 
-                            case {'FF' 'TrV' 'VS' 'CV' 'r_all' 'r_pdc'}
+                            case {'FF' 'TrV' 'VS' 'MP' 'CV' 'r_all' 'r_pdc'}
                                 scatter(PdData(idx,2).(PlotThis), PdData(idx,1).(PlotThis),dotsize,'o',...
                                     'MarkerFaceColor',colors(subMPH.ThisStimID(1),:),'MarkerEdgeColor',colors(subMPH.ThisStimID(1),:),...
                                     'MarkerFaceAlpha',alphval,'MarkerEdgeAlpha',alphval)
@@ -865,20 +947,20 @@ for channel = Channels
                             diffData_unit = [diffData_unit; find(AMrates==this_rate) PdData(idx,1).(PlotThis)-PdData(idx,2).(PlotThis) idx];
                             
                             % By AM rate
-                            figure(hfdr); hold on
-                            plot(find(AMrates==this_rate), PdData(idx,1).(PlotThis)-PdData(idx,2).(PlotThis),...
-                                'ok','MarkerSize',10)
-                            hold off
+%                             figure(hfdr); hold on
+%                             plot(find(AMrates==this_rate), PdData(idx,1).(PlotThis)-PdData(idx,2).(PlotThis),...
+%                                 'ok','MarkerSize',10)
+%                             hold off
                             
                             hfdrData = [hfdrData; find(AMrates==this_rate) PdData(idx,1).(PlotThis)-PdData(idx,2).(PlotThis)];
                             
                             % By distance to BMF-fr
                             if isfield(ThisResp,'iBMF_FR') && ~isempty(ThisResp.iBMF_FR)
                                 
-                                figure(hfdd); hold on
-                                plot( find(AMrates==this_rate)-ThisResp.iBMF_FR, PdData(idx,1).(PlotThis)-PdData(idx,2).(PlotThis),...
-                                    'ok','MarkerSize',10)
-                                hold off
+%                                 figure(hfdd); hold on
+%                                 plot( find(AMrates==this_rate)-ThisResp.iBMF_FR, PdData(idx,1).(PlotThis)-PdData(idx,2).(PlotThis),...
+%                                     'ok','MarkerSize',10)
+%                                 hold off
                                 
                                 hfddData = [hfddData; find(AMrates==this_rate)-ThisResp.iBMF_FR PdData(idx,1).(PlotThis)-PdData(idx,2).(PlotThis)];
                             end
@@ -959,6 +1041,8 @@ end %subjects
 
 %%  STATS
 
+%% Individual plots -- AM rate and timing
+
 figure(hfe); hold on
 suptitle(sprintf('%s for each period\nselect stim: %s',PlotThis,select_stim))
 try
@@ -967,7 +1051,8 @@ for ir=1:5
         
         if numel(FinalDPs(ir,is).Pdc)>1
             
-            %% Effect of context
+            % Effect of context
+            
             % Get correlation of datapoints between contexts
             [r,p_r] = corrcoef( FinalDPs(ir,is).Pdc, FinalDPs(ir,is).IR);
             % Perform t-test of datapoints between contexts
@@ -999,8 +1084,8 @@ for ir=1:5
         
     end
     
-    %% Effect of timing
     
+    % Effect of timing
     
     if numel(FinalDPs(ir,1).Pdc)>1
         
@@ -1037,7 +1122,52 @@ catch
     keyboard
 end
 
-% Stats on Overlay data - Early/Late
+
+
+%% Overlay data - AM rates separate
+
+figure(hfr); hold on
+suptitle(sprintf('%s for each period\nselect stim: %s',PlotThis,select_stim))
+try
+    for ir=1:5
+        
+        if numel(FinalDPs(ir).Pdc)>1
+            
+            % Effect of context
+            
+            % Get correlation of datapoints between contexts
+            [r,p_r] = corrcoef( FinalDPs(ir).Pdc, FinalDPs(ir).IR);
+            % Perform t-test of datapoints between contexts
+            [~,p_t] = ttest2(   FinalDPs(ir).Pdc, FinalDPs(ir).IR);
+            % Perform non-parametric (paired) Wilcoxon sign rank test of datapoints between contexts
+            p_wsr   = signrank( FinalDPs(ir).Pdc, FinalDPs(ir).IR, 'method', 'exact');
+            
+            % Save stats
+            FinalDPs(ir,3).stats.r     = r(1,2);
+            FinalDPs(ir,3).stats.p_r   = p_r(1,2);
+            FinalDPs(ir,3).stats.p_t   = p_t;
+            FinalDPs(ir,3).stats.p_wsr = p_wsr;
+            
+        else
+            % Save stats
+            FinalDPs(ir,3).stats.r     = nan;
+            FinalDPs(ir,3).stats.p_r   = nan;
+            FinalDPs(ir,3).stats.p_t   = nan;
+            FinalDPs(ir,3).stats.p_wsr = nan;
+        end
+        
+        % Print in plots
+        subplot(hspr(ir)); hold on
+        title(sprintf('WSR p=%0.2e, r=%0.2e p=%0.2e',p_wsr,r(1,2),p_r(1,2)))        
+        
+    end
+    hold off
+catch
+    keyboard
+end
+
+
+%% Overlay data - Early/Late
 p_wsr_Early = signrank([FinalDPs(:,1).Pdc],[FinalDPs(:,1).IR]);
 p_wsr_Late  = signrank([FinalDPs(:,2).Pdc],[FinalDPs(:,2).IR]);
 FinalDPs(1,1).stats.p_wsr_Early = p_wsr_Early;
@@ -1051,12 +1181,13 @@ title(sprintf('%s for each %s period\nselect stim: %s\nWSR p=%0.2e',PlotThis,Seq
 hold off
 
 
-% Stats on Overlay data - All
+%% Overlay data - All
 p_wsr_ALL = signrank([FinalDPs.Pdc],[FinalDPs.IR]);
 FinalDPs(1,1).stats.p_wsr_allRates = p_wsr_ALL;
 
 figure(hfo);
 title(sprintf('%s for each period\nselect stim: %s\nWSR p=%0.2e',PlotThis,select_stim,p_wsr_ALL))
+
 
 
 %% Check relationship between TrV and FR
@@ -1090,24 +1221,34 @@ title(sprintf('%s for each period\nselect stim: %s\nWSR p=%0.2e',PlotThis,select
 
 %% IR-Pdc diff against AM rate/distance to BMF
 if strcmp(select_stim,'all')
+    
     figure(hfdr); hold on
-    boxplot(hfdrData(:,2)',hfdrData(:,1)','Positions',unique(hfdrData(:,1))','Colors','r','notch','on')
-    h=findobj(gca,'Tag','Median'); j=findobj(gca,'Tag','Box');
-    for ih=1:numel(h)
-        h(ih).LineWidth = 4;
-        j(ih).LineWidth = 2;
-    end
+    plotSpread(hfdrData(:,2),'distributionIdx',hfdrData(:,1),'distributionColors','k')
+    boxplot(hfdrData(:,2)',hfdrData(:,1)','Positions',unique(hfdrData(:,1))',...
+        'Colors','r','notch','on','Symbol','','Labels',Info.stim_ID_key(2:6)')
+    
+%     distributionPlot(hfdrData(:,2),'group',hfdrData(:,1),'xNames',Info.stim_ID_key(2:6)','showMM',6)   
+%     boxplot(hfdrData(:,2)',hfdrData(:,1)','Positions',unique(hfdrData(:,1))','Colors','r','notch','on')
+%     h=findobj(gca,'Tag','Median'); j=findobj(gca,'Tag','Box');
+%     for ih=1:numel(h)
+%         h(ih).LineWidth = 4;
+%         j(ih).LineWidth = 2;
+%     end
     [p,ant,stats] = kruskalwallis(hfdrData(:,2)',hfdrData(:,1)','off');
     title(sprintf('%s context diff as a fct of AM rate\nKW p=%0.2e',PlotThis,p))
     hold off
     
     figure(hfdd); hold on
-    boxplot(hfddData(:,2)',hfddData(:,1)','Positions',unique(hfddData(:,1))','Colors','r','notch','on')
-    h=findobj(gca,'Tag','Median'); j=findobj(gca,'Tag','Box');
-    for ih=1:numel(h)
-        h(ih).LineWidth = 4;
-        j(ih).LineWidth = 2;
-    end
+    
+    plotSpread(hfddData(:,2),'distributionIdx',hfddData(:,1),'distributionColors','k')
+    boxplot(hfddData(:,2)',hfddData(:,1)','Positions',unique(hfddData(:,1))','Colors','r','notch','on','Symbol','')
+
+%     boxplot(hfddData(:,2)',hfddData(:,1)','Positions',unique(hfddData(:,1))','Colors','r','notch','on')
+%     h=findobj(gca,'Tag','Median'); j=findobj(gca,'Tag','Box');
+%     for ih=1:numel(h)
+%         h(ih).LineWidth = 4;
+%         j(ih).LineWidth = 2;
+%     end
     [p,ant,stats] = kruskalwallis(hfddData(:,2)',hfddData(:,1)','off');
     title(sprintf('%s context diff as a fct of distance from BMF-fr\nKW p=%0.2e',PlotThis,p))
     hold off
@@ -1162,7 +1303,7 @@ end
 
 %% Save figure(s)
 
-savedir = fullfile(fn.processed,'MPHmetrics','floor');
+savedir = fullfile(fn.processed,'MPHmetrics','lowFR');
 if SUonly==1
     savedir = [savedir '/SU'];
 end
@@ -1174,9 +1315,11 @@ savename = sprintf('MPHs_Context_%s_%s',PlotThis,select_stim);
 
 % eps
 print_eps_kp(hfe,fullfile([savedir '/eps'],[savename '_each']))
+print_eps_kp(hfr,fullfile([savedir '/eps'],[savename '_rates']))
 print_eps_kp(hfo,fullfile([savedir '/eps'],[savename '_overlay']))
 % svg
 print_svg_kp(hfe,fullfile([savedir '/svg'],[savename '_each']))
+print_svg_kp(hfr,fullfile([savedir '/svg'],[savename '_rates']))
 print_svg_kp(hfo,fullfile([savedir '/svg'],[savename '_overlay']))
 
 if strcmp(select_stim,'all')

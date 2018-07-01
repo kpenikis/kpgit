@@ -440,7 +440,7 @@ for channel = channels
                         set(gca,'ylim',[0 add_y+1],'xtick',[])
                         
                         subplot(hs(3)); hold on
-                        ylim([0 ymaxval])
+                        ylim([0 50])
                         xlabel('Time from transition (ms)')
                         ylabel('Spikes/s')
                         legend(ip,legstr,'Location','northwest')
@@ -609,6 +609,9 @@ for channel = channels
                             savename = sprintf('Trans-to-%s_%idB_%i_%s_%s_ch%i_%i_%s',Info.stim_ID_key{stid},spl,lpn,subject,session,channel,clu,unType);
                         end
                         print_eps_kp(hf,fullfile(savedir,savename))
+                        print_svg_kp(hf,fullfile(savedir,savename))
+                        
+                        
                         
                         end %PLOT_ALL
                         

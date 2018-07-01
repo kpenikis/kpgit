@@ -1,4 +1,4 @@
-function plotRasters_sortResp()
+function plotRasters_sortResp(optargin)
 %
 %  pp_plot_rasters(subject, session, [channel, clu] )
 %    Plots a raster and psth for each stimulus, separating trials by
@@ -15,7 +15,7 @@ close all
 %!!!!!!!!!!!
 SUonly = 1;
 %!!!!!!!!!!!
-FRcutoff =  2;%Hz 
+FRcutoff =  1;%Hz 
 %!!!!!!!!!!!!!!!!!
 minTrs   =  10;
 
@@ -49,7 +49,11 @@ largerect = [1 scrsz(4)/3 scrsz(3)/3 scrsz(4)/3];
 for ist=1:7
     
     hf(ist) = figure;
-    set(gcf,'Position',halfscreen)
+    if nargin>0
+        set(gcf,'Position',largerect)
+    else
+        set(gcf,'Position',halfscreen)
+    end
     hold on
     hs(ist,1) = subplot(9,1,1);
     set(gca,'xtick',[],'ytick',[])
@@ -99,7 +103,13 @@ for stid = 2:8
     
     GroupPSTH{stid-1} = nan(numel(Resp_sort),3000);
     
-    for iUn = 1:numel(Resp_sort)
+    if nargin>0
+        theseUnits = find(strcmp({Resp_sort.Session},'QA') & [Resp_sort.Channel]==3);
+    else
+        theseUnits = 1:numel(Resp_sort);
+    end
+%     theseUnits = theseUnits(1);
+    for iUn = theseUnits
         
         % Get this unit's info
         subject = Resp_sort(iUn).Subject;
@@ -256,21 +266,28 @@ for ist = 1:7
     suptitle(sprintf('%s, all responsive SU',Info.stim_ID_key{ist+1}));
     
     subplot(hs(ist,3)); hold on
-    ylim([0 80])
     
-    savename = sprintf('AllSU_%s',Info.stim_ID_key{ist+1});
-    
+    if nargin>0
+        ylim([0 40])
+        savename = sprintf('%s_%i_%i_%s',session,channel,clu,Info.stim_ID_key{ist+1});
+    else
+        ylim([0 80])
+        savename = sprintf('AllSU_%s',Info.stim_ID_key{ist+1});
+        
+        % Save Group PSTH data
+        save(fullfile(savedir,'AllSU_GroupPSTH'),'GroupPSTH','-v7.3')
+    end
+        
     print_eps_kp(hf(ist),fullfile([savedir '/eps'],savename))
     print_svg_kp(hf(ist),fullfile([savedir '/svg'],savename))
 end
 
 
-% Save Group PSTH data
-save(fullfile(savedir,'AllSU_GroupPSTH'),'GroupPSTH','-v7.3')
-
 
 
 %% Inspect the dynamic range (max-min FR) across stimuli
+
+keyboard 
 
 figure; hold on
 
