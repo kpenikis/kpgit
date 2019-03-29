@@ -38,7 +38,7 @@ for ich = 1:size(Phys,1)
     
     for it = 1:size(TrialData,1)
         
-        if sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))>9 && it>1
+        if sum( ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms) )>9 && it>1
             ArtifactFlags_trialch(it,ich) = 1;
         elseif sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))<9 && sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))>0 && it>1
             % Plot borderline cases to check manually

@@ -1,8 +1,11 @@
 function [FRsmooth,peakFR,peakTime,minFR] = smoothFR(spikes,binsize)
+% [FRsmooth,peakFR,peakTime,minFR] = smoothFR(spikes,binsize)
+%  
 % Input is binary matrix of spikes in 1 ms bins, for each trial.
 % Output FRsmooth has 1 ms resolution.
 % indicate desired binsize with 2nd argument; default is 25 ms.
 % corrected for delay introduced by filter.
+% 
 %  KP, last updated 2017-08
 %
 

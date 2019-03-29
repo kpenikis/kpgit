@@ -1,70 +1,74 @@
-function [Info,Phys,SoundData] = identify_artifact_regions_KS(Info,Phys,SoundData)
-
+function [data,Info,TrialData] = identify_artifact_regions_KS(data,Info,TrialData)
+% ABANDONED IN FAVOR OF identify_artifact_trials_64ch
 
 ds = round(Info.fs/Info.fs_sound);
 
-window_size = 0.1; %s
-window_size = round(window_size*Info.fs); %samples
 
+%%% Artifact identification based on RMS would work better on filtered
+%%% data. Too many false positives with raw data. 
 
-for ich = 1:size(Phys,1)
-    if ich==8, continue, end
+sampwin  = round(Info.fs/5);  %200 ms
+sampstep = round(Info.fs/10); %100 ms
+begwins  = 1:sampstep:size(dataFilt,2);
+Channels = 51;
+
+for ch = Channels
     
-    % First, calculate rms distribution for this channel  
-    rms_ch = nan( 1, ceil(size(Phys,2)/window_size) );
+    %%% Artifact identification based on RMS would work better on filtered
+    %%% data. Too many false positives with raw data.
+    clear dataFilt
+    dataFilt = filter_data( double(data(ch,:)), Info.fs );
     
-    nseg=0;
-    for iseg = 1:window_size:size(Phys,2)
-        nseg=nseg+1;
-        rms_ch(1,nseg) = sqrt(mean( Phys(ich, iseg:(min(iseg+window_size-1,end)) ).^2 ));
+    % Calculate RMS
+    roughRMS = nan(size(begwins));
+    for iw = 1:numel(begwins)
+        roughRMS(iw) = rms(dataFilt(1,begwins(iw):min(begwins(iw)+sampwin-1,size(dataFilt,2))));
     end
     
-    rms_med = median(reshape(rms_ch,[size(rms_ch,1)*size(rms_ch,2),1]) ,'omitnan');
-    rms_std = std(   reshape(rms_ch,[size(rms_ch,1)*size(rms_ch,2),1]) ,'omitnan');
-        
-    amp_std(ich) = median(std( Phys( ich,: ) ,0,2) ,'omitnan') ;
-
+    threshRMS = 1.3*median(roughRMS);
     
-    % RMS above threshold?
-    std_factor = 3;
-    artifact_flag_amp = rms_ch > (amp_std(ich)*std_factor) | rms_ch < (-amp_std(ich)*std_factor);
-    artifact_flag_rms = rms_ch > (rms_med+std_factor*rms_std);
     
-    artifact_data = [];
-    artifact_data = repmat(artifact_flag_rms,window_size,1);
-    artifact_data = reshape(artifact_data,1,size(artifact_data,1)*size(artifact_data,2));
-    
-    if size(artifact_data,2) ~= size(Phys,2)
-        artifact_data = artifact_data(1,1:size(Phys,2));
+    % Create logical array of artifact flags
+    artifact_flag_ds = zeros(size(roughRMS));
+    artifact_flag_ds(roughRMS>threshRMS) = 1;
+    artifact_flag = [];
+    artifact_flag = logical(repmat(artifact_flag_ds,sampstep,1));
+    artifact_flag = reshape(artifact_flag,1,size(artifact_flag,1)*size(artifact_flag,2));
+    if size(artifact_flag,2) ~= size(dataFilt,2)
+        artifact_flag = artifact_flag(1,1:size(dataFilt,2));
     end
     
+    % Plot to check
+    hfart=figure(1); clf
+    plot(find(artifact_flag),data(ch,artifact_flag),'r','LineWidth',1.5)
+    hold on
+    plot(dataFilt(1,:),'k')
+    keyboard
+    close(hfart)
     
-    % Plot
-%     figure(1); clf
-%     plot(Phys(ich,:),'k')
-%     hold on
-%     plot(find(artifact_data),Phys(ich,artifact_data),'r')
     
     % Find onset of drinking to denote official start of session
-    SpoutTTL = find(SoundData(7,:));
-%     plot([SpoutTTL(1)*ds SpoutTTL(1)*ds],[-1 1].*0.005,'k','LineWidth',2)
+%     plot([SpoutTTL(1)*ds SpoutTTL(1)*ds],[-1 1].*0.1,'k','LineWidth',2)
         
     % Create white noise to match channel and replace artifact in Phys with this noise
-    rms_sess_avg = rms(Phys(ich,~artifact_data));
-    Phys(ich,artifact_data) = rms_sess_avg*randn(1,sum(artifact_data))-rms_sess_avg/2;
+    rms_sess_avg = rms(dataFilt(1,artifact_flag==0));
+    dataFilt(1,artifact_flag) = rms_sess_avg*randn(1,sum(artifact_flag))-rms_sess_avg/2;
     
     % Also remove Phys data before actual session begins
-    Phys(ich,1:SpoutTTL(1)*ds-1) = 0;
+%     data(ich,1:SpoutTTL(1)*ds-1) = 0;
     
     % View final cleaned data
-%     plot(Phys(ich,:),'b')
+    plot(dataFilt,'b')
+    keyboard
+    %if good, proceed to replace data with cleaned data
+    data(ch,:) = dataFilt;
     
     
-    % Downsample the artifact flags to match sampling rate of SoundData
-    artifact_data = artifact_data(1,1:ds:size(Phys,2));
+    % Downsample the artifact flags to match sampling rate of TrialData
+    artifact_flag = artifact_flag(1,1:ds:size(data,2));
     
-    if size(artifact_data,2) ~= size(SoundData,2)
-        artifact_data = artifact_data(1,1:size(SoundData,2));
+    if size(artifact_data,2) ~= size(TrialData,2)
+        artifact_data = artifact_data(1,1:size(TrialData,2));
     end
     
     % Save the artifact data for this channel
@@ -76,7 +80,7 @@ end %ich
 
 %% Then launch gui to flag entire stimulus blocks
 
-% [Info,SoundData] = manually_check_artifact_blocks(Info,Phys,SoundData,artifact_samples);
+% [Info,TrialData] = manually_check_artifact_blocks(Info,data,TrialData,artifact_samples);
 
 
 

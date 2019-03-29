@@ -1,4 +1,6 @@
-function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,bs_hist,bs_smth,REFERENCE)
+function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,bs_rect,bs_gaus,REFERENCE)
+% [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,bs_rect,bs_gaus,REFERENCE)
+%
 % For use with the long stream stimulus. Bins and smooths spiketimes to
 % extract continuous firing rate throughout the session. Also calculates
 % the z-score of FR, with reference to either the activity during the
@@ -6,28 +8,28 @@ function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimes
 % throughout the whole session. 
 % Lastly, outputs the ymaxval, for plotting all rasters on the same axes.
 %
-% KP, 2018-03
+% KP, 2018-03; updated 2018-07
 
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Get smoothed FR from spiketimes for entire stream
 
 Stream_Spks = zeros(1,StreamNSamples);
 Stream_Spks(spiketimes) = 1;
 
-% EITHER with standard bin
-Stream_FRbin = 1000*(binspikecounts([Stream_Spks zeros(1,5000)],bs_hist)/bs_hist);
-Stream_FRbin(isinf(Stream_FRbin)) = nan;
-foo = repmat(Stream_FRbin,bs_hist,1);
-Stream_FR = reshape(foo,1,bs_hist*length(Stream_FRbin));
-Stream_FR = Stream_FR(1:StreamNSamples);
 
-% OR with sliding 50 ms boxcar
-Stream_FRsmooth = smoothFR([Stream_Spks zeros(1,5000)],bs_smth);
-Stream_FRsmooth = Stream_FRsmooth(1:StreamNSamples);
+% Get smoothed FR from spiketimes for entire stream
+
+%gaussian window
+window=gausswin(bs_gaus);
+window=window-min(window);
+window=window/sum(window);
+
+%rectangular window
+% window=rectwin(bs_rect);
+% window=window/sum(window);
+
+Stream_FRsmooth = conv(Stream_Spks,window,'same').*1e3;
 
 
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Convert FR to z-score
 
 switch REFERENCE

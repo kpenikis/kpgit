@@ -5,7 +5,8 @@ function fn = set_paths_directories(subject,session,UMS_flag)
 
 % Add Processing and Analysis folders to path
 cd /Users/kpenikis/Documents/kpgit/AM_IR_Aversive
-addpath(genpath('DataAnalysis'), genpath('DataProcessing'))
+addpath(genpath('DataAnalysis'), genpath('DataProcessing'),...
+    ('/Users/kpenikis/Documents/MATLAB/Colormaps'))
 
 
 % Set basic folders based on where runnuing from 
@@ -21,13 +22,13 @@ if strncmp(computername,'Regina',5)
     includePath='C:\gits\kpgit\ums2k_02_23_2012';
     
 else
-%     if nargin==3 && UMS_flag
+    if nargin==3 && UMS_flag
         includePath='/Users/kpenikis/Documents/kpgit/ums2k_02_23_2012';
 %         removePath ='/Users/kpenikis/Documents/MATLAB/KiloSort';
-%     else
-%         includePath='/Users/kpenikis/Documents/MATLAB/KiloSort';
+    else
+        includePath='/Users/kpenikis/Documents/MATLAB/KiloSort';
 %         removePath ='/Users/kpenikis/Documents/kpgit/ums2k_02_23_2012';
-%     end
+    end
     
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     basefolder = '/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive';
@@ -40,14 +41,18 @@ else
 %         basefolder = '/Users/kpenikis/Documents/SanesLab/LocalData/AM_IR_aversive';        
     end
 end
+
+% First, check if is in the current path (to avoid warning message)
 % rmpath(genpath(removePath));
-addpath(genpath(includePath));
+
+path(genpath(includePath),path);
+
 
 % Set basic folders
-fn.test       = fullfile(basefolder,'TestData');
 fn.raw        = fullfile(basefolder,'RawData');
 fn.processed  = fullfile(basefolder,'ProcessedData');
 fn.stim       = fullfile(basefolder,'Stimuli');
+fn.sorting    = fullfile(basefolder,'SortingConfig');
 
 % Set subject and session directories
 if nargin==2

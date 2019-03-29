@@ -1,4 +1,4 @@
-function combineSplitUnits( UnitData, UnitInfo )
+function combineSplitUnits( UnitData, UnitInfo, SAVENAME )
 % Run after AssessUnits. Make sure to manually add unit strings to
 % SplitUnits mat file first. Skips units that have already been merged.
 % 
@@ -58,7 +58,7 @@ for un1_idx = 1:numel(UnitData)
         UnitData(N).Session     = [UnitData(un1_idx).Session '_' UnitData(un2_idx).Session];
         UnitData(N).Channel     = [UnitData(un1_idx).Channel     UnitData(un2_idx).Channel];
         UnitData(N).Clu         = [UnitData(un1_idx).Clu         UnitData(un2_idx).Clu];
-        UnitData(N).unType      = UnitData(un1_idx).unType;
+%         UnitData(N).unType      = UnitData(un1_idx).unType;
         UnitData(N).spl         = UnitData(un1_idx).spl;
         UnitData(N).lpn         = UnitData(un1_idx).lpn;
         UnitData(N).BaseFR      = mean([UnitData(un1_idx).BaseFR UnitData(un2_idx).BaseFR]);
@@ -82,7 +82,7 @@ end
 
 
 % Save Unit files again
-save(fullfile(fn.processed,'Units'),'UnitInfo','UnitData','-v7.3');
+save(fullfile(fn.processed,SAVENAME),'UnitInfo','UnitData','-v7.3');
 
 
 end

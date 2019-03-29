@@ -1,4 +1,4 @@
-function [theseTDidx,Ntrials,minDur] = get_clean_trials(TrialData,artifact_trs,spl,lpn)
+function [theseTDidx,Ntrials,minDur,allStim] = get_clean_trials(TrialData,artifact_trs,spl,lpn)
 % called by ap_plot_rasters (aversive experiment)
 % 
 
@@ -33,6 +33,9 @@ for id = 1:numel(theseStim)
 end
 minDur = min(StimDur);
 
+
+% And find what the stimuli are
+allStim = unique(TrialData.trID(theseTDidx));
 
 end
 

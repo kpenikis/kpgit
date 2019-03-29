@@ -138,33 +138,33 @@ end
 
 
 %% Plot response phases for this unit
-
-hf_tmp=figure; hold on
-ip(1)=plot(AMrates,rad2deg(PdcPhase_spk),'-k','LineWidth',2.5);
-ip(2)=plot(AMrates,rad2deg(PdcPhase_gap),'-r','LineWidth',2.5);
-for ir = 1:5
-    plot(AMrates(ir),rad2deg(PdcPhase_spk(ir)),'.k','MarkerSize',10*weights_spk(ir))
-    plot(AMrates(ir),rad2deg(PdcPhase_gap(ir)),'.r','MarkerSize',10*weights_gap(ir))
-end
-ylim([0 max( rad2deg(max(PdcPhase_spk)+pi/2), rad2deg(max(PdcPhase_gap)+pi/2)) ])
-xlim([0 34])
-axis square
-%                 title(sprintf('Integration Time \nspks: %0.1f ms, \\color{red}gaps: %0.1f ms',IntegrationTime_spk,IntegrationTime_gap)...
-%                     ,'Interpreter','tex')
-title(sprintf('%s %s ch%i clu%i',subject,session,channel,clu),'Interpreter','none')
-legend(ip,{sprintf('spks: %0.1f ms',IntegrationTime_spk) sprintf('gaps: %0.1f ms',IntegrationTime_gap)},'Location','southeast')
-set(gca,'xtick',AMrates)
-xlabel('AM rate (Hz)')
-ylabel('Unwrapped mean phase (deg)')
-hold off
-
-
-% Save fig
-savedir = fullfile(fn.processed,'Units',RespType);
-if ~exist(savedir,'dir')
-    mkdir(fullfile(savedir,'eps'))
-    mkdir(fullfile(savedir,'svg'))
-end
+% 
+% hf_tmp=figure; hold on
+% ip(1)=plot(AMrates,rad2deg(PdcPhase_spk),'-k','LineWidth',2.5);
+% ip(2)=plot(AMrates,rad2deg(PdcPhase_gap),'-r','LineWidth',2.5);
+% for ir = 1:5
+%     plot(AMrates(ir),rad2deg(PdcPhase_spk(ir)),'.k','MarkerSize',10*weights_spk(ir))
+%     plot(AMrates(ir),rad2deg(PdcPhase_gap(ir)),'.r','MarkerSize',10*weights_gap(ir))
+% end
+% ylim([0 max( rad2deg(max(PdcPhase_spk)+pi/2), rad2deg(max(PdcPhase_gap)+pi/2)) ])
+% xlim([0 34])
+% axis square
+% %                 title(sprintf('Integration Time \nspks: %0.1f ms, \\color{red}gaps: %0.1f ms',IntegrationTime_spk,IntegrationTime_gap)...
+% %                     ,'Interpreter','tex')
+% title(sprintf('%s %s ch%i clu%i',subject,session,channel,clu),'Interpreter','none')
+% legend(ip,{sprintf('spks: %0.1f ms',IntegrationTime_spk) sprintf('gaps: %0.1f ms',IntegrationTime_gap)},'Location','southeast')
+% set(gca,'xtick',AMrates)
+% xlabel('AM rate (Hz)')
+% ylabel('Unwrapped mean phase (deg)')
+% hold off
+% 
+% 
+% % Save fig
+% savedir = fullfile(fn.processed,'Units',RespType);
+% if ~exist(savedir,'dir')
+%     mkdir(fullfile(savedir,'eps'))
+%     mkdir(fullfile(savedir,'svg'))
+% end
 % print_eps_kp(hf_tmp,fullfile(savedir,'eps',sprintf('RespPhase_%s_%s_%i_%i',subject,session,channel,clu)))
 % print_svg_kp(hf_tmp,fullfile(savedir,'svg',sprintf('RespPhase_%s_%s_%i_%i',subject,session,channel,clu)))
 

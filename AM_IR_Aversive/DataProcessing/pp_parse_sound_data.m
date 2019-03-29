@@ -1,4 +1,4 @@
-function [TrialData,SpoutStream,SoundStream,Info] = pp_parse_sound_data(SoundData,epocs,Info)
+function [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_sound_data(SoundData,epocs,Info)
 %
 % called by: pp_processPhys_UMS
 % to make TrialData table for AM aversive experiment
@@ -32,13 +32,17 @@ Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
 
 
 
-%% Get Stream Data (fs = 1 kHz)
+%% Get Stream Data (fs = 10 kHz; 1/10 ms)
 
-SpoutStream = round(resample(double(SoundData(7,:)),10000,round(Info.fs_sound*10),5));
+keyboard
 
-% Actually save downsampled RMS
+SpoutStream = round( resample(double(SoundData(7,:)),100000,round(Info.fs_sound*10),5) );
+
+% Actually save downsampled RMS 
 SoundStream_long = envelope(double(SoundData(2,:)),40,'rms');
-SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
+SoundStream = resample(SoundStream_long,100000,round(Info.fs_sound*10),5);
+
+RateStream = round(resample(double(SoundData(1,:)),100000,round(Info.fs_sound*10),5));
 
 
 
