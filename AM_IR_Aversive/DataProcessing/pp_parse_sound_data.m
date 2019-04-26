@@ -1,6 +1,6 @@
 function [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_sound_data(SoundData,epocs,Info)
 %
-% called by: pp_processPhys_UMS
+% called by: ProcessPhys_SynKS
 % to make TrialData table for AM aversive experiment
 % 
 % Currently not collecting ITIs following Warn trials
@@ -11,11 +11,6 @@ function [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_sound_da
 %%% add behavioral data
 %%% save period dur vectors? or write a simple function to load vector
 %%% during analyses
-
-
-global fn
-
-stimfiles = dir(fullfile(fn.stim,'*.mat'));
 
 
 %Types of sounds
@@ -32,17 +27,15 @@ Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
 
 
 
-%% Get Stream Data (fs = 10 kHz; 1/10 ms)
+%% Get Stream Data (fs = 1 kHz; 1 ms)
 
-keyboard
-
-SpoutStream = round( resample(double(SoundData(7,:)),100000,round(Info.fs_sound*10),5) );
+SpoutStream = round( resample(double(SoundData(7,:)),10000,round(Info.fs_sound*10),5) );
 
 % Actually save downsampled RMS 
 SoundStream_long = envelope(double(SoundData(2,:)),40,'rms');
-SoundStream = resample(SoundStream_long,100000,round(Info.fs_sound*10),5);
+SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
 
-RateStream = round(resample(double(SoundData(1,:)),100000,round(Info.fs_sound*10),5));
+RateStream = round(resample(double(SoundData(1,:)),10000,round(Info.fs_sound*10),5));
 
 
 
@@ -128,9 +121,9 @@ for it = 1:numel(trialID)
         end
         ITI_BlockOnsets(nt+nw)  = ITI_BlockOffsets(nt+nw) - round(1*Info.fs_sound);
         
-        if ((ITI_BlockOffsets(nt+nw) - ITI_BlockOnsets(nt+nw))/Info.fs_sound) > 1.5
-            keyboard
-        end
+%         if ((ITI_BlockOffsets(nt+nw) - ITI_BlockOnsets(nt+nw))/Info.fs_sound) > 1.5
+%             keyboard
+%         end
         
         ITI_BlockID(nt+nw)  = find(strncmp( num2str(SoundData(1, ITI_BlockOnsets(nt+nw)+50)), Info.stim_ID_key,2));
         ITI_ITI_flag(nt+nw) = 1;
@@ -150,8 +143,9 @@ for it = 1:numel(trialID)
             ITI_LP(nt+nw) = 0;
         end
         
-        ITI_Spout_pct(nt+nw) = double( round( 100* sum(SoundData(7, (ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw)) )) / length((ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw))) ) /100);
-        
+        % Check spout only in 1.5 s after onset
+        ITI_Spout_pct(nt+nw) = double( round( 100* sum(SoundData(7, (ITI_BlockOnsets(nt+nw) +[0:(1.5*Info.fs_sound)]) )) / (1.5*Info.fs_sound) ) /100);
+%         ITI_Spout_pct(nt+nw) = double(round(100* sum(SoundData(7, (ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw)) )) / length((ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw))))/100);
         
         
         
@@ -226,9 +220,7 @@ for it = 1:numel(trialID)
     
     %  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  . 
     % ITI periodic rate  
-    
-    % Currently NOT COLLECTING ITIs FOLLOWING Warn TRIALS
-    
+        
     % onset and offset (samples)
     ITI_BlockOnsets(nt+nw)  = 1+trialOffset(it);% - ITI_up(minidx)
     if it<length(trialOnset)
@@ -262,7 +254,9 @@ for it = 1:numel(trialID)
         ITI_LP(nt+nw) = 0;
     end
     
-    ITI_Spout_pct(nt+nw) = double(round(100* sum(SoundData(7, (ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw)) )) / length((ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw))))/100);
+    % Check spout only in 1.5 s after onset
+    ITI_Spout_pct(nt+nw) = double( round( 100* sum(SoundData(7, (ITI_BlockOnsets(nt+nw) +[0:(1.5*Info.fs_sound)]) )) / (1.5*Info.fs_sound) ) /100);
+%     ITI_Spout_pct(nt+nw) = double( round( 100* sum(SoundData(7, (ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw)) )) / length((ITI_BlockOnsets(nt+nw):ITI_BlockOffsets(nt+nw))))/100);
     
     end %if numel(blockstring)==2  ->  Warn stim or other 
     

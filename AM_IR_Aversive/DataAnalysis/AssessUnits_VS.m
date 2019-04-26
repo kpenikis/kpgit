@@ -1,6 +1,6 @@
-function AssessUnits(select_subject, select_session )
+function AssessUnits_VS(select_subject, select_session )
 %
-%  AssessUnits( [subject, session, channel, clu] )
+%  AssessUnits_VS( [subject, session, channel, clu] )
 %   All inputs are optional. Any variables not specified will be cycled
 %   through.
 %   
@@ -16,7 +16,7 @@ function AssessUnits(select_subject, select_session )
 %
 
 
-SAVENAME = 'Units';
+SAVENAME = 'UnitsVS';
 
 
 close all
@@ -34,41 +34,15 @@ minTrs   =  10;
 
 %%  Prepare UnitInfo table and UnitData struct
 
-RERUN = 1;
-if nargin<1 %start over, re-running all units
-    
-    RERUN = input('If want to re-run ALL UNITS, enter 1. Otherwise, enter 0.   ');
-    
-end
+UnitData = struct;
 
-if RERUN == 1
-    
-    UnitData = struct;
-    
-    UnitInfo = table;
-    UnitInfo.Subject   = ' ';
-    UnitInfo.Session   = ' ';
-    UnitInfo.Channel   = nan;
-    UnitInfo.Clu       = nan;
-    UnitInfo.RespType  = ' ';    
-    
-    N=0;
-    
-else  %to add units to pre-existing struct
-    
-    q = load(fullfile(fn.processed,'Units'));
-    
-    UnitData = q.UnitData;
-    UnitInfo = q.UnitInfo;
-    
-    N = numel(UnitData);
-    
-end
+UnitInfo = table;
+UnitInfo.Subject   = ' ';
+UnitInfo.Session   = ' ';
+UnitInfo.Channel   = nan;
+UnitInfo.Clu       = nan;
 
-allUn_FR_raw = nan(0,8);
-allUn_FR_nrm = nan(0,8);
-allUn_GR_raw = nan(0,8);
-
+N=0;
 
 %%  SUBJECTS
 
@@ -77,7 +51,7 @@ if nargin>0 && exist('select_subject','var')
         subjects = {select_subject};
     end
 else
-    subjects = { 'AAB_265058' 'WWWf_253400' 'WWWlf_253395'  }; %'AAB_265059' 
+    subjects = { 'AAB_265054'  };
 end
 
 for subj = 1:numel(subjects)
@@ -110,11 +84,6 @@ end
 for sess = Sessions'
     
 session = char(sess);
-
-% Skip unconfirmed SU for now
-if any(strcmp(session,{'Jan21-AM' 'Jan25-AM' 'Jan31-AM'}))
-    continue
-end
 
 % Load data files
 clear Spikes Clusters
@@ -178,13 +147,12 @@ elseif exist('Clusters','var')                                % >>> KS <<<
         spiketimes = unique(Clusters(iclu).spikeTimes * 1000)'; %ms
         
         if ~isempty(spiketimes)
-            assess_this_unit
+            assess_this_unit_VS
         end
         
         clear channel clu shank spiketimes
         
     end
-    
     
                                              % or else something's wrong...
 elseif exist('Clusters','var') && exist('Spikes','var')
@@ -198,13 +166,7 @@ end % Spikes data type
 end %session
 end %subject
 
-
-
-%% Finish and save UnitInfo and UnitData
-
-if RERUN == 1
-    UnitInfo(1,:)=[];
-end
+UnitInfo(1,:)=[];
 
 
 %% Measure waveform shapes
@@ -215,94 +177,6 @@ end
 %% Save Unit files 
 
 save(fullfile(fn.processed,SAVENAME),'UnitInfo','UnitData','-v7.3');
-
-
-return
-
-
-%% Extensions
-
-% Combine data from split units and save files
-combineSplitUnits( UnitData, UnitInfo, SAVENAME )  % RE-SAVES UNITS FILES
-
-
-% Label each unit as sparse or sustained (old)
-separateSparseSustainedUnits(UnitData)
-
-
-return
-
-
-
-
-
-
-
-
-%% Play with data if wanted 
-
-allUnResp_NRMraw = allUn_FR_raw./repmat(max(allUn_FR_raw,[],2),1,size(allUn_FR_raw,2));
-figure;
-imagesc(allUnResp_NRMraw)
-colormap('bone')
-
-figure;
-imagesc(allUn_FR_nrm)
-colormap('bone')
-
-
-% Sort according to some feature
-
-sortBy = 'pdc_raw_resp_range';
-switch sortBy
-    case 'warn_raw'
-        [warn_raw,idx]=sort(Resp.raw(:,1),1);
-    case 'raw_32'
-        [raw_32,idx]=sort(Resp.raw(:,6),1);
-    case 'nrm_32'
-        [nrm_32,idx]=sort(Resp.nrm(:,6),1);
-    case 'IR_pred'
-        [IR_pred,idx]=sort(Resp.IR_pred,1);
-    case 'diff_nrm_2_32'
-        [diff_nrm_2_32,idx]=sort(Resp.nrm(:,2)-Resp.nrm(:,6),1);
-    case 'pdc_raw_resp_range'
-        [pdc_raw_resp_range,idx]=sort(range(Resp.raw(:,2:6),2),1);
-    case 'pdc_nrm_resp_range'
-        [pdc_nrm_resp_range,idx]=sort(range(Resp.nrm(:,2:6),2),1);        
-end
-
-
-%% Plots
-set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',14)
-
-scrsz = get(0,'ScreenSize');
-figsize1 = [1 scrsz(4) scrsz(3)/8 scrsz(4)];
-figsize2 = [scrsz(3)/8 scrsz(4) scrsz(3)/8 scrsz(4)];
-
-hf1 = figure;
-set(hf1,'Position',figsize1,'NextPlot','add')
-imagesc(allUn_FR_raw(idx,2:end))
-colormap('bone')
-colorbar
-ylabel('Unit #')
-xlabel('Stimulus')
-title(sprintf('mean FR resp (Hz)\nsorted by: %s',sortBy))
-
-hf2 = figure;
-set(hf2,'Position',figsize2,'NextPlot','add')
-imagesc(allUn_FR_nrm(idx,2:end))
-colormap('bone')
-colorbar
-ylabel('Unit #')
-xlabel('Stimulus')
-title(sprintf('norm. mean resp, (z-FR)\nsorted by: %s',sortBy))
-
-
-%% Identify units to exclude
-
-[Resp(idx,1:4) table(eval(sortBy))]
-figure; hist(abs(eval(sortBy)),10)
 
 
 

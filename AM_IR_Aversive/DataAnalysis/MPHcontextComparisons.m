@@ -1,14 +1,12 @@
-function plotMPH_aggregate(SUBJECT,SESSION)
+function MPHcontextComparisons
 %
-%  plotMPH_aggregate(SUBJECT,SESSION)
-%   Plots MPHs from aggregated spiketimes of RS and NS units. 
-%   *** So far, only tested with Units file from single session !!
+%  MPHcontextComparisons
 %
-%  KP, 2019-03
+%
+%
+%  KP, 2019-04
 %
 
-
-close  all
 
 global fn AMrates rateVec_AC rateVec_DB trMin RateStream
 fn = set_paths_directories([],[],1);
@@ -18,37 +16,54 @@ trMin   =  10;
 %!!!!!!!!!!!!!!!!!
 tVarBin = 31;
 %!!!!!!!!!!!!!!!!!
-yminval = 0;
-ymaxval = 100;
-%!!!!!!!!!!!!!!!!!
 N=0;
 
 
-%% Load data
+%% Load Unit data files
 
-[UnitInfo, UnitData, Info, TrialData, Clusters, ~, artifactTrs ] = collectRasterDataSession(SUBJECT,SESSION);
-[spiketimes_NS, spiketimes_RS] = aggregateNSRSspikes(UnitData,UnitInfo,Clusters);
+fn = set_paths_directories('','',1);
 
-
-%% Set up figure
-
-set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',14)
-
-scrsz = get(0,'ScreenSize');  %[left bottom width height]
-fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
-halfscreen = [1 scrsz(4)/2 scrsz(3) scrsz(4)/2];
-
-
-AMrates = [2 4 8 16 32];
-ContextStr = {'Periodic' 'IR (AC)' 'IR (DB)'};
-SeqPosStr = {'Early' 'Late'};
+q = load(fullfile(fn.processed,'Units'));
+UnitData = q.UnitData;
+UnitInfo = q.UnitInfo;
+clear q
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
 rateVec_AC = q.buffer;
 q = load(fullfile(fn.stim,'rateVec_DB'));
 rateVec_DB = q.buffer;
+
+AMrates = [2 4 8 16 32];
+
+
+USE_MEASURE = 'FR';
+switch USE_MEASURE
+    case 'FR'
+        units = 'Hz';
+        switch units
+            case 'Hz'
+                axmin = 0.01;
+                axmax = 10*ceil(max([UnitData.BaseFR])/10);
+            case 'z'
+                axmin = -1;
+                axmax = 1.5;
+        end
+    case {'TrV' 'FF'}
+        units = ' ';
+        axmin = 0.01;
+        axmax = 4;
+end
+
+
+
+%% Figure settings
+
+set(0,'DefaultTextInterpreter','none')
+set(0,'DefaultAxesFontSize',14)
+
+scrsz = get(0,'ScreenSize');  %[left bottom width height]
+fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
 
 % Set colors
 colors = [ 250 250 250;...
@@ -61,33 +76,98 @@ colors = [ colors; ...
     [37  84 156]./255 ;...
     [19 125 124]./255 ];
 
-alphval = 0.6;
-dotsize = 120;
+% yvals = [5 10 20 30 50 75 100];
+yvals = 2.^[0:7];
 
 
-%% Now get MPH data for each type
+%% Select a datapoint (or a few?) to highlight
 
-for UnType = {'NS' 'RS'}
+ex_subj = 'xWWWf_253400';
+ex_sess = 'GA';
+ex_ch   = 16;
+ex_clu  = 1;
+
+
+%% Preallocate
+
+N=0;
+NIR=0;
+
+Pdata = table;
+Pdata.Subject = ' ';
+Pdata.Session = ' ';
+Pdata.Channel = nan;
+Pdata.Clu     = nan;
+Pdata.IRstim  = nan;
+Pdata.BaseFR  = nan;
+Pdata.pval    = nan;
+Pdata.predIR  = nan;
+Pdata.obsIR   = nan;
+
+
+for iUn = 6:numel(UnitData)
     
-    switch UnType{:}
-        case 'NS'
-            spiketimes = spiketimes_NS;
-        case 'RS'
-            spiketimes = spiketimes_RS;
+    close all
+    
+    %%% skips merged units for now
+    if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
+        continue
     end
     
+    subject     = UnitData(iUn).Subject;
+    session     = UnitData(iUn).Session;
+    channel     = UnitData(iUn).Channel(1);
+    clu         = UnitData(iUn).Clu(1);
+    subjcol     = [1 1 1];
     
-    %%
     % Get sound parameters
-    [dBSPL,LP] = theseSoundParams(TrialData);
-    if numel(dBSPL)>1 || numel(LP)>1
-        keyboard
+    dBSPL       = UnitData(iUn).spl;
+    LP          = UnitData(iUn).lpn;
+    
+    spkshift    = 0;%UnitData(iUn).IntTime_spk;
+    
+    
+    % Load data files
+    
+%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
+        fprintf('Loading %s sess %s...\n',subject,session)
+        clear TrialData Info
+        filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
+        filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
+%     end
+%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
+        clear Clusters Spikes
+        filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
+%     end
+    if ~isfield(Info,'artifact')
+        continue
+    end
+    
+    % Get spiketimes and shift based on calculated integration time
+    
+    if exist('Spikes','var')                                 % >>> UMS <<<
+        
+        spiketimes = unique(round(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift));  %ms
+        
+    elseif exist('Clusters','var')                            % >>> KS <<<
+        
+        iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == clu);
+        spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 + spkshift)');
+        
     end
     
     
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    MPH = makeMPHtable(TrialData,artifactTrs,dBSPL,LP,spiketimes);
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    fprintf(' analyzing ch %i clu %i\n',channel,clu)
+    
+    % Set ymaxval
+    yin = find( ( max(yvals, 2+3*max(nanmean(UnitData(iUn).FR_raw_tr,1)) ) - yvals )==0 );
+    
+    
+    %% Get MPH data
+    
+    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    MPH = makeMPHtable(TrialData,Info.artifact(channel).trials',dBSPL,LP,spiketimes,RateStream);
+    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
     
     
@@ -102,7 +182,7 @@ for UnType = {'NS' 'RS'}
         
         irate = find(AMrates==this_rate);
         MPH_rate = MPH(MPH.AMrate==this_rate,:);
-           
+        
         % Periodic indices first
         iPdc = find( (MPH_rate.ThisStimID==irate+1 & MPH_rate.Starttime>=T)...
             | (MPH_rate.ThisStimID==irate+1 & MPH_rate.PrevStimID==irate+1) );
@@ -125,7 +205,6 @@ for UnType = {'NS' 'RS'}
         %% Set up figure
         %==========================================================
         
-        
         hfe(irate)   =   figure;
         set(hfe(irate),'Position',fullscreen)
         
@@ -145,7 +224,7 @@ for UnType = {'NS' 'RS'}
         end
         linkaxes(hsp,'xy')
         xlim([0 ceil(1000/this_rate)])
-        ylim([yminval ymaxval])
+        ylim([0 yvals(yin(1)) ])
         
         
         %==================================================================
@@ -161,7 +240,7 @@ for UnType = {'NS' 'RS'}
             this_MPH_FR     = [this_MPH_FR;     MPH_rate(ip,:).FRsmooth{:}];
             
         end %iPdc
-                
+        
         if ~(ceil(Period)==size(this_MPH_raster,2))
             keyboard
         end
@@ -182,25 +261,25 @@ for UnType = {'NS' 'RS'}
         PdData(1,1).VS  = VS;
         
         
-        % - - - - - - - - - - - - - - - - 
+        % - - - - - - - - - - - - - - - -
         %           PLOT Pdc
         
         histbin   = floor(size(this_MPH_raster,2)/30);
         histMP    = []; histMP = binspikecounts(mean(this_MPH_raster,1),histbin)/histbin*1000;
         meanFR    = mean(this_MPH_FR,1);
-        semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
+        semFR     = std(this_MPH_FR,1);% / sqrt(size(this_MPH_FR,1));
         patchPdc  = [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)];
         patchX    = [ 1:size(this_MPH_FR,2) size(this_MPH_FR,2):-1:1 1 ] -0.5;
         nPdcPds   = size(this_MPH_FR,1);
         
-%         subplot(hsp(1,1)); hold on
-% %         bar(linspace(1,size(this_MPH_raster,2),length(histMP)),histMP,...
-% %             'FaceColor',colors(irate+1,:),'EdgeColor','none','BarWidth',1)
-%         patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.3)
-%         plot((1:size(this_MPH_FR,2))-0.5,meanFR,'Color','k','LineWidth',3)    
-%         title('Periodic')
-%         hold off
-        % - - - - - - - - - - - - - - - - 
+        %         subplot(hsp(1,1)); hold on
+        % %         bar(linspace(1,size(this_MPH_raster,2),length(histMP)),histMP,...
+        % %             'FaceColor',colors(irate+1,:),'EdgeColor','none','BarWidth',1)
+        %         patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.3)
+        %         plot((1:size(this_MPH_FR,2))-0.5,meanFR,'Color','k','LineWidth',3)
+        %         title('Periodic')
+        %         hold off
+        % - - - - - - - - - - - - - - - -
         
         
         %==================================================================
@@ -252,14 +331,14 @@ for UnType = {'NS' 'RS'}
             yb = [0; yb(1); yb; yb(end); 0];
             
             meanFR    = mean(this_MPH_FR,1);
-            semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
+            semFR     = std(this_MPH_FR,1);% / sqrt(size(this_MPH_FR,1));
             
             subplot(hsp(np-1,1)); hold on
             patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.5)
             patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
             plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
-%             plot(xb*(size(this_MPH_raster,2)/(length(histMP)+1)),yb,...
-%                 'Color',colors(ips,:),'LineWidth',2)
+            %             plot(xb*(size(this_MPH_raster,2)/(length(histMP)+1)),yb,...
+            %                 'Color',colors(ips,:),'LineWidth',2)
             title(sprintf('Following %s (%i pds)',Info.stim_ID_key{ips},size(this_MPH_raster,1)))
             
             % - - - - - - - - - - - - - - - -
@@ -309,14 +388,14 @@ for UnType = {'NS' 'RS'}
                 histbin = floor(size(this_MPH_raster,2)/30);
                 histMP = []; histMP = binspikecounts(mean(this_MPH_raster,1),histbin)/histbin*1000;
                 meanFR    = mean(this_MPH_FR,1);
-                semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
+                semFR     = std(this_MPH_FR,1);% / sqrt(size(this_MPH_FR,1));
                 
                 subplot(hsp(MPH_rate(ii,:).SeqPos,(thisIR==theseIRs)+1)); hold on
                 patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.5)
                 patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
                 plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
-%                 bar(linspace(1,size(this_MPH_raster,2),length(histMP)),histMP,...
-%                     'FaceColor',colors(irate+1,:),'EdgeColor','none','BarWidth',1)
+                %                 bar(linspace(1,size(this_MPH_raster,2),length(histMP)),histMP,...
+                %                     'FaceColor',colors(irate+1,:),'EdgeColor','none','BarWidth',1)
                 title(sprintf('%s, prevPd: %ih Hz (%i pds)',Info.stim_ID_key{thisIR},ipp,size(this_MPH_raster,1)))
                 hold off
                 % - - - - - - - - - - - - - - - -
@@ -328,35 +407,23 @@ for UnType = {'NS' 'RS'}
         %==================================================================
         %% Finish and save plot
         
-        suptitle(sprintf('%iHz MPH by context, %s type units (%i Pdc pds)',this_rate,UnType{:},nPdcPds))
+        suptitle(sprintf('%iHz MPH by context (%i Pdc pds)',this_rate,nPdcPds))
         
-        savedir = fullfile(fn.processed,'MPHplots',SESSION);
+        savedir = fullfile(fn.figs,'MPHplots',[subject '_' session]);
         if ~exist(savedir,'dir')
-            mkdir([savedir '/svg']);
-            mkdir([savedir '/eps']);
+            mkdir(savedir);
         end
-        savename = sprintf('MPH_%iHz_%s_%s_all%s',this_rate,SUBJECT,SESSION,UnType{:});
+        savename = sprintf('MPH_%iHz_%s_%s_ch%i_clu%i_std',this_rate,subject,session,channel,clu);
         
-%         print_eps_kp(hfe(irate),fullfile([savedir '/eps'],savename))
+        print_eps_kp(hfe(irate),fullfile(savedir,savename))
         
-  
+        
     end  %this_rate
     
-end %UnType
+end %iUn
 
-
-
-%% Temporal relationship between unit types
 keyboard
-%upshot: slightly more common for NS to occur ~1.5 ms before RS
 
-diffs = [];
-for ip = 1:length(spiketimes_NS)
-    foo = spiketimes_RS-spiketimes_NS(ip);
-    diffs = [diffs foo(abs(foo)<100)];
-end
-figure;
-histogram(diffs,-19.5:19.5)
 
 
 

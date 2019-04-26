@@ -1,6 +1,6 @@
 function ProcessPhys_SynKS( SESS_LABEL )
 %
-%  pp_processPhys_Syn( subject, session_label )
+%  ProcessPhys_SynKS( session_label )
 %    
 %    ** Trials with artifact not yet marked
 %
@@ -73,9 +73,20 @@ if ~exist(datafile,'file')
 end
 fprintf(' loading data file %s...',datafile)
 clear epData;
+% try
 load(datafile,'-mat'); %loads data struct: epData
-if isempty(epData)
-    error('data file did not load correctly!')
+% catch
+%     try
+%         matObj = matfile(datafile);
+%     end
+% end
+if ~exist('epData','var')
+    try
+        epData = struct('epocs',epocs,'streams',streams,'info',info);
+        clear streams epocs info
+    catch
+        keyboard
+    end
 else
     disp('done.')
 end
@@ -86,8 +97,10 @@ BLOCK = strtok(BLOCK,'.');
 %%
 % Determine recording type (aversive block or tuning block)
 
-if isfield(epData.streams,'rVrt')
+if isfield(epData.streams,'rVrt') && (isfield(epData,'stimfs') || exist('stimfs','var'))
     BlockType = 'behavior';
+elseif isfield(epData.streams,'rVrt') && (~isfield(epData,'stimfs') || ~exist('stimfs','var'))
+    BlockType = 'vocodedspeech';
 else
     BlockType = 'tuning';
 end
@@ -97,27 +110,6 @@ end
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 % Create INFO struct
 
-%%% CHECK FOR EARLY OR LATE RECORDING
-if isfield(epData.epocs,'LPxx')
-    sound_rows = {'Instantaneous AM rate';...
-        'Sound output';...
-        'AM depth';...
-        'dB SPL';...
-        'Phase0';...
-        'StimTrial';...
-        'Spout TTL';...
-        'ITI' };
-else
-    sound_rows = {'Instantaneous AM rate';...
-        'Sound output';...
-        'AM depth';...
-        'dB SPL';...
-        'HP';...
-        'LP';...
-        'Spout TTL';...
-        'ITI' };
-end
-
 Info = struct;
 Info.subject       = SUBJECT;
 Info.session       = SESS_LABEL;
@@ -125,13 +117,46 @@ Info.date          = epData.info.date;
 Info.blockType     = BlockType;
 Info.epData_fn     = BLOCK;
 Info.fs            = epData.streams.RSn1.fs;
-if strcmp(BlockType,'behavior')
-% Info.behav_fn      = epData.info.fnBeh;
-Info.fs_sound      = epData.streams.rVrt.fs;
-Info.sound_rows    = sound_rows;
-Info.stimfiles     = epData.stimfs;
+
+switch BlockType
+    case 'behavior'
+        %%% CHECK FOR EARLY OR LATE RECORDING
+        if isfield(epData.epocs,'LPxx')
+            sound_rows = {'Instantaneous AM rate';...
+                'Sound output';...
+                'AM depth';...
+                'dB SPL';...
+                'Phase0';...
+                'StimTrial';...
+                'Spout TTL';...
+                'ITI' };
+        else
+            sound_rows = {'Instantaneous AM rate';...
+                'Sound output';...
+                'AM depth';...
+                'dB SPL';...
+                'HP';...
+                'LP';...
+                'Spout TTL';...
+                'ITI' };
+        end
+        % Info.behav_fn      = epData.info.fnBeh;
+        Info.fs_sound      = epData.streams.rVrt.fs;
+        Info.sound_rows    = sound_rows;
+        Info.stimfiles     = epData.stimfs;
+
+    case 'vocodedspeech'
+        sound_rows = {'Amplitude vector';...
+            'Sound output';...
+            'empty';...
+            'dB SPL';...
+            'NewTrialTrig';...
+            'InTrial';...
+            'Spout TTL';...
+            'ITI' };
+        Info.fs_sound      = epData.streams.rVrt.fs;
+        Info.sound_rows    = sound_rows;
 end
-% Info.noiseremvsamp = noisewin;   %for KS
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
 
@@ -142,29 +167,28 @@ end
 if strcmp(BlockType,'behavior')
 
     [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_sound_data( epData.streams.rVrt.data, epData.epocs, Info );
+    
+elseif strcmp(BlockType,'vocodedspeech')
+
+    [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_vocodedspeech( epData.streams.rVrt.data, epData.epocs, Info );
 
 end
 
 
 %% SAVE DATA
-% % 
-% % fprintf(' saving Info struct and Trial data...')
-% % 
-% % % Save Info structure
-% % savename = sprintf('%s_sess-%s_Info',SUBJECT,SESS_LABEL);
-% % save(fullfile( saveDir, savename),'Info','-v7.3');
-% % 
-% % 
-% % if strcmp(BlockType,'behavior') && exist('TrialData','var')
-% %     
-% %     % Save Stimulus data variables
-% %     savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
-% %     save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','-v7.3');
-% % 
-% % end
-% % 
-% % fprintf('  done.\n')
 
+fprintf(' saving Info struct and Trial data...')
+
+% Save Info structure
+savename = sprintf('%s_sess-%s_Info',SUBJECT,SESS_LABEL);
+save(fullfile( saveDir, savename),'Info','-v7.3');
+
+if exist('TrialData','var')
+    savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
+    save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','-v7.3');
+end
+
+fprintf('  done.\n')
 
 
 %% Preprocess physiology data and run KiloSort algorithm
@@ -191,52 +215,52 @@ Info.probeMap = probeMap;
 
 %% ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 
-% % % fprintf(' removing noisy pre-session portion...')
-% % % 
-% % % % Remove beginning of session, before headstage & animal in room
-% % % 
-% % % data = epData.streams.RSn1.data(1,:);  %only need to use one channel -- if ch 1 is dead, change to another
-% % % 
-% % % begRMS = rms(data(1,1:round(Info.fs*10)));
-% % % endRMS = rms(data(1,(end-round(Info.fs*21)):(end-round(Info.fs*1)) ));
-% % % 
-% % % % if (begRMS-1.2*endRMS)<0.01 %while testing
-% % % %     keyboard
-% % % % end
-% % % 
-% % % sampwin  = round(Info.fs*2); %2000 ms
-% % % sampstep = round(Info.fs/10); %500 ms
-% % % 
-% % % isamp = 1;
-% % % RMS_HIGH = 1;
-% % % while RMS_HIGH
-% % %     thisRMS = rms(data(1,isamp:(isamp+sampwin-1)));
-% % %     if thisRMS < 1.2*endRMS
-% % %         RMS_HIGH = 0;
-% % %     else
-% % %         isamp = isamp+sampstep;
-% % %     end
-% % % end
-% % % 
-% % % % % % Plot to check
-% % % % % begwins  = 1:sampstep:size(data,2);
-% % % % % roughRMS = nan(size(begwins));
-% % % % % for iw = 1:numel(begwins)
-% % % % %     roughRMS(iw) = rms(data(1,begwins(iw):min(begwins(iw)+sampwin-1,size(data,2))));
-% % % % % end
-% % % % % 
-% % % % % hf=figure;
-% % % % % plot(begwins,roughRMS,'k')
-% % % % % hold on
-% % % % % plot([isamp isamp],[0 begRMS],'r','LineWidth',2)
-% % % % % 
-% % % % % close(hf);
-% % % 
-% % % % Remove data in beginning
-% % % dataClean = epData.streams.RSn1.data;
-% % % dataClean(:,1:isamp) = 0;
-% % % 
-% % % fprintf('  done.\n')
+fprintf(' removing noisy pre-session portion...')
+
+% Remove beginning of session, before headstage & animal in room
+
+data = epData.streams.RSn1.data(1,:);  %only need to use one channel -- if ch 1 is dead, change to another
+
+begRMS = rms(data(1,1:round(Info.fs*10)));
+endRMS = rms(data(1,(end-round(Info.fs*21)):(end-round(Info.fs*1)) ));
+
+% if (begRMS-1.2*endRMS)<0.01 %while testing
+%     keyboard
+% end
+
+sampwin  = round(Info.fs*2); %2000 ms
+sampstep = round(Info.fs/10); %500 ms
+
+isamp = 1;
+RMS_HIGH = 1;
+while RMS_HIGH
+    thisRMS = rms(data(1,isamp:(isamp+sampwin-1)));
+    if thisRMS < 1.2*endRMS
+        RMS_HIGH = 0;
+    else
+        isamp = isamp+sampstep;
+    end
+end
+
+% % % Plot to check
+% % begwins  = 1:sampstep:size(data,2);
+% % roughRMS = nan(size(begwins));
+% % for iw = 1:numel(begwins)
+% %     roughRMS(iw) = rms(data(1,begwins(iw):min(begwins(iw)+sampwin-1,size(data,2))));
+% % end
+% % 
+% % hf=figure;
+% % plot(begwins,roughRMS,'k')
+% % hold on
+% % plot([isamp isamp],[0 begRMS],'r','LineWidth',2)
+% % 
+% % close(hf);
+
+% Remove data in beginning
+dataClean = epData.streams.RSn1.data;
+dataClean(:,1:isamp) = 0;
+
+fprintf('  done.\n')
 
 
 %% ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
@@ -246,7 +270,7 @@ fprintf(' Removing artifact...\n')
 % Remove bad noise to clean up sorting; also flag trials with artifact to
 % later leave out of rasters/analyses
 
-[Info,dataClean] = identify_artifact_trials_64ch( Info, epData.streams.RSn1.data, TrialData );
+[Info,dataClean] = identify_artifact_trials_64ch( Info, dataClean, TrialData ); %epData.streams.RSn1.data
 
 
 % Save Info structure

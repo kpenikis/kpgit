@@ -1,12 +1,17 @@
-function MPH = makeMPHtable(TrialData,artifact_trs,spl,lpn,spiketimes,OnlyGoodTransitions)
+function MPH = makeMPHtable(TrialData,artifact_trs,spl,lpn,spiketimes,RateStream,OnlyGoodTransitions)
+% MPH = makeMPHtable(TrialData,artifact_trs,spl,lpn,spiketimes,OnlyGoodTransitions)
 % 
-% called by analyzeMPH_withinContext (old Resp/Unit data format)
-%
+%   called by plotMPH_aggregate, MPHcontextComparisons 
+% 
+%   Does not limit/randomize number of trials. Do that later if desired.
+% 
+%   KP, 2019-04
+% 
 
-global AMrates rateVec_AC rateVec_DB trMin
+global AMrates rateVec_AC rateVec_DB trMin 
 
 
-if nargin<6
+if nargin<7
     OnlyGoodTransitions=0;
 end
 
@@ -37,6 +42,8 @@ MPH.Prev100msFR  = nan;
 MPH.PrevAMrt500  = nan;
 MPH.PrevAMrt100  = nan;
 MPH.raster       = {magic(3)};
+MPH.x            = nan;
+MPH.y            = nan;
 MPH.FRsmooth     = {magic(3)};
 MPH.SPL          = 0;
 MPH.LPN          = 0;
@@ -121,8 +128,6 @@ for istim = allStim'
     end
     
     
-    
-    
     %% Set starttimes and period vectors
     
     clear t2
@@ -152,68 +157,70 @@ for istim = allStim'
         % Create empty struct for gathering data
         MPH_temp = struct();
         for ipd = 1:numel(allPds)
+            MPH_temp(ipd).x        = [];
+            MPH_temp(ipd).y        = [];
             MPH_temp(ipd).raster   = zeros(transN(pstid==prevStimIDs),ceil(1000/allPds(ipd)));
             MPH_temp(ipd).FRsmooth = zeros(transN(pstid==prevStimIDs),ceil(1000/allPds(ipd)));
         end
         
-        % Get TrialData indices for this transition and shuffle
+        % Get TrialData indices for this transition 
         trans_TDidx = find(TrialData(pst_TDidx,:).trID==pstid);
-        trans_TDidx = trans_TDidx(randperm(numel(trans_TDidx)));
         
         % Collect spikes/FR/rms for this transition
         kt=0;
         for it = trans_TDidx'
             kt=kt+1;
             
-%             if LimitNtrials && kt>trLim
-%                 continue
-%             end  %truncate N trials at min
-            
-            newPds = t2(it)+[0 cumsum(1000./allPds)];
-            if numel(newPds)~=(numel(allPds)+1), keyboard, end
+            newPd_ts  =  t2(it)+[0 cumsum(1000./allPds)];
+            if numel(newPd_ts)~=(numel(allPds)+1), keyboard, end
             
             for ipd = 1:numel(allPds)
                 
-                sp=[]; sp = ceil(spiketimes( spiketimes>(newPds(ipd)) & spiketimes<=(newPds(ipd+1)-1) ) - (newPds(ipd)));
-                
+                % skip if this period extends beyond recording duration
+                if ceil(newPd_ts(ipd))+ceil(1000/allPds(ipd))-1 > length(Stream_FRsmooth)
+                    continue
+                end
+                                
                 % Determine whether this period was in
                 % the first or second half of the trial
                 seqPos = (ipd>(length(allPds)/2))+1;
                 if (seqPos<1 || seqPos>2)
                     keyboard
                 end
+                if (newPd_ts(ipd)-t2(it))<1 && ipd>1
+                    keyboard
+                end
                 
-                
-                % Save some info about this period
-                MPH_temp(ipd).thisrate(kt)= allPds(ipd);
-                MPH_temp(ipd).seqPos      = seqPos;
-                MPH_temp(ipd).pdtime(kt)  = newPds(ipd)-t2(it);
-                MPH_temp(ipd).Prev500msFR(kt) = sum( spiketimes>=(newPds(ipd)-500) & spiketimes<=newPds(ipd))/500*1000;
-                MPH_temp(ipd).Prev100msFR(kt) = sum( spiketimes>=(newPds(ipd)-100) & spiketimes<=newPds(ipd))/100*1000;
-                MPH_temp(ipd).PrevAMrt500 = getPrecRates(newPds(ipd)-t2(it),allPds,ipd,pstid,500);
-                MPH_temp(ipd).PrevAMrt100 = getPrecRates(newPds(ipd)-t2(it),allPds,ipd,pstid,100);
+                % Save info about this period
+                MPH_temp(ipd).thisrate(kt)      = allPds(ipd);
+                MPH_temp(ipd).seqPos            = seqPos;
+                MPH_temp(ipd).pdtime(kt)        = newPd_ts(ipd)-t2(it);
+                MPH_temp(ipd).Prev500msFR(kt)   = sum( spiketimes>=(newPd_ts(ipd)-500) & spiketimes<=newPd_ts(ipd))/500*1000;
+                MPH_temp(ipd).Prev100msFR(kt)   = sum( spiketimes>=(newPd_ts(ipd)-100) & spiketimes<=newPd_ts(ipd))/100*1000;
+                MPH_temp(ipd).PrevAMrt500       = getPrecRates(newPd_ts(ipd),500,RateStream);
+                MPH_temp(ipd).PrevAMrt100       = getPrecRates(newPd_ts(ipd),100,RateStream);
                 if ipd>1
-                    MPH_temp(ipd).PrevPd       = allPds(ipd-1);
+                    MPH_temp(ipd).PrevPd        = allPds(ipd-1);
                 else
                     prevTrID = TrialData(find([TrialData.onset]==t2(it))-1,:).trID;
                     if prevTrID~= pstid, keyboard, end
                     
                     if prevTrID < 7 && prevTrID >1 %if previous stim was pdc
-                        MPH_temp(ipd).PrevPd   = AMrates(prevTrID-1);
+                        MPH_temp(ipd).PrevPd    = AMrates(prevTrID-1);
                     elseif prevTrID ==7
-                        MPH_temp(ipd).PrevPd   = rateVec_AC(end);
+                        MPH_temp(ipd).PrevPd    = rateVec_AC(end);
                     elseif prevTrID ==8
-                        MPH_temp(ipd).PrevPd   = rateVec_DB(end);
+                        MPH_temp(ipd).PrevPd    = rateVec_DB(end);
                     end
                 end
                 
-                
                 % Put spikes into corresponding raster
-                %                                     MPH_temp(AMrates==thesePds(ipd)).raster(min(transN)*(seqPos-1)+it,sp) = 1;
-                MPH_temp(ipd).raster(kt,sp) = 1;
+                sp=[]; sp = spiketimes( spiketimes>(newPd_ts(ipd)) & spiketimes<=(newPd_ts(ipd+1)-1) ) - (newPd_ts(ipd));
                 
-                MPH_temp(ipd).FRsmooth(kt,:) = Stream_FRsmooth(ceil(newPds(ipd))+[1:ceil(1000/allPds(ipd))]-1);
-                
+                MPH_temp(ipd).raster(kt,ceil(sp))  = 1;
+                MPH_temp(ipd).x                    = [MPH_temp(ipd).x sp];
+                MPH_temp(ipd).y                    = [MPH_temp(ipd).y kt.*ones(size(sp))];
+                MPH_temp(ipd).FRsmooth(kt,:)       = Stream_FRsmooth(ceil(newPd_ts(ipd))+[1:ceil(1000/allPds(ipd))]-1);
                 
             end %ipd
             
@@ -242,7 +249,8 @@ for istim = allStim'
                 mean(MPH_temp(ipd).Prev100msFR) ...
                 MPH_temp(ipd).PrevAMrt500 ...
                 MPH_temp(ipd).PrevAMrt100 ...
-                {MPH_temp(ipd).raster} {MPH_temp(ipd).FRsmooth}  spl  lpn };
+                {MPH_temp(ipd).raster} {MPH_temp(ipd).x} {MPH_temp(ipd).y}...
+                {MPH_temp(ipd).FRsmooth}  spl  lpn };
             MPH = [MPH; MPH_addrow];
             
         end

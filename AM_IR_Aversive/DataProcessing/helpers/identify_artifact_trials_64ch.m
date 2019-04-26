@@ -86,28 +86,28 @@ for ishank = Shanks
     
     
     %% Flag the Trials that have artifact
-% %     
-% %     ms_thresh = 50; % 5 percent of pdc trial duration
-% %     
-% %     for it = 1:size(TrialData,1)
-% %         
-% %         if sum( ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms) )>ms_thresh && it>1
-% %             % More than 50 ms of artifact, flag it
-% %             ArtifactFlags_TrGrp(it,ishank) = 1;
-% %             
-% %         elseif sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))<ms_thresh && sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))>0 && it>1
-% %             % Plot borderline cases (less than 50 ms) to check manually 
-% %             ArtifactFlags_TrGrp(it,ishank) = manually_check_this_trial( it, ...
-% %                 dataFilt(1, round(TrialData.onset(it)/1000*Info.fs):round(TrialData.offset(it)/1000*Info.fs)) );
-% %         
-% %         elseif it==1 && (sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))/(TrialData.offset(it)-TrialData.onset(it)))>0.05
-% %             % Plot trial 1 to check manually if more than 5 percent is flagged
-% %             ArtifactFlags_TrGrp(it,ishank) = manually_check_this_trial( it, ...
-% %                 dataFilt(1, round(TrialData.onset(it)/1000*Info.fs):round(TrialData.offset(it)/1000*Info.fs)) );
-% %         end
-% %         
-% %     end %it
-% %     
+    
+    ms_thresh = 50; % 5 percent of pdc trial duration
+    
+    for it = 1:size(TrialData,1)
+        
+        if sum( ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms) )>ms_thresh && it>1
+            % More than 50 ms of artifact, flag it
+            ArtifactFlags_TrGrp(it,ishank) = 1;
+            
+        elseif sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))<ms_thresh && sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))>0 && it>1
+            % Plot borderline cases (less than 50 ms) to check manually 
+            ArtifactFlags_TrGrp(it,ishank) = manually_check_this_trial( it, ...
+                dataFilt(1, round(TrialData.onset(it)/1000*Info.fs):round(TrialData.offset(it)/1000*Info.fs)) );
+        
+        elseif it==1 && (sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))/(TrialData.offset(it)-TrialData.onset(it)))>0.05
+            % Plot trial 1 to check manually if more than 5 percent is flagged
+            ArtifactFlags_TrGrp(it,ishank) = manually_check_this_trial( it, ...
+                dataFilt(1, round(TrialData.onset(it)/1000*Info.fs):round(TrialData.offset(it)/1000*Info.fs)) );
+        end
+        
+    end %it
+    
     
     %% Replace artifact periods with white noise, necessary to clean up sorting
     
@@ -120,19 +120,12 @@ for ishank = Shanks
     
     %% Save the artifact flags to the Info struct
     
-%     for ich = channels
-%         Info.artifact(ich).trials = find(ArtifactFlags_TrGrp(:,ishank));
-%     end
+    for ich = channels
+        Info.artifact(ich).trials = find(ArtifactFlags_TrGrp(:,ishank));
+    end
     
     
 end %ishank
-
-
-% % % Apply result from sample channel of group to all channels in group
-% % for ich = 1:size(Phys,1)
-% %     Info.artifact(ich).trials = find(ArtifactFlags_TrGrp(:,ich));
-% % end
-
 
 end
 

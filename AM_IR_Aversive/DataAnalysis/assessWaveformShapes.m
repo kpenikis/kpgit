@@ -1,4 +1,4 @@
-function assessWaveformShapes(Units_fn, FigSavename)
+function [UnitInfo,UnitData] = assessWaveformShapes(Units_fn, FigSavename, makePlot, UnitInfo, UnitData)
 %
 %  getWaveformShapes(UnitData,UnitInfo)
 %    Calculates the spike width at half max and other parameters related to
@@ -10,19 +10,20 @@ function assessWaveformShapes(Units_fn, FigSavename)
 %
 
 close all
-global fn
-
 
 %% Load Unit data files
 
 fn = set_paths_directories('','',1);
 
-q = load(fullfile(fn.processed,Units_fn));
-UnitData = q.UnitData;
-UnitInfo = q.UnitInfo;
-clear q
-
-% [~,UnitData] = identifyResponsiveUnits(UnitData);
+if nargin<5 && ~exist('UnitData','var')
+        
+    q = load(fullfile(fn.processed,Units_fn));
+    UnitData = q.UnitData;
+    UnitInfo = q.UnitInfo;
+    clear q
+    
+    % [~,UnitData] = identifyResponsiveUnits(UnitData);
+end
 
 
 %% Prepare figure settings
@@ -50,10 +51,15 @@ SpikeWidthData=[];
 
 for iUn = 1:numel(UnitData)
     
+    if numel(UnitData(iUn).Session)==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
+        continue
+    end
+    
     % Get this unit's info
     subject = UnitData(iUn).Subject;
-    sess_tmp = strsplit(UnitData(iUn).Session,'_');
-    session = sess_tmp{1};
+%     sess_tmp = strsplit(UnitData(iUn).Session,'_');
+%     session = sess_tmp{1};
+    session = UnitData(iUn).Session;
     channel = UnitData(iUn).Channel(1);
     clu     = UnitData(iUn).Clu(1);
     
@@ -94,31 +100,31 @@ for iUn = 1:numel(UnitData)
     
     % Now, if this was a merged unit, load the other waveform and compare
     % to the first
-    if numel(sess_tmp)>1
-        
-        session2 = sess_tmp{2};
-        clu2     = UnitData(iUn).Clu(2);
-        filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session2); load(fullfile(fn.processed,subject,filename));
-        
-        % Create intepolated version of waveform
-        spikes = Spikes.sorted(channel);
-        waveform2 = median(spikes.waveforms(spikes.assigns==clu2,:),1);
-        waveform2 = waveform2./abs(min(waveform2));
-        m = 40;
-        x = (1:length(waveform2)) /Info.fs*1000;
-        q = linspace(min(x),max(x),length(x)*m);
-        waveform_interp2 = interp1(x,waveform2,q,'spline');
-        
-        %         hf_tmp2 = figure; hold on
-        %         plot(q,waveform_interp,'r','LineWidth',2)
-        %         plot(q,waveform_interp2,'k','LineWidth',2)
-        %
-        %         keyboard
-        %         close(hf_tmp2);
-        
-        waveform        = mean([waveform; waveform2],1);
-        waveform_interp = mean([waveform_interp; waveform_interp2],1);
-    end
+%     if numel(sess_tmp)>1
+%         
+%         session2 = sess_tmp{2};
+%         clu2     = UnitData(iUn).Clu(2);
+%         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session2); load(fullfile(fn.processed,subject,filename));
+%         
+%         % Create intepolated version of waveform
+%         spikes = Spikes.sorted(channel);
+%         waveform2 = median(spikes.waveforms(spikes.assigns==clu2,:),1);
+%         waveform2 = waveform2./abs(min(waveform2));
+%         m = 40;
+%         x = (1:length(waveform2)) /Info.fs*1000;
+%         q = linspace(min(x),max(x),length(x)*m);
+%         waveform_interp2 = interp1(x,waveform2,q,'spline');
+%         
+%         %         hf_tmp2 = figure; hold on
+%         %         plot(q,waveform_interp,'r','LineWidth',2)
+%         %         plot(q,waveform_interp2,'k','LineWidth',2)
+%         %
+%         %         keyboard
+%         %         close(hf_tmp2);
+%         
+%         waveform        = mean([waveform; waveform2],1);
+%         waveform_interp = mean([waveform_interp; waveform_interp2],1);
+%     end
     
     % Find peak and trough
     [trough,i_trough] = min(waveform_interp);    
@@ -170,44 +176,46 @@ end %iUn
 
 %%  Re-save UnitData and UnitInfo, with new data
 
-UnitInfo.BaseFR        = AllBaselineFRs;
 UnitInfo.WidthHalfMax  = SpikeWidthData(:,1);
 UnitInfo.TimetoTrough  = SpikeWidthData(:,2);
 UnitInfo.TroughPeak    = SpikeWidthData(:,3);
 
-save(fullfile(fn.processed,Units_fn),'UnitInfo','UnitData','-v7.3');
+% save(fullfile(fn.processed,Units_fn),'UnitInfo','UnitData','-v7.3');
 
 
 
 %% Plot waveform distribution
 
-hf = figure;
-hold on
-scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak', 300, ceil(AllBaselineFRs)','Linewidth',2)
-% scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak', 300,'k')
-axis square
-set(gca,'xlim',[0.1 0.4],'ylim',[0.1 0.8])
-
-xlabel('Width at half max (ms)')
-ylabel('Time from trough to peak (ms)')
-title('Spike shape distribution, colored by baseline FR')
-text(0.3,0.15,sprintf('N = %i units\nfrom %i sessions',size(UnitInfo,1),numel(unique(UnitInfo.Session))))
-
-colormap('winter')
-% set(gca,'colorscale','log')
-cb=colorbar;
-cb.Ruler.Scale = 'log';
-cb.Ruler.TickValues = fliplr(ceil(max(AllBaselineFRs)):-5:min(AllBaselineFRs));
-cb.Label.String = 'Baseline FR (sp/s)';
-
-savedir = fullfile(fn.processed,'Units','WaveformShapeMetrics');
-if ~exist(savedir,'dir')
-    mkdir(savedir)
+if makePlot
+    
+    hf = figure;
+    hold on
+    scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak', 300, log(ceil(AllBaselineFRs)'),'Linewidth',3)
+    % scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak', 300,'k')
+    axis square
+    set(gca,'xlim',[0.1 0.35],'ylim',[0.1 0.8])
+    
+    xlabel('Width at half max (ms)')
+    ylabel('Time from trough to peak (ms)')
+    title('Spike shape distribution, colored by baseline FR')
+    text(0.27,0.15,sprintf('N = %i units\nfrom %i sessions',size(UnitInfo,1),numel(unique(UnitInfo.Session))))
+    
+    % colormap('winter')
+    colormap(cmocean('-turbid'))
+    cb=colorbar; pause(1)
+    cb.Ruler.Scale = 'linear';
+    cb.Ruler.TickValues = log(fliplr(ceil(max(AllBaselineFRs)):-5:min(AllBaselineFRs)));
+    cb.Ruler.TickLabels = fliplr(ceil(max(AllBaselineFRs)):-5:min(AllBaselineFRs));
+    cb.Label.String = 'Baseline FR (sp/s)';
+    
+    savedir = fullfile(fn.figs,'WaveformShapes');
+    if ~exist(savedir,'dir')
+        mkdir(savedir)
+    end
+    print_eps_kp(hf,fullfile(savedir,FigSavename))
+    % 'SpikeShapeBaseFR_OrigDataset'
+    
 end
-print_eps_kp(hf,fullfile(savedir,FigSavename))
-% 'SpikeShapeBaseFR_OrigDataset'
-
-
 
 
 end

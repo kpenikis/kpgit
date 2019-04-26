@@ -3,7 +3,7 @@
 
 ProcessPhys_SynKS( 'Aug25-AM' )
 
-% Manual sorting in phy
+% MANUAL SORTING 
 %    cd ../sorting
 %    source activate phy
 %    phy template-gui params.py
@@ -11,7 +11,7 @@ ProcessPhys_SynKS( 'Aug25-AM' )
 KS_to_Spikes  % <-- MUST run this after manual sorting
 
 
-%% Rasters and initial analysis (new)
+%% Rasters and initial analysis 
 
 % To check single session:
 allRastersSession(SUBJECT,SESSION)
@@ -21,11 +21,14 @@ getWaveformShapes('Units_filename','Plot_savename')
 
 % Add to overall dataset: 
 AssessUnits
-getWaveformShapes('Units','Plot_savename')
+assessWaveformShapes('Units','Plot_savename') 
+    %merged units weird now
+    %adds to UnitInfo
 
-
-
-predObserved
+predObserved  
+    %not set up for merged units
+pdcRespRepetition
+MPHcontextComparisons
 
 
 

@@ -12,7 +12,8 @@ global fn
 load([fn.processed '/SplitUnits.mat'])
 
 % Load Units files
-if nargin<2
+if nargin<1
+    SAVENAME = 'Units';
     q = load(fullfile(fn.processed,'Units'));
     UnitData = q.UnitData;
     UnitInfo = q.UnitInfo;
@@ -56,6 +57,7 @@ for un1_idx = 1:numel(UnitData)
         N = numel(UnitData)+1;
         UnitData(N).Subject     = UnitData(un1_idx).Subject;
         UnitData(N).Session     = [UnitData(un1_idx).Session '_' UnitData(un2_idx).Session];
+        UnitData(N).Shank       = UnitData(un1_idx).Shank;
         UnitData(N).Channel     = [UnitData(un1_idx).Channel     UnitData(un2_idx).Channel];
         UnitData(N).Clu         = [UnitData(un1_idx).Clu         UnitData(un2_idx).Clu];
 %         UnitData(N).unType      = UnitData(un1_idx).unType;
@@ -67,12 +69,8 @@ for un1_idx = 1:numel(UnitData)
         UnitData(N).wx_p        = mean([UnitData(un1_idx).wx_p UnitData(un2_idx).wx_p]);
         UnitData(N).VSdata_spk  = reshape( mean([ reshape(UnitData(un1_idx).VSdata_spk,numel(UnitData(un1_idx).VSdata_spk),1)...
             reshape(UnitData(un2_idx).VSdata_spk,numel(UnitData(un2_idx).VSdata_spk),1) ],2) ,3,8);
-        UnitData(N).VSdata_gap  = reshape( mean([ reshape(UnitData(un1_idx).VSdata_gap,numel(UnitData(un1_idx).VSdata_gap),1)...
-            reshape(UnitData(un2_idx).VSdata_gap,numel(UnitData(un2_idx).VSdata_gap),1) ],2) ,3,8);
         UnitData(N).Phase_spk   = mean([UnitData(un1_idx).Phase_spk; UnitData(un2_idx).Phase_spk],1);
-        UnitData(N).Phase_gap   = mean([UnitData(un1_idx).Phase_gap; UnitData(un2_idx).Phase_gap],1);
         UnitData(N).IntTime_spk = mean([UnitData(un1_idx).IntTime_spk UnitData(un2_idx).IntTime_spk]);
-        UnitData(N).IntTime_gap = mean([UnitData(un1_idx).IntTime_gap UnitData(un2_idx).IntTime_gap]);
         UnitData(N).ntr         = [UnitData(un1_idx).ntr; UnitData(un2_idx).ntr];
         UnitData(N).FR_nrm      = mean([UnitData(un1_idx).FR_nrm; UnitData(un2_idx).FR_nrm],1,'omitnan');
         UnitData(N).dp_mat      = mean([UnitData(un1_idx).dp_mat(:,2) UnitData(un2_idx).dp_mat(:,2)],2,'omitnan');

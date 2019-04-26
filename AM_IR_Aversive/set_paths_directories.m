@@ -53,6 +53,7 @@ fn.raw        = fullfile(basefolder,'RawData');
 fn.processed  = fullfile(basefolder,'ProcessedData');
 fn.stim       = fullfile(basefolder,'Stimuli');
 fn.sorting    = fullfile(basefolder,'SortingConfig');
+fn.figs       = fullfile(basefolder,'Figures');
 
 % Set subject and session directories
 if nargin==2

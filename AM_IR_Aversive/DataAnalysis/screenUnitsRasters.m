@@ -250,7 +250,9 @@ for iUn = 1:numel(Clusters)
     set(gca,'xlim',[-50 50],'Color','none')
     title(sprintf('%0.1f%% violation rate', 100*sum(diff(spiketimes)<3)/length(spiketimes) ))
     subplot(1,3,3);
+    try
     histogram([thisClu.Amplitudes],50,'FaceColor','k','EdgeColor','none')
+    end
     title('Distribution of amplitudes')
     
     suptitle(sprintf('Shank %i  |  maxCh: %i  |  cluID: %i',thisClu.shank,maxChan,thisClu.clusterID ))

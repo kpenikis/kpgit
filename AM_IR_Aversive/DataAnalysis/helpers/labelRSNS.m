@@ -9,7 +9,7 @@ function UnitInfo = labelRSNS(UnitInfo)
 % Get indices of narrow spikes and regular spiking units
 SpkShape = cell(size(UnitInfo,1),1);
 SpkShape([UnitInfo.WidthHalfMax]<=0.23 & [UnitInfo.TroughPeak]<0.5) = deal({'NS'});
-SpkShape([UnitInfo.WidthHalfMax]>0.23 & [UnitInfo.TroughPeak]>=0.5) = deal({'RS'});
+SpkShape([UnitInfo.WidthHalfMax]>0.2  & [UnitInfo.TroughPeak]>=0.5) = deal({'RS'});
 
 UnitInfo.SpkShape = SpkShape;
 

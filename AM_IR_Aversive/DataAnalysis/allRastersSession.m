@@ -31,7 +31,7 @@ set(0,'DefaultTextInterpreter','none')
 set(0,'DefaultAxesFontSize',20)
 rng('shuffle')
 
-scrsz = get(0,'ScreenSize');
+scrsz = get(0,'ScreenSize');   %[left bottom width height]
 tallrect   = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
 largerect = [1 scrsz(4)/2 scrsz(3)/3 scrsz(4)/2];

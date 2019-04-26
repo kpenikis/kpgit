@@ -19,6 +19,11 @@ fn = set_paths_directories(SUBJECT,SESSION,1);
 [UnitInfo, UnitData, Info, TrialData, Clusters, StimResp ] = collectRasterDataSession(SUBJECT,SESSION);
 
 
+%% 
+
+
+
+
 
 %% Look at trial-by-trial data in various ways
 
@@ -28,14 +33,14 @@ keyboard
 stid = 3;
 
 % Animated view of responses per trial across all units
-% hf=figure;
-% for it = 1:size(StimResp(stid).raster,1)
-%     imagesc( flipud(permute(StimResp(stid).raster(it,:,:),[3,2,1])) )
-%     %         c=flipud(gray);
-%     colormap(gray)
-%     pause(2)
-% end
-% close(hf);
+hf=figure;
+for it = 1:size(StimResp(stid).raster,1)
+    imagesc( flipud(permute(StimResp(stid).raster(it,:,:),[3,2,1])) )
+    %         c=flipud(gray);
+    colormap(gray)
+    pause(1)
+end
+close(hf);
 
 
 % Looking for relationship between total number of spikes per trial across

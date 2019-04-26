@@ -19,8 +19,19 @@ catch
     keyboard
 end
 
-load(rez.ops.chanMapFile,'chanMap','connected', 'xcoords', 'ycoords','kcoords');
-
+try
+    load(rez.ops.chanMapFile,'chanMap','connected', 'xcoords', 'ycoords','kcoords');
+catch % bc i moved the probe files
+    pathparts = strsplit(rez.ops.chanMapFile,'/');
+    if any(strcmp(pathparts,'ProcessedData'))
+        pathparts(strcmp(pathparts,'ProcessedData')) = '';
+    end
+    rez.ops.chanMapFile = ['/' fullfile(pathparts{:})];
+    load(rez.ops.chanMapFile,'chanMap','connected', 'xcoords', 'ycoords','kcoords');
+    if ~exist('connected','var')
+        keyboard
+    end
+end
 
 
 % Create output struct

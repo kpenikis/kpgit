@@ -1,8 +1,10 @@
-function predObserved(foo)
-% Based on MTF of each unit for Pdc stim, calculate predicted IR response.
-% Compare this prediction to the observed response, for each unit in the
-% Units files. Highlight the ones that are statistically different than
-% prediction. Plot MTF of an example unit if desired.
+function predObserved(USE_MEASURE)
+% predObserved(USE_MEASURE)
+% 
+%   Based on MTF of each unit for Pdc stim, calculate predicted IR response.
+%   Compare this prediction to the observed response, for each unit in the
+%   Units files. Highlight the ones that are statistically different than
+%   prediction. Plot MTF of an example unit if desired.
 % 
 % KP, 2018-07-01
 %  based on predObs_population and previous code, but now uses Unit files
@@ -13,15 +15,37 @@ function predObserved(foo)
 global fn AMrates rateVec_AC rateVec_DB 
 
 %!!!!!!!!!!!!!!!!!
-exclOnset   = 0;
+exclOnset   = 1; keyboard
+%!!!!!!!!!!!!!!!!!
+plotMTF     = 1;
 %!!!!!!!!!!!!!!!!!
 minTrs      = 10;
-%!!!!!!!!!!!!!!!!!
-USE_MEASURE = 'FR'; 'TrV'; 'FF';
 %!!!!!!!!!!!!!!!!!
 colorswitch = 'iBMF_FR'; 'iBMF_VS'; 'subject';
 %!!!!!!!!!!!!!!!!!
 
+
+%% Load Unit data files
+
+fn = set_paths_directories('','',1);
+
+q = load(fullfile(fn.processed,'Units'));
+UnitData = q.UnitData;
+UnitInfo = q.UnitInfo;
+clear q
+
+% Load IR stimulus rate vectors
+q = load(fullfile(fn.stim,'rateVec_AC'));
+rateVec_AC = q.buffer;
+q = load(fullfile(fn.stim,'rateVec_DB'));
+rateVec_DB = q.buffer;
+
+AMrates = [2 4 8 16 32];
+
+
+if nargin<1
+    USE_MEASURE = 'FR'; 'TrV'; 'FF';
+end
 
 switch USE_MEASURE
     case 'FR'
@@ -29,7 +53,7 @@ switch USE_MEASURE
         switch units
             case 'Hz'
                 axmin = 0.01;
-                axmax = 30;
+                axmax = 10*ceil(max([UnitData.BaseFR])/10);
             case 'z'
                 axmin = -1;
                 axmax = 1.5;
@@ -75,6 +99,18 @@ ylim([axmin axmax])
 xlabel('Predicted IR response')
 ylabel('Observed IR response')
 
+% Prepare a third figure, Observed-Predicted as a fct of BaseFR
+hf3 = figure;
+set(hf3,'Position',smallsq,'NextPlot','add')
+subplot(1,5,1:4)
+hold on
+plot([axmin axmax],[0 0],'Color',[0.7 0.7 0.7])
+set(gca,'xscale','log')
+xlim([axmin axmax])
+ylim([-5 5])
+xlabel('Baseline FR')
+ylabel('Observed - Predicted IR response')
+
 % Set colors
 colors = [ 250 250 250;...
             84  24  69;...
@@ -88,29 +124,12 @@ colors = [ colors; ...
         
 %% Select a datapoint (or a few?) to highlight
 
-ex_subj = 'xWWWf_253400';
-ex_sess = 'GA';
-ex_ch   = 16;
-ex_clu  = 1;
+ex_subj = 'AAB_265058';
+ex_sess = 'Jan17-AM';
+ex_ch   = 63;
+ex_clu  = 1230;
 
-
-%% Load Unit data files
-
-fn = set_paths_directories('','',1);
-
-q = load(fullfile(fn.processed,'Units'));
-UnitData = q.UnitData;
-UnitInfo = q.UnitInfo;
-clear q
-
-% Load IR stimulus rate vectors
-q = load(fullfile(fn.stim,'rateVec_AC'));
-rateVec_AC = q.buffer;
-q = load(fullfile(fn.stim,'rateVec_DB'));
-rateVec_DB = q.buffer;
-
-AMrates = [2 4 8 16 32];
-
+ex_Un   = find(strcmp({UnitData.Subject},ex_subj) & strcmp({UnitData.Session},ex_sess) & [UnitData.Channel]==ex_ch & [UnitData.Clu]==ex_clu);
 
 
 %% Preallocate
@@ -124,56 +143,66 @@ Pdata.Session = ' ';
 Pdata.Channel = nan;
 Pdata.Clu     = nan;
 Pdata.IRstim  = nan;
+Pdata.BaseFR  = nan;
 Pdata.pval    = nan;
-Pdata.obsIR   = nan;
 Pdata.predIR  = nan;
+Pdata.obsIR   = nan;
 
 
 
 for iUn = 1:numel(UnitData)
     
-    %%% still must edit for merged units
-%     if numel(UnitInfo(iUn,:).Session{:})>2  %strncmp(UnitInfo.RespType{iUn},'merged',6)
-%         continue
-%     end
+    %%% skips merged units for now
+    if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
+        continue
+    end
     
-    subject = UnitInfo(iUn,:).Subject{:};
-    session = UnitInfo(iUn,:).Session{:};
-    channel = UnitData(iUn).Channel(1);
-    clu     = UnitData(iUn).Clu(1);
+    subject     = UnitData(iUn).Subject;
+    session     = UnitData(iUn).Session;
+    shank       = UnitData(iUn).Shank;
+    channel     = UnitData(iUn).Channel(1);
+    clu         = UnitData(iUn).Clu(1);
+    subjcol     = [1 1 1];
+    
+    % Get sound parameters
+    dBSPL       = UnitData(iUn).spl;
+    LP          = UnitData(iUn).lpn;
+    
+    spkshift    = UnitData(iUn).IntTime_spk;
+    
     
     % Load data files
+    
     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
-        fprintf('Loading sess %s...\n',session)
+        fprintf('Loading %s sess %s...\n',subject,session)
+        clear TrialData Info
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
     end
     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
+        clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
     end
     
-    % Get spiketimes and shift based on calculated integration time (KS)
-    iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == clu);
-    spiketimes = round(Clusters(iClu).spikeTimes*1000)';
     
-    % Get sound parameters
-    [dBSPL,LP] = theseSoundParams(TrialData);
-    if numel(dBSPL)>1 || numel(LP)>1
-        keyboard
+    % Get spiketimes and shift based on calculated integration time 
+    
+    if exist('Spikes','var')                                 % >>> UMS <<<
+        
+        spiketimes = unique(round(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift));  %ms
+        
+    elseif exist('Clusters','var')                            % >>> KS <<<
+        
+        iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == clu);
+        spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 + spkshift)');
+        
     end
     
-    subjcol = [1 1 1];
-%     switch subject
-%         case 'WWWf_253400'
-%             subjcol = 0.6*[1 1 1];
-%             subj = 1;
-%         case 'WWWlf_253395'
-%             subjcol = [1 1 1];
-%             subj = 2;
-%     end
     
     fprintf(' analyzing ch %i clu %i\n',channel,clu)
     
+    
+    %%
     
     [Stream_FRsmooth,Stream_zscore,Stream_spikes,ymaxval] = convertSpiketimesToFR(spiketimes,...
         length(SpoutStream),TrialData.onset(1),TrialData.offset(1),20,20,'silence');
@@ -182,7 +211,11 @@ for iUn = 1:numel(UnitData)
     % sufficient number of trials without diruptive artifact
     % while the animal was drinking
     
-    [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP);
+    if ~isfield('Info','artifact')
+        [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,[],dBSPL,LP);
+    else
+        [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP);
+    end
     
     allStim = unique(TrialData.trID(all_TDidx));
     
@@ -220,7 +253,7 @@ for iUn = 1:numel(UnitData)
             t3 = t2 + Duration;
             
             if exclOnset
-                t2 = t2+100;
+                t2 = t2+200;
             end
             
             % Randomly permute the order of trials, for the simulation
@@ -236,9 +269,12 @@ for iUn = 1:numel(UnitData)
                 
                 switch units
                     case 'Hz'
-                        FR_resp(it,1) = mean(Stream_FRsmooth(t2(it):t3(it)-1));
+                        FR1 = mean(Stream_FRsmooth((t2(it)+1):t3(it)));
+                        FR2 = sum(spiketimes>t2(it) & spiketimes<=t3(it)) / Duration * 1000;
+                        %the outcome is identical either way
+                        FR_resp(it,1) = FR1;
                     case 'z'
-                        FR_resp(it,1) = mean(Stream_zscore(t2(it):t3(it)-1));
+                        FR_resp(it,1) = mean(Stream_zscore((t2(it)+1):t3(it)));
                 end
                 
             end %it
@@ -274,6 +310,7 @@ for iUn = 1:numel(UnitData)
     
     ntrs = cellfun(@length,FRtrials);
     nt = min(ntrs(ntrs>0));
+    if nt<minTrs, keyboard, end
     
     FR_sim = zeros(nt,1);
     for it = 1:nt
@@ -288,7 +325,7 @@ for iUn = 1:numel(UnitData)
         [~,pvals(NIR)] = ttest2(FR_sim,FRtrials{7}(1:nt));
         
         % Save data to table
-        Pdata_addrow = { subject session channel clu 7 pvals(NIR) mean(FRtrials{7}(1:nt)) mean(FR_sim) };
+        Pdata_addrow = { subject session channel clu 7 UnitData(iUn).BaseFR pvals(NIR) IR_Prediction mean(FRtrials{7})  };
         Pdata = [Pdata; Pdata_addrow];
     end
     if numel(FRtrials)>7
@@ -297,7 +334,7 @@ for iUn = 1:numel(UnitData)
         [~,pvals(NIR)] = ttest2(FR_sim,FRtrials{8}(1:nt));
         
         % Save data to table
-        Pdata_addrow = { subject session channel clu 8 pvals(NIR) mean(FRtrials{8}(1:nt)) mean(FR_sim) };
+        Pdata_addrow = { subject session channel clu 8 UnitData(iUn).BaseFR pvals(NIR) IR_Prediction mean(FRtrials{8})  };
         Pdata = [Pdata; Pdata_addrow];
     end
     
@@ -305,14 +342,17 @@ for iUn = 1:numel(UnitData)
     
     
     %%
-    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if nargin>0            % INDIVIDUAL UNIT ZFR MTF
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    if plotMTF && iUn==ex_Un                     % INDIVIDUAL UNIT ZFR MTF
         
         xvec = [1:5 8+(1:numel(allStim(7:end)))];
         msize = Ntrials./5;
         
         hmtf = figure; hold on
-        set(hmtf,'Position',vsmallsq)
+        set(hmtf,'Position',smallsq)
+        
+        % Plot baseline FR
+        plot([0 max(xvec)+1],[UnitData(iUn).BaseFR UnitData(iUn).BaseFR],'--k','LineWidth',0.5)
         
         % Plot periodic stimuli
         for ir = 1:5
@@ -323,8 +363,10 @@ for iUn = 1:numel(UnitData)
         end
         
         % Plot IR prediction
-        plot(7,IR_Prediction,'o','MarkerSize',15,'LineWidth',2,'Color',[32 129 255]./255)
-        plot([7 7],[IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],'-','LineWidth',2,'Color',[32 129 255]./255)
+        fill([6 max(xvec)+1 max(xvec)+1 6],IR_Prediction + IR_Pred_sem.*[-1 -1 1 1],0.8.*[1 1 1],'EdgeColor','none')
+        plot([6 max(xvec)+1],[IR_Prediction IR_Prediction],'k','LineWidth',1)
+%         plot(7,IR_Prediction,'o','MarkerSize',15,'LineWidth',2,'Color',[32 129 255]./255)
+%         plot([7 7],[IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],'-','LineWidth',2,'Color',[32 129 255]./255)
         
         % Plot IR observed
         for ir = 6:length(xvec)
@@ -341,89 +383,101 @@ for iUn = 1:numel(UnitData)
         xtickangle(45)
         
         xlim([-1+min(xvec) max(xvec)+1])
-        ylim([axmin axmax])
+        ylim([axmin 15])
         ylabel(sprintf('FR response\n(%s)', units))
         
         % Save MTF figure
-        savedir = fullfile(fn.processed,'LinearityFRpopulation');
+        savedir = fullfile(fn.processed,subject,session,'Rasters',[subject '_' session '_' num2str(shank) '_' num2str(clu)]);
         if ~exist(savedir,'dir')
-            mkdir(savedir)
+            keyboard
         end
-        savename = sprintf('%s_%s_ch%i_clu%i_FR-MTF_%s',...
-            subject,session,channel,clu,units);
-%         print_eps_kp(hmtf,fullfile(savedir,savename),1)
+        savename = sprintf('%s_%s_clu%i_FR-MTF_%s_exclOnset',...
+            subject,session,clu,units);
+        print_eps_kp(hmtf,fullfile(savedir,savename),1)
 %         print_svg_kp(hmtf,fullfile(savedir,savename),1)
         
+    end
         
         
         
-        
-        
-        %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    elseif nargin<1          % POPULATION ZFR COMPARISON
-        
-        % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-        % Add datapoint to plots
-        % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-        
-        N = N+1;
-        
-        % Set color
-        switch colorswitch
-            case 'iBMF_FR'
-                if isfield(UnitData(iUn),'iBMF_FR') && ~isempty(UnitData(iUn).iBMF_FR)
-                    plotcol = colors(1+UnitData(iUn).iBMF_FR,:);
-                else
-                    plotcol = 'k';
-                end
-            case 'iBMF_VS'
-                if isfield(UnitData(iUn),'iBMF_VS') && ~isempty(UnitData(iUn).iBMF_VS)
-                    plotcol = colors(1+UnitData(iUn).iBMF_VS,:);
-                else
-                    plotcol = 'k';
-                end
-            case 'subject'
-                plotcol = subjcol;
-        end
-        
-        
-        figure(hf1); hold on
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    %                                            POPULATION ZFR COMPARISON
+    
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    % Add datapoint to plots
+    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+    
+    N = N+1;
+    
+    % Set color
+    switch colorswitch
+        case 'iBMF_FR'
+            if isfield(UnitData(iUn),'iBMF_FR') && ~isempty(UnitData(iUn).iBMF_FR)
+                plotcol = colors(1+UnitData(iUn).iBMF_FR,:);
+            else
+                plotcol = 'k';
+            end
+        case 'iBMF_VS'
+            if isfield(UnitData(iUn),'iBMF_VS') && ~isempty(UnitData(iUn).iBMF_VS)
+                plotcol = colors(1+UnitData(iUn).iBMF_VS,:);
+            else
+                plotcol = 'k';
+            end
+        case 'subject'
+            plotcol = subjcol;
+    end
+    
+    
+    figure(hf1); hold on
+    
+    % horizontal errorbars (prediction error)
+    plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[mean(FRmeans(7:end)) mean(FRmeans(7:end))],'Color',plotcol)
+    % vertical errorbars (observation error)
+    plot([IR_Prediction IR_Prediction],[mean(FRmeans(7:end))-mean(sqrt(FRvars(7:end))./sqrt(Ntrials(7:end)))...
+        mean(FRmeans(7:end))+mean(sqrt(FRvars(7:end))./sqrt(Ntrials(7:end)))],'Color',plotcol)
+    %                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10))) mean(zFRmeans(7:10))+sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10)))],plotcol)
+    %                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4) mean(zFRmeans(7:10))+sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4)],plotcol)
+    % mean point
+    ip=scatter(IR_Prediction,mean(FRmeans(7:end)),150,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+    if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
+        ip.MarkerFaceColor = [32 129 255]./255;
+        ip.MarkerFaceAlpha = 0.65;
+    end
+    
+    figure(hf2); hold on
+    
+    for is = 7:length(allStim)
         
         % horizontal errorbars (prediction error)
-        plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[mean(FRmeans(7:end)) mean(FRmeans(7:end))],'Color',plotcol)
+        plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[FRmeans(is) FRmeans(is)],'Color',plotcol)
         % vertical errorbars (observation error)
-        plot([IR_Prediction IR_Prediction],[mean(FRmeans(7:end))-mean(sqrt(FRvars(7:end))./sqrt(Ntrials(7:end)))...
-            mean(FRmeans(7:end))+mean(sqrt(FRvars(7:end))./sqrt(Ntrials(7:end)))],'Color',plotcol)
-        %                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10))) mean(zFRmeans(7:10))+sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10)))],plotcol)
-        %                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4) mean(zFRmeans(7:10))+sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4)],plotcol)
+        plot([IR_Prediction IR_Prediction],[FRmeans(is)-sqrt(FRvars(is))./sqrt(Ntrials(is)) FRmeans(is)+sqrt(FRvars(is))./sqrt(Ntrials(is))],'Color',plotcol)
         % mean point
-        ip=scatter(IR_Prediction,mean(FRmeans(7:end)),150,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor',plotcol,'LineWidth',1);
+        ip=scatter(IR_Prediction,FRmeans(is),100,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
         if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
             ip.MarkerFaceColor = [32 129 255]./255;
             ip.MarkerFaceAlpha = 0.65;
         end
         
-        figure(hf2); hold on
+    end %is
+    
+    
+    figure(hf3); hold on
+    
+    for is = 7:length(allStim)
         
-        for is = 7:length(allStim)
-            
-            % horizontal errorbars (prediction error)
-            plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[FRmeans(is) FRmeans(is)],'Color',plotcol)
-            % vertical errorbars (observation error)
-            plot([IR_Prediction IR_Prediction],[FRmeans(is)-sqrt(FRvars(is))./sqrt(Ntrials(is)) FRmeans(is)+sqrt(FRvars(is))./sqrt(Ntrials(is))],'Color',plotcol)
-            % mean point
-            ip=scatter(IR_Prediction,FRmeans(is),100,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor',plotcol,'LineWidth',1);
-            if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
-                ip.MarkerFaceColor = [32 129 255]./255;
-                ip.MarkerFaceAlpha = 0.65;
-            end
-            
-        end %is
+        % vertical errorbars (observation error)
+        %             plot([UnitData(iUn).BaseFR UnitData(iUn).BaseFR], FRmeans(is)-IR_Prediction + (sqrt(FRvars(is))./sqrt(Ntrials(is))).*[-1 1],'Color',plotcol)
+        % mean point
+        ip=scatter(UnitData(iUn).BaseFR, FRmeans(is)-IR_Prediction, 200,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+        if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
+            ip.MarkerFaceColor = [32 129 255]./255;
+            ip.MarkerFaceAlpha = 0.65;
+        end
         
-    end %if nargin<1
+    end %is
+    
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    
-    
     
     
     
@@ -432,6 +486,7 @@ for iUn = 1:numel(UnitData)
 end %iUn
 
 
+%% Stats
 [iIR_sig_bonferroni,iIR_sig_bonferroniholm] = checkSignificance_bonferroni(pvals,0.05);
 
 Pdata(1,:)=[];
@@ -440,11 +495,58 @@ Pdata.iIR_sig_bonferroni     = iIR_sig_bonferroni';
 Pdata.iIR_sig_bonferroniholm = iIR_sig_bonferroniholm';
 
 
+%% Finish figures
+
+% hf1
+figure(hf1); hold on
+title(['Pred vs. Obs IR responses, avg IR, N = ' num2str(N) ' units'])
+
+% hf2
 figure(hf2); hold on
 plot(Pdata.predIR(find(iIR_sig_bonferroni))',Pdata.obsIR(find(iIR_sig_bonferroni))','sg')
+title(['Pred vs. Obs IR responses, each IR seq, N=' num2str(size(Pdata,1)) ', ' num2str(N) ' units'])
 
-aaa=2342;  
+% hf3
+xhist = -5:0.25:5;
+diffhist = hist([Pdata.obsIR]-[Pdata.predIR],xhist);
+yh = 10*ceil(max(diffhist)/10);
+
+figure(hf3); 
+subplot(1,6,6) 
+hold on
+fill(diffhist,xhist,'k','EdgeColor','none')
+plot([yh yh],mean([Pdata.obsIR]-[Pdata.predIR]) + std([Pdata.obsIR]-[Pdata.predIR]).*[-1 1],'b-','LineWidth',3)
+plot(yh,mean([Pdata.obsIR]-[Pdata.predIR]),'bd','MarkerSize',14,'MarkerEdgeColor','none','MarkerFaceColor','b')
+xlim([0 yh])
+ylim([-5 5])
+set(gca,'ytick',[],'xtick',[])
+box off
+
+
+%% Save figures
+
+savedir = fullfile(fn.figs,'PredObs','exclOnset');
+if ~exist(savedir,'dir')
+    mkdir(savedir)
+end
+
+savename = 'PredObs_avgIR';
+print_eps_kp(hf1,fullfile(savedir,savename))
+print_svg_kp(hf1,fullfile(savedir,savename))
+
+savename = 'PredObs_eachIR';
+print_eps_kp(hf2,fullfile(savedir,savename))
+print_svg_kp(hf2,fullfile(savedir,savename))
+
+savename = 'PredObs_DiffsBaseFR';
+print_eps_kp(hf3,fullfile(savedir,savename))
+print_svg_kp(hf3,fullfile(savedir,savename))
+
+
+save(fullfile(savedir,'Pdata'),'Pdata','-v7.3')
 
 
 
 end
+
+

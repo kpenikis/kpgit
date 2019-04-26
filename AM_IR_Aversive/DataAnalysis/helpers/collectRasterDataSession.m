@@ -2,6 +2,8 @@ function [UnitInfo, UnitData, Info, TrialData, Clusters, StimResp, artifactTrs ]
 %
 % [UnitInfo, UnitData, Info, TrialData, Clusters, StimResp, artifactTrs ] = collectRasterDataSession(SUBJECT,SESSION)
 %
+%   ONLY ONE SESSION CURRENTLY
+% 
 %   Collects data for all stimuli and all units for further analyses.
 %   Trials restricted to only those labeled clean for all relevant
 %   channels.
@@ -17,6 +19,7 @@ function [UnitInfo, UnitData, Info, TrialData, Clusters, StimResp, artifactTrs ]
 % KP, 2019-03
 %
 
+global RateStream
 
 %% Load data files
 
@@ -35,7 +38,7 @@ filename = sprintf( '%s_sess-%s_Spikes'   ,SUBJECT,SESSION); load(fullfile(fn.pr
 % Filter Unit files to just this session and sort by baseline FR
 UnitData = UnitData(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT));
 UnitInfo = UnitInfo(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT),:);
-[~, baseFRrank] = sort([UnitInfo.BaseFR]);
+[~, baseFRrank] = sort([UnitData.BaseFR]);
 UnitInfo = UnitInfo(baseFRrank,:);
 UnitData = UnitData(baseFRrank);
 

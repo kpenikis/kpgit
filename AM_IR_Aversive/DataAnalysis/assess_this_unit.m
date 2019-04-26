@@ -4,16 +4,16 @@
 
 %% GET STIM INFO
 [dBSPL,LP] = theseSoundParams(TrialData);
-if numel(dBSPL)>1 || numel(LP)>1
-    keyboard
-end
+% if numel(dBSPL)>1 || numel(LP)>1
+%     keyboard    %if WWWlf_395 DA: dBSPL = 75;
+% end
 AMrates = [2 4 8 16 32];
 
 
 
 %% Label response type
 
-fprintf('\n  %s  %s  ch %i  clu %i\n',subject,session,channel,clu)
+fprintf('  %s  %s  ch %i  clu %i\n',subject,session,channel,clu)
 
 % result = input('Unit''s response type \n 0: n/a \n 1: sparse \n 2: sustained \n 3: gap \n  ');
 % switch result
@@ -26,7 +26,7 @@ fprintf('\n  %s  %s  ch %i  clu %i\n',subject,session,channel,clu)
 %     case 3
 %         RespType = 'gap';
 % end
-        RespType = 'na';
+RespType = 'na';
 
 
 
@@ -35,7 +35,7 @@ fprintf('\n  %s  %s  ch %i  clu %i\n',subject,session,channel,clu)
 bs_hist = 1;
 bs_smth = 20;
 
-[Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(spiketimes,...
+[Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(round(spiketimes),...
     length(SpoutStream),TrialData.onset(1),TrialData.offset(1),bs_hist,bs_smth,'silence');
 
 
@@ -44,9 +44,6 @@ if mean(Stream_FRsmooth(TrialData.onset(1):end)) < FRcutoff
     fprintf('    skipping: low FR\n')
     return
 end
-
-% Otherwise, you have a valid datapoint
-N = N+1;
 
 
 %% Collect data snippets from silent period
@@ -57,8 +54,7 @@ snipDur = 1000; %ms
 
 % Check the duration of silence at the beginning
 nSnips = floor((SilOFF - SilON)/snipDur);
-if nSnips<minTrs, keyboard, end
-%         fprintf('nSnips set to %i\n',nSnips)
+% if nSnips<15, keyboard, end
 
 
 % Randomly select snippets of the activity from the silent period
@@ -79,8 +75,8 @@ SilDATA_z   = Stream_zscore(repmat(snips(idxSnips(1:nSnips))',1,snipDur) + repma
 %% Get stimulus response data
 
 % Step through each combo of dBSPL, HP, AMdepth
-for spl = dBSPL
-    for lpn = LP
+for spl = dBSPL'
+    for lpn = LP'
         
         %% Collect this unit's data
         
@@ -100,7 +96,7 @@ for spl = dBSPL
             allStim(Ntrials<minTrs)  = [];
             Ntrials(Ntrials<minTrs) = [];
         elseif  sum(Ntrials < minTrs)>1 %if more than one stim has few trials
-            keyboard
+            continue
         end
         
         %                 % Adjust nSnips according to min Ntrials
@@ -113,37 +109,38 @@ for spl = dBSPL
         %                 nSnips = min(Ntrials);
         
         
-        %% First, calculate mean phase
+        
+        % Otherwise, you have a valid datapoint
+        N = N+1;
+        
+        
+        %% First, calculate Integration Time
         %  and adjust spiketimes accordingly
+        
         try
-        [IntegrationTime_spk, IntegrationTime_gap] = calculateIntegrationTime(spiketimes,TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType);
+        IntegrationTime_spk = calculateIntegrationTime(round(spiketimes),TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType);
         catch
+            warning('integration time program didnt run properly')
             IntegrationTime_spk = 0;
-            IntegrationTime_gap = 0;
         end
         if isnan(IntegrationTime_spk)
             IntegrationTime_spk = 0;
         end
-        spiketimes = spiketimes - round(IntegrationTime_spk);
+        spiketimes = unique(round(spiketimes - IntegrationTime_spk));
         
-        Stream_FRsmooth = Stream_FRsmooth(1+round(IntegrationTime_spk):end);
-        Stream_zscore   = Stream_zscore(1+round(IntegrationTime_spk):end);
-        Stream_Spikes   = Stream_Spikes(1+round(IntegrationTime_spk):end);
-        
-        %                 SpoutStream     = SpoutStream(1+round(IntegrationTime_spk):end);
-        %                 SoundStream     = SoundStream(1+round(IntegrationTime_spk):end);
-        
+        % Re-run with shifted spiketimes
+        [Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(spiketimes,...
+            length(SpoutStream),TrialData.onset(1),TrialData.offset(1),bs_hist,bs_smth,'silence');
         
         
         %% Now collect rest of this unit's data
+        %   AFTER shifting spike times!
         
         Spks_per_tr = nan(max(Ntrials),1,8);
         FRtrs_raw = nan(max(Ntrials),8);
         FR_nrm    = nan(1,8);
         VSdata_spk    = nan(3,8);
-        VSdata_gap    = nan(3,8);
         MeanPhase_spk = nan(1,8);
-        MeanPhase_gap = nan(1,8);
         ntrs      = nan(1,8);
         
         for istim = allStim'
@@ -169,7 +166,6 @@ for spl = dBSPL
                 dataTr_nrm = nan(numel(t2),1);
                 raster = nan(numel(t2),Duration);
                 PSTH   = nan(numel(t2),Duration);
-                Gaptimes = [];
                 Spktimes = [];
                 
                 % Collect data for each trial
@@ -191,10 +187,6 @@ for spl = dBSPL
                         if ~all(find(raster(it,:))==sp)
                             keyboard
                         end
-                        % Collect inverted spike train
-                        raster_inv = ones(size(raster(it,:)));
-                        raster_inv(sp) = 0;
-                        Gaptimes = [Gaptimes find(raster_inv)];
                     end
                     
                 end %it
@@ -220,36 +212,10 @@ for spl = dBSPL
                     MeanPhase_spk(1,istim) = meanphase(sort(Spktimes),period);
                     if MeanPhase_spk(1,istim)<0, keyboard, end
                     
-                    %                         % Simulate Spktimes, to check if VS values match
-                    %                         Spktimes_sim_bin = poissrnd(repmat(mean(PSTH,1),size(PSTH,1),1)/1000);
-                    %                         Spktimes_sim=[];
-                    %                         for it=1:size(PSTH,1)
-                    %                             Spktimes_sim = [Spktimes_sim find(Spktimes_sim_bin(it,:))];
-                    %                         end
-                    %                         [VSdata_sim(1,istim),VSdata_sim(2,istim),VSdata_sim(3,istim)] = vectorstrength(Spktimes_sim,period);
-                    %                         MeanPhase_sim(1,istim) = meanphase(sort(Spktimes_sim),period);
-                    %
-                    
-                    % Simulate "Gaptimes", the inverted firing pattern
-                    PSTH_inv = -1*mean(PSTH,1) + min(mean(PSTH,1)) + max(mean(PSTH,1));
-                    Gaptimes_sim_bin = poissrnd(repmat(PSTH_inv,size(PSTH,1),1)/1000);
-                    Gaptimes_sim=[];
-                    for it=1:size(PSTH,1)
-                        Gaptimes_sim = [Gaptimes_sim find(Gaptimes_sim_bin(it,:))];
-                    end
-                    
-                    allUn_GR_raw(N,istim) = mean(mean(Gaptimes_sim_bin,2,'omitnan')*1000);
-                    
-                    % Calculate VS and mean phase for gaps (inverted
-                    % but balanced firing pattern)
-                    [VSdata_gap(1,istim),VSdata_gap(2,istim),VSdata_gap(3,istim)] = vectorstrength(Gaptimes_sim,period);
-                    MeanPhase_gap(1,istim) = meanphase(sort(Gaptimes_sim),period);
-                    if MeanPhase_gap(1,istim)<0, keyboard, end
                 end
                 
             end %iti
         end %istim
-        
         
         % Add summary data to population vector
         allUn_FR_raw(end+1,:) = mean(FRtrs_raw,1,'omitnan');
@@ -291,90 +257,11 @@ for spl = dBSPL
         
         
         
-        %% Calculate integration time
-        
-        % For SPIKES
-        
-        % Wrap latency around to next cycle where necessary
-        PdcPhase_spk = MeanPhase_spk(2:6);
-        resets = 1+find(diff(PdcPhase_spk)<0);
-        for ii = 1:numel(resets)
-            PdcPhase_spk(resets(ii):end) = PdcPhase_spk(resets(ii):end) + 2*pi;
-        end
-        %
-        %                 % Plot
-        %                 figure(hf); hold on
-        %                 subplot(hs_spk); hold on
-        %                 plot(AMrates,rad2deg(PdcPhase_spk),'-','LineWidth',1.5)
-        %                 hold off
-        %
-        %                 % Fit slope to find integration time
-        %                 weights_spk = allUn_FR_raw(end,2:6) .* VSdata_spk(1,2:6);
-        %
-        %                 [IntegrationTime_nt,~,IT_mse] = lscov(AMrates',rad2deg(PdcPhase_spk'),ntrs(2:6));
-        %                 [IntegrationTime_spk,~,IT_mse] = lscov(AMrates',rad2deg(PdcPhase_spk'),weights_spk);
-        %
-        %                 if any(rad2deg(PdcPhase_spk)<0)
-        %                     keyboard
-        %                 end
-        
-        
-        % For GAPS
-        
-        % Wrap latency around to next cycle where necessary
-        PdcPhase_gap = MeanPhase_gap(2:6);
-        resets = 1+find(diff(PdcPhase_gap)<0);
-        for ii = 1:numel(resets)
-            PdcPhase_gap(resets(ii):end) = PdcPhase_gap(resets(ii):end) + 2*pi;
-        end
-        
-        %                 % Plot
-        %                 subplot(hs_gap); hold on
-        %                 plot(AMrates,rad2deg(PdcPhase_gap),'-','LineWidth',1.5)
-        %                 hold off
-        %
-        %                 subplot(hs_diff); hold on
-        %                 plot(AMrates,rad2deg(PdcPhase_gap)-rad2deg(PdcPhase_spk),'-','LineWidth',1.5)
-        %                 hold off
-        %
-        %                 % Fit slope to find integration time
-        %                 weights_gap = allUn_GR_raw(end,2:6) .* VSdata_gap(1,2:6);
-        %
-        %                 [IntegrationTime_gap,~,IT_mse] = lscov(AMrates',rad2deg(PdcPhase_gap'),weights_gap);
-        %
-        %                 if any(rad2deg(PdcPhase_gap)<0)
-        %                     keyboard
-        %                 end
-        
-        
-        %                 % Plot response phases for this unit
-        %
-        %                 hf_tmp=figure; hold on
-        %                 ip(1)=plot(AMrates,rad2deg(PdcPhase_spk),'-k','LineWidth',2.5);
-        %                 ip(2)=plot(AMrates,rad2deg(PdcPhase_gap),'-r','LineWidth',2.5);
-        %                 for ir = 1:5
-        %                     plot(AMrates(ir),rad2deg(PdcPhase_spk(ir)),'.k','MarkerSize',10*weights_spk(ir))
-        %                     plot(AMrates(ir),rad2deg(PdcPhase_gap(ir)),'.r','MarkerSize',10*weights_gap(ir))
-        %                 end
-        %                 ylim([0 max( rad2deg(max(PdcPhase_spk)+pi/2), rad2deg(max(PdcPhase_gap)+pi/2)) ])
-        %                 xlim([0 34])
-        %                 axis square
-        % %                 title(sprintf('Integration Time \nspks: %0.1f ms, \\color{red}gaps: %0.1f ms',IntegrationTime_spk,IntegrationTime_gap)...
-        % %                     ,'Interpreter','tex')
-        %                 title(sprintf('%s %s ch%i clu%i',subject,session,channel,clu),'Interpreter','none')
-        %                 legend(ip,{sprintf('spks: %0.1f ms',IntegrationTime_spk) sprintf('gaps: %0.1f ms',IntegrationTime_gap)},'Location','southeast')
-        %                 set(gca,'xtick',AMrates)
-        %                 xlabel('AM rate (Hz)')
-        %                 ylabel('Unwrapped mean phase (deg)')
-        %                 hold off
-        %
-        
-        
         %% Save data to structure
         
         UnitData(N).Subject     = subject;
         UnitData(N).Session     = session;
-        UnitData(N).Shank       = Clusters(iclu).shank;
+        UnitData(N).Shank       = shank;
         UnitData(N).Channel     = channel;
         UnitData(N).Clu         = clu;
 %         UnitData(N).unType      = unType;
@@ -385,11 +272,8 @@ for spl = dBSPL
         UnitData(N).kw_p        = kw_p;
         UnitData(N).wx_p        = wx_p;
         UnitData(N).VSdata_spk  = VSdata_spk;
-        UnitData(N).VSdata_gap  = VSdata_gap;
-        UnitData(N).Phase_spk   = rad2deg(PdcPhase_spk);
-        UnitData(N).Phase_gap   = rad2deg(PdcPhase_gap);
+        UnitData(N).Phase_spk   = rad2deg(MeanPhase_spk);
         UnitData(N).IntTime_spk = IntegrationTime_spk;
-        UnitData(N).IntTime_gap = IntegrationTime_gap;
         UnitData(N).ntr         = ntrs(2:6);
         UnitData(N).FR_nrm      = FR_nrm;
         UnitData(N).dp_mat      = dprime_mat;

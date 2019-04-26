@@ -1,7 +1,9 @@
 function [VS,RS,P] = vectorstrength(Spktime,period)
-% Vector Strength is a measure of the degree of phase-locking or
-% synchronization. 
-% Input Spktime must be indices, not a sparse matrix/vector.
+% [VS,RS,P] = vectorstrength(Spktime,period)
+%   Vector Strength is a measure of the degree of phase-locking or
+%   synchronization. 
+%   Input Spktime must be indices, not a sparse matrix/vector.
+% 
 
 
 if isempty(Spktime)

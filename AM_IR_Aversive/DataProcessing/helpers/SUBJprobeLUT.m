@@ -10,11 +10,9 @@ switch subject
     case 'AAB_265052'
         whichProbe = 'Cambridge_P1_64';
     case 'AAB_2650453'
-        keyboard
-        whichProbe = '';
+        whichProbe = 'Buzsaki5x12_64';
     case 'AAB_265054'
-        keyboard
-        whichProbe = '';
+        whichProbe = 'Buzsaki5x12_64';
     case 'AAB_265055'
         whichProbe = 'NN4x4';
     case 'AAB_265056'

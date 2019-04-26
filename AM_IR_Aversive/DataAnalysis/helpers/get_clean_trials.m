@@ -6,11 +6,17 @@ function [theseTDidx,Ntrials,minDur,allStim] = get_clean_trials(TrialData,artifa
 % Find trials that match the current spound parameters (spl, lpn)
 idx_params = find(TrialData.SPL==spl & TrialData.LP==lpn);
 
-% Find SAFE trials when animal was on spout for at least 90% of the time,
-% and all WARN trials 
-idx_spout = find( (TrialData.ITIflag==0 & TrialData.trID>1 & TrialData.Spout>0.9) ...
-    |  TrialData.trID==1 ...
-    | (TrialData.ITIflag==1 & TrialData.Spout>0.25));
+
+if ismember('ITIflag',TrialData.Properties.VariableNames)
+    
+    % Find SAFE trials when animal was on spout for at least 90% of the time,
+    % and all WARN trials
+    idx_spout = find( (TrialData.ITIflag==0 & TrialData.trID>1 & TrialData.Spout>0.9) ...
+        |  TrialData.trID==1 ...
+        | (TrialData.ITIflag==1 & TrialData.Spout>0.75));
+else
+    idx_spout = 1:size(TrialData,1)';
+end
 
 % Find trials that are not flagged for artifact (not including Warn trials)
 [~,~,rem] = intersect(find(TrialData.trID==1),artifact_trs);

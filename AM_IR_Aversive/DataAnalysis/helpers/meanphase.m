@@ -1,7 +1,10 @@
 function [mu,R] = meanphase(Spktime,period)
-% Vector Strength is a measure of the degree of phase-locking or
-% synchronization. 
-% Input Spktime must be indices, not a sparse matrix/vector.
+% [mu,R] = meanphase(Spktime,period)
+%    Vector Strength is a measure of the degree of phase-locking or
+%    synchronization. 
+%    Input Spktime must be indices, not a sparse matrix/vector.
+%    Output mu is phase in radians. R is VS.
+% 
 
 
 if isempty(Spktime)
@@ -35,10 +38,16 @@ if R>0
         mu      =   atan(S/C) + pi;
     elseif  C>=0 && S>=0    % Q1  :  output between [0,pi/2]
         mu      =   atan(S/C);   
-    elseif  C>0 && S<0      % Q4  :  output between [-pi/2,0], shift to [3*pi/2,2*pi]
+    elseif  C>=0 && S<0      % Q4  :  output between [-pi/2,0], shift to [3*pi/2,2*pi]
         mu      =   atan(S/C) + 2*pi;
+    else
+        keyboard
     end
-    
+else
+    if C==S
+        mu      =   atan(1);
+    end
+    keyboard
 end
 
 

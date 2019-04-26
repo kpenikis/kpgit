@@ -1,13 +1,8 @@
-function [IntegrationTime_spk, IntegrationTime_gap] = calculateIntegrationTime(spiketimes,TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType)
-
-global fn
+function IntegrationTime_spk = calculateIntegrationTime(spiketimes,TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType)
 
 VSdata_spk    = nan(3,8);
-VSdata_gap    = nan(3,8);
 MeanPhase_spk = nan(1,8);
-MeanPhase_gap = nan(1,8);
 FR_raw        = nan(1,8);
-GR_raw        = nan(1,8);
 
 for istim = 2:6
     
@@ -66,31 +61,6 @@ for istim = 2:6
             MeanPhase_spk(1,istim) = meanphase(sort(Spktimes),period);
             if MeanPhase_spk(1,istim)<0, keyboard, end
             
-            %                         % Simulate Spktimes, to check if VS values match
-            %                         Spktimes_sim_bin = poissrnd(repmat(mean(PSTH,1),size(PSTH,1),1)/1000);
-            %                         Spktimes_sim=[];
-            %                         for it=1:size(PSTH,1)
-            %                             Spktimes_sim = [Spktimes_sim find(Spktimes_sim_bin(it,:))];
-            %                         end
-            %                         [VSdata_sim(1,istim),VSdata_sim(2,istim),VSdata_sim(3,istim)] = vectorstrength(Spktimes_sim,period);
-            %                         MeanPhase_sim(1,istim) = meanphase(sort(Spktimes_sim),period);
-            %
-            
-            % Simulate "Gaptimes", the inverted firing pattern
-            PSTH_inv = -1*mean(PSTH,1) + min(mean(PSTH,1)) + max(mean(PSTH,1));
-            Gaptimes_sim_bin = poissrnd(repmat(PSTH_inv,size(PSTH,1),1)/1000);
-            Gaptimes_sim=[];
-            for it=1:size(PSTH,1)
-                Gaptimes_sim = [Gaptimes_sim find(Gaptimes_sim_bin(it,:))];
-            end
-            
-            GR_raw(1,istim) = mean(mean(Gaptimes_sim_bin,2,'omitnan')*1000);
-            
-            % Calculate VS and mean phase for gaps (inverted
-            % but balanced firing pattern)
-            [VSdata_gap(1,istim),VSdata_gap(2,istim),VSdata_gap(3,istim)] = vectorstrength(Gaptimes_sim,period);
-            MeanPhase_gap(1,istim) = meanphase(sort(Gaptimes_sim),period);
-            if MeanPhase_gap(1,istim)<0, keyboard, end
         end
         
     end %iti
@@ -98,6 +68,11 @@ end %istim
 
 
 %% Calculate integration time
+
+% To be valid, must have significant phase locking to 3 or more stimuli and
+% a mean FR during pdc stim of at least 1 Hz!
+
+if sum(VSdata_spk(3,2:6)<0.05)>2 && nanmean(FR_raw)>=1
 
 % For SPIKES
 
@@ -117,49 +92,29 @@ if any(rad2deg(PdcPhase_spk)<0)
     keyboard
 end
 
-
-% For GAPS
-
-% Wrap latency around to next cycle where necessary
-PdcPhase_gap = MeanPhase_gap(2:6);
-resets = 1+find(diff(PdcPhase_gap)<0);
-for ii = 1:numel(resets)
-    PdcPhase_gap(resets(ii):end) = PdcPhase_gap(resets(ii):end) + 2*pi;
-end
-
-% Fit slope to find integration time
-weights_gap = GR_raw(1,2:6) .* VSdata_gap(1,2:6);
-
-[IntegrationTime_gap,~,IT_mse] = lscov(AMrates',rad2deg(PdcPhase_gap'),weights_gap);
-
-if any(rad2deg(PdcPhase_gap)<0)
-    keyboard
-end
+fprintf('    integration time = %0.2f\n',IntegrationTime_spk)
 
 
 %% Plot response phases for this unit
-% 
+
 % hf_tmp=figure; hold on
-% ip(1)=plot(AMrates,rad2deg(PdcPhase_spk),'-k','LineWidth',2.5);
-% ip(2)=plot(AMrates,rad2deg(PdcPhase_gap),'-r','LineWidth',2.5);
+% ip(1)=plot(AMrates,rad2deg(PdcPhase_spk),'-k','LineWidth',3);
 % for ir = 1:5
-%     plot(AMrates(ir),rad2deg(PdcPhase_spk(ir)),'.k','MarkerSize',10*weights_spk(ir))
-%     plot(AMrates(ir),rad2deg(PdcPhase_gap(ir)),'.r','MarkerSize',10*weights_gap(ir))
+%     plot(AMrates(ir),rad2deg(PdcPhase_spk(ir)),'.k','MarkerSize',15*weights_spk(ir)+1)
 % end
-% ylim([0 max( rad2deg(max(PdcPhase_spk)+pi/2), rad2deg(max(PdcPhase_gap)+pi/2)) ])
+% ylim([0 max( rad2deg(max(PdcPhase_spk)+pi/2) ) ])
 % xlim([0 34])
 % axis square
-% %                 title(sprintf('Integration Time \nspks: %0.1f ms, \\color{red}gaps: %0.1f ms',IntegrationTime_spk,IntegrationTime_gap)...
-% %                     ,'Interpreter','tex')
 % title(sprintf('%s %s ch%i clu%i',subject,session,channel,clu),'Interpreter','none')
-% legend(ip,{sprintf('spks: %0.1f ms',IntegrationTime_spk) sprintf('gaps: %0.1f ms',IntegrationTime_gap)},'Location','southeast')
-% set(gca,'xtick',AMrates)
+% legend(ip,sprintf('spks: %0.1f ms',IntegrationTime_spk),'Location','southeast')
+% set(gca,'xtick',AMrates,'xscale','linear')
 % xlabel('AM rate (Hz)')
 % ylabel('Unwrapped mean phase (deg)')
 % hold off
-% 
-% 
+
+
 % % Save fig
+% global fn
 % savedir = fullfile(fn.processed,'Units',RespType);
 % if ~exist(savedir,'dir')
 %     mkdir(fullfile(savedir,'eps'))
@@ -169,5 +124,14 @@ end
 % print_svg_kp(hf_tmp,fullfile(savedir,'svg',sprintf('RespPhase_%s_%s_%i_%i',subject,session,channel,clu)))
 
 
+% close(hf_tmp)
 
+else %not enough stim with sig VS 
+    fprintf('    less than 3 periodic stim with significant VS\n')
+    IntegrationTime_spk = nan;
+%     IntegrationTime_gap = nan;
+end
+
+
+end
 
