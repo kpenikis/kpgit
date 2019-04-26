@@ -4,9 +4,8 @@ function fn = set_paths_directories(subject,session,UMS_flag)
 % global SortingFlag
 
 % Add Processing and Analysis folders to path
-cd /Users/kpenikis/Documents/kpgit/AM_IR_Aversive
-addpath(genpath('DataAnalysis'), genpath('DataProcessing'),...
-    ('/Users/kpenikis/Documents/MATLAB/Colormaps'))
+% cd /Users/kpenikis/Documents/kpgit/AM_IR_Aversive
+addpath(genpath('DataAnalysis'),genpath('DataProcessing'))
 
 
 % Set basic folders based on where runnuing from 
@@ -20,6 +19,12 @@ if strncmp(computername,'Regina',5)
     basefolder  = 'G:\NYUDrive\Sanes\DATADIR\AM_IR_aversive'; %'G:\ProcessedData_temp';
     
     includePath='C:\gits\kpgit\ums2k_02_23_2012';
+    
+elseif strncmp(computername,'william',5)  
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % Mac in 1006
+    basefolder  = '/Volumes/KPspace/GDFS/My Drive/Sanes/DATADIR/AMaversive';
+    includePath='';
     
 else
     if nargin==3 && UMS_flag
@@ -40,6 +45,7 @@ else
 %         % local macbook harddrive
 %         basefolder = '/Users/kpenikis/Documents/SanesLab/LocalData/AM_IR_aversive';        
     end
+    addpath(genpath('/Users/kpenikis/Documents/MATLAB/Colormaps'))
 end
 
 % First, check if is in the current path (to avoid warning message)

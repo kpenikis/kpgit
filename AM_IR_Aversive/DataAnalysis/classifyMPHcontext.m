@@ -18,7 +18,7 @@ end
 %!!!!!!!!!!!!!!!!!!!
 trMin       =  10;
 %!!!!!!!!!!!!!!!!!!!
-Iterations  =  5;
+Iterations  =  500;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     = 31;
 %!!!!!!!!!!!!!!!!!!!
@@ -27,7 +27,7 @@ N=0;
 
 %% Load Unit data files
 
-fn = set_paths_directories('','',1);
+fn = set_paths_directories;
 
 q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
@@ -99,7 +99,7 @@ colors = [ colors; ...
 
 %% Step through Units
 
-for iUn = 1:numel(UnitData)
+for iUn = 1:8%numel(UnitData)
         
     %%% skips merged units for now
     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
