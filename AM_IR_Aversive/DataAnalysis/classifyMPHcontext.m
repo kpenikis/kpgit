@@ -18,7 +18,7 @@ end
 %!!!!!!!!!!!!!!!!!!!
 trMin       =  10;
 %!!!!!!!!!!!!!!!!!!!
-Iterations  =  500;
+Iterations  =  5;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     = 31;
 %!!!!!!!!!!!!!!!!!!!
@@ -33,6 +33,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
@@ -55,6 +58,11 @@ ex_clu  = 1;
 
 Data = struct;
 
+savedir = fullfile(fn.processed,'MPHclassifier');
+if ~exist(savedir,'dir')
+    mkdir(savedir)
+end
+
 
 %% Figure settings
 
@@ -76,32 +84,31 @@ colors = [ colors; ...
     [19 125 124]./255 ];
 
 % Make figures
-for irate = 1:numel(AMrates)
-    hf(irate) = figure; hold on
-    plot([AMrates(irate) AMrates(irate)],[0 3],'Color',colors(irate+1,:),'LineWidth',2)
-    set(gca,'xscale','log','xtick',2.^[1:5])
-    xlim(2.^[0.8 5.2])
-    ylim([0 2.5])
-    xlabel('avg AM rate in previous 500 ms')
-    ylabel('d prime')
-    title([num2str(AMrates(irate)) ' Hz period'])
-end
+% for irate = 1:numel(AMrates)
+%     hf(irate) = figure; hold on
+%     plot([AMrates(irate) AMrates(irate)],[0 3],'Color',colors(irate+1,:),'LineWidth',2)
+%     set(gca,'xscale','log','xtick',2.^[1:5])
+%     xlim(2.^[0.8 5.2])
+%     ylim([0 2.5])
+%     xlabel('avg AM rate in previous 500 ms')
+%     ylabel('d prime')
+%     title([num2str(AMrates(irate)) ' Hz period'])
+% end
 
-yvals = 2.^[0:7];
 
 
 %% Step through Units
 
-for iUn = 6:17%numel(UnitData)
+for iUn = 1:numel(UnitData)
         
     %%% skips merged units for now
     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
         continue
     end
     
-    if UnitData(iUn).kw_p>0.05
-        continue
-    end
+%     if UnitData(iUn).kw_p>0.05
+%         continue
+%     end
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
@@ -113,24 +120,24 @@ for iUn = 6:17%numel(UnitData)
     dBSPL       = UnitData(iUn).spl;
     LP          = UnitData(iUn).lpn;
     
-    spkshift    = 0;%UnitData(iUn).IntTime_spk;
+%     spkshift    = UnitData(iUn).IntTime_spk;
     
     
     % Load data files
     
-%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
         fprintf('Loading %s sess %s...\n',subject,session)
         clear TrialData Info RateStream SoundStream SpoutStream
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
-%     end
-%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
+    end
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
-%     end
-    if ~isfield(Info,'artifact')
-        continue
     end
+%     if ~isfield(Info,'artifact')
+%         continue
+%     end
     
     if ~exist('RateStream','var')
         keyboard
@@ -149,11 +156,7 @@ for iUn = 6:17%numel(UnitData)
         
     end
     
-    
     fprintf(' analyzing ch %i clu %i\n',channel,clu)
-    
-    % Set ymaxval
-    yin = find( ( max(yvals, 2+3*max(nanmean(UnitData(iUn).FR_raw_tr,1)) ) - yvals )==0 );
     
     
     %% Get MPH data
@@ -163,13 +166,13 @@ for iUn = 6:17%numel(UnitData)
     %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
     
-    
     %%  3) PLOT DATA
     
     T = 250;
     
-    for this_rate = [2 4 8]%AMrates
+    for this_rate = AMrates
         
+        fprintf(' %iHz\n',this_rate)
         Period = 1000/this_rate;
         irate     = find(AMrates==this_rate);
         
@@ -182,6 +185,7 @@ for iUn = 6:17%numel(UnitData)
         
         nTrs = cellfun(@(x) size(x,1),MPH_rate(iPdc,:).raster);
         thisMPH = struct();
+        np=1;
         
         thisMPH(1).Context      = 'Pdc'; 
         thisMPH(1).indices      = iPdc;
@@ -196,7 +200,7 @@ for iUn = 6:17%numel(UnitData)
         thisMPH(1).PrevAMrt500  = sum([MPH_rate(iPdc,:).PrevAMrt500] .* nTrs) / sum(nTrs);
         thisMPH(1).PrevAMrt100  = sum([MPH_rate(iPdc,:).PrevAMrt100] .* nTrs) / sum(nTrs);
         thisMPH(1).nTrs         = sum(nTrs);
-        np=1;
+        
         
         %~~~~~~~~~~~~~~~~  IRREGULAR  ~~~~~~~~~~~~~~~~
         
@@ -260,41 +264,47 @@ for iUn = 6:17%numel(UnitData)
         end %PStIDs
         
         
-%         [PYdata,dprime] = get_classifier_data( thisMPH, 10, 'FR', 20 );
-        %currently, inputs 2 and 3 don't matter
-        
-        % Save data for later
+        % Run classifiers and save data for later
         Data(iUn,irate).AMrate   = this_rate;
         Data(iUn,irate).data     = thisMPH;
+        fprintf('   running classifier: leave one tr out\n')
         Data(iUn,irate).Res_L1o  = get_classifier_data( thisMPH, -1 );
+        fprintf('   running classifier: 10 trial templates\n')
         Data(iUn,irate).Res_t10  = get_classifier_data( thisMPH, 10 );
         
         
         % Add to plot
-        these_idx       = Data(iUn,irate).Res_t10.dprime(:,1);
-        x_plot          = [Data(iUn,irate).data(these_idx).PrevAMrt500];
-        [x_plot,x_idx]  = sort(x_plot);
-        
-        figure(hf(irate));
-        plot(x_plot, Data(iUn,irate).Res_t10.dprime(x_idx,2)',...
-            '-ok')
-        
-        
-        if any([Data(iUn,irate).Res_t10.dprime(:,2)]>1)
-            aaaa=234;
-        end
+%         these_idx       = Data(iUn,irate).Res_t10.dprime(:,1);
+%         x_plot          = [Data(iUn,irate).data(these_idx).PrevAMrt500];
+%         [x_plot,x_idx]  = sort(x_plot);
+%         
+%         figure(hf(irate));
+%         plot(x_plot, Data(iUn,irate).Res_t10.dprime(x_idx,2)',...
+%             '-ok')
+%
+%         if any([Data(iUn,irate).Res_t10.dprime(:,2)]>1)
+%             aaaa=234;
+%         end
         
     end  %this_rate
     
     
+    % Save Data to tmp folder
+    save(fullfile(savedir,'tmp','ClassData'),'Data','-v7.3')
+    fprintf('\n')
+    
 end %iUn
 
-keyboard
+% Save final Data struct
+save(fullfile(savedir,'ClassData'),'Data','-v7.3')
+
+return
+
 
 hfcc = figure;
 plot([0 1]',[0 1]','-k')
 hold on
-for irate = 1:3
+for irate = 1:5
     plot(Data(iUn,irate).Res_L1o.dprime(:,2),Data(iUn,irate).Res_t10.dprime(:,2),'ok','LineWidth',2)
 end
 axis square

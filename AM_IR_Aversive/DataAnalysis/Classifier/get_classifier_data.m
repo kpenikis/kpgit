@@ -27,7 +27,7 @@ rsNOGO  = NOGO.raster;  % Filter to start when sound begins
 
 %% Step through the GO (non-periodic) stimuli to compare to Periodic
 
-Gidxs  = 1+find([raster(2:end).nTrs]>trMin*2);  %must have more than N trials
+Gidxs  = 1+find([raster(2:end).nTrs]>=trMin*2);  %must have more than N trials
 
 % Preallocate
 dprime = nan( numel(Gidxs), 1 );
@@ -44,8 +44,7 @@ for ii = 1:numel(Gidxs)
     
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     % Run classifier
-    [dprime(ii),pHit(ii),pFA(ii)] = run_classifier_Template(rsGO,rsNOGO,Iterations, TemplateSize);
-%     [dprime(2,ii),pHit(2,ii),pFA(2,ii)] = run_classifier_Template(rsGO,rsNOGO,Iterations, TemplateSize);
+    [dprime(ii),pHit(ii),pFA(ii)] = run_classifier_Template(rsGO,rsNOGO,Iterations,TemplateSize);
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     % Get data for PY matrix for this GO stim
