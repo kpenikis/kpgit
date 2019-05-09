@@ -18,11 +18,14 @@ end
 %!!!!!!!!!!!!!!!!!!!
 trMin       =  10;
 %!!!!!!!!!!!!!!!!!!!
-Iterations  =  500;
+Iterations  =  1000;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     = 31;
 %!!!!!!!!!!!!!!!!!!!
 N=0;
+%!!!!!!!!!!!!!!!!!!!
+SHUFFLE_SPIKES = 1;
+%!!!!!!!!!!!!!!!!!!!
 
 
 %% Load Unit data files
@@ -44,14 +47,6 @@ q = load(fullfile(fn.stim,'rateVec_DB'));
 rateVec_DB = q.buffer;
 
 AMrates = [2 4 8 16 32];
-
-
-%% Select a datapoint (or a few?) to highlight
-
-ex_subj = 'xWWWf_253400';
-ex_sess = 'GA';
-ex_ch   = 16;
-ex_clu  = 1;
 
 
 %% Preallocate
@@ -99,7 +94,7 @@ colors = [ colors; ...
 
 %% Step through Units
 
-for iUn = 1:8%numel(UnitData)
+for iUn = 1:numel(UnitData)
         
     %%% skips merged units for now
     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
@@ -159,6 +154,12 @@ for iUn = 1:8%numel(UnitData)
     fprintf(' analyzing ch %i clu %i\n',channel,clu)
     
     
+    %%
+    if SHUFFLE_SPIKES
+        spiketimes = sort(randi( length(SpoutStream), size(spiketimes) ));
+    end
+    
+    
     %% Get MPH data
     
     %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -168,6 +169,8 @@ for iUn = 1:8%numel(UnitData)
     
     %%  3) PLOT DATA
     
+    try
+        
     T = 250;
     
     for this_rate = AMrates
@@ -182,6 +185,10 @@ for iUn = 1:8%numel(UnitData)
         %~~~~~~~~~~~~~~~~  PERIODIC  ~~~~~~~~~~~~~~~~
         iPdc = find( (MPH_rate.ThisStimID==irate+1 & MPH_rate.Starttime>=T)...
             | (MPH_rate.ThisStimID==irate+1 & MPH_rate.PrevStimID==irate+1) );
+        
+        if isempty(iPdc)
+            continue
+        end
         
         nTrs = cellfun(@(x) size(x,1),MPH_rate(iPdc,:).raster);
         thisMPH = struct();
@@ -204,27 +211,30 @@ for iUn = 1:8%numel(UnitData)
         
         %~~~~~~~~~~~~~~~~  IRREGULAR  ~~~~~~~~~~~~~~~~
         
-        theseIRs = unique(MPH_rate.ThisStimID(MPH_rate.ThisStimID>6));
+        theseIRs = unique(MPH_rate.ThisStimID(MPH_rate.ThisStimID>6))';
         
         for thisIR = theseIRs
             
             PPds = unique(MPH_rate.PrevPd( MPH_rate.Starttime>=T & MPH_rate.ThisStimID==thisIR ));
             
             for thisPP = PPds'
-                np = np+1;
                 
                 iIR = find(MPH_rate.PrevPd==thisPP & MPH_rate.Starttime>T & MPH_rate.ThisStimID==thisIR)';
+                if isempty(iIR), continue, end
                 
-                nTrs                     = cellfun(@(x) size(x,1),MPH_rate(iIR,:).raster);
+                nTrs = cellfun(@(x) size(x,1),MPH_rate(iIR,:).raster);
                 
+                np = np+1;
                 thisMPH(np).Context      = 'IR';
                 thisMPH(np).indices      = iIR;
+                
                 switch USE_MEASURE
                     case 'FR'
                         thisMPH(np).raster  = vertcat(MPH_rate(iIR,:).FRsmooth{:});
                     case 'spikes'
                         thisMPH(np).raster  = vertcat(MPH_rate(iIR,:).raster{:});
                 end
+                
                 thisMPH(np).Prev500msFR  = sum([MPH_rate(iIR,:).Prev500msFR] .* nTrs) / sum(nTrs);
                 thisMPH(np).Prev100msFR  = sum([MPH_rate(iIR,:).Prev100msFR] .* nTrs) / sum(nTrs);
                 thisMPH(np).PrevAMrt500  = sum([MPH_rate(iIR,:).PrevAMrt500] .* nTrs) / sum(nTrs);
@@ -269,8 +279,8 @@ for iUn = 1:8%numel(UnitData)
         Data(iUn,irate).data     = thisMPH;
         fprintf('   running classifier: leave one tr out\n')
         Data(iUn,irate).Res_L1o  = get_classifier_data( thisMPH, -1 );
-        fprintf('   running classifier: 10 trial templates\n')
-        Data(iUn,irate).Res_t10  = get_classifier_data( thisMPH, 10 );
+%         fprintf('   running classifier: 10 trial templates\n')
+        Data(iUn,irate).Res_t10  = [];%get_classifier_data( thisMPH, 10 );
         
         
         % Add to plot
@@ -290,13 +300,17 @@ for iUn = 1:8%numel(UnitData)
     
     
     % Save Data to tmp folder
-    save(fullfile(savedir,'tmp','ClassData'),'Data','-v7.3')
+    save(fullfile(savedir,'tmp','ClassData_shuff'),'Data','-v7.3')
     fprintf('\n')
+    
+    catch
+        keyboard
+    end
     
 end %iUn
 
 % Save final Data struct
-save(fullfile(savedir,'ClassData'),'Data','-v7.3')
+save(fullfile(savedir,'ClassData_shuff'),'Data','-v7.3')
 
 return
 
