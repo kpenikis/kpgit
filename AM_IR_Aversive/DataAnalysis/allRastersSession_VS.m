@@ -86,8 +86,8 @@ for ist = Stimuli
     set(gca,'xlim',[0 figwidthscales(stid)*1000],'xtick',[0 (figwidthscales(stid)*1000)],'ytick',[],...
         'xticklabel',[0 (figwidthscales(stid)*1000)])
     
-    
-    for iUn = [13 4 11 12 13 15]%1:numel(Clusters)
+    theseClus = 1:numel(Clusters); %[13 4 11 12 13 15]
+    for iUn = theseClus 
         
         % Get spiketimes
         thisClu = Clusters(iUn);
@@ -109,7 +109,7 @@ for ist = Stimuli
         % Get all stimuli presented with these parameters, given a
         % sufficient number of trials without diruptive artifact
         % while the animal was drinking
-        [all_TDidx,Ntrials] = get_clean_trials(TrialData,[],dBSPL,LP);
+        [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP);
         
         
         %% Collect trial indices and timestamps
@@ -179,7 +179,8 @@ for ist = Stimuli
     suptitle(sprintf('"%s"\n%s %s\n%i units',...
         Info.stim_ID_key{stid}, SUBJECT,SESSION,N_un ))
     
-    set(gca,'ytick',add_y,'yticklabel',[],'ylim',[0 add_y(end)+1],...
+    CluLabels = cellfun(@num2str,num2cell([UnitInfo(theseClus,:).Clu]),'UniformOutput',false)';
+    set(gca,'ytick',add_y(2:end),'yticklabel',CluLabels,'ylim',[0 add_y(end)+1],...
         'xtick',0:500:Duration,'xticklabel',0:500:Duration)
     xlabel('Time (ms)')
     ylabel([num2str(mode(diff(add_y))) ' trials each'])
@@ -195,7 +196,7 @@ for ist = Stimuli
         mkdir(savedir)
     end
     
-    savename = sprintf('%s_%s_%s_bestResps',SUBJECT,SESSION,Info.stim_ID_key{ist});
+    savename = sprintf('%s_%s_%s',SUBJECT,SESSION,Info.stim_ID_key{ist});
     print_eps_kp(hf(ist),fullfile(savedir,savename))
     
     

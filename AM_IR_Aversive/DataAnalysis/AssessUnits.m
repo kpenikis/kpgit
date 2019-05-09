@@ -212,6 +212,11 @@ end
 [UnitInfo,UnitData] = assessWaveformShapes( SAVENAME, [SAVENAME '_WaveformShapes'], 1, UnitInfo, UnitData);
 
 
+%% Identify BMF etc
+
+[sigUnits,UnitData] = identifyResponsiveUnits(UnitData);
+
+
 %% Save Unit files 
 
 save(fullfile(fn.processed,SAVENAME),'UnitInfo','UnitData','-v7.3');

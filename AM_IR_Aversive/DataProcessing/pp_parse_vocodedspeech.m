@@ -12,8 +12,8 @@ function [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_vocodeds
 
 %% StimID key for labeling in analyses
 
-Info.stim_ID_key = { 'AsYou';  'blibBER';   'ICantBlabSuch...';   'ImTheLorax...';  'Please';  'Trees'  };
-%   0: silence          1          2              3                     4               5         6      
+Info.stim_ID_key = { 'AsYou';  'blibBER';   'ICantBlabSuch';   'ImTheLorax';  'Please';  'Trees'  };
+%   0: silence          1          2              3                  4            5         6      
 
 
 %% Get Stream Data (fs = 1 kHz; 1 ms)

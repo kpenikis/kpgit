@@ -1,4 +1,4 @@
-function Data = classifyMPHcontext(USE_MEASURE)
+function MPHfiringHistory(USE_MEASURE)
 %
 %  classifyMPHcontext
 %
@@ -8,17 +8,15 @@ function Data = classifyMPHcontext(USE_MEASURE)
 %
 
 
-global fn AMrates rateVec_AC rateVec_DB trMin Iterations
+global fn AMrates rateVec_AC rateVec_DB trMin 
 fn = set_paths_directories([],[],1);
 
 if nargin<1
-    USE_MEASURE = 'FR'; 'spikes';
+    USE_MEASURE = 'FR'; 'spikes'; 'VS';
 end
 
 %!!!!!!!!!!!!!!!!!!!
 trMin       =  10;
-%!!!!!!!!!!!!!!!!!!!
-Iterations  =  500;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     = 31;
 %!!!!!!!!!!!!!!!!!!!
@@ -33,6 +31,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
@@ -80,16 +81,16 @@ yvals = 2.^[0:7];
 
 %% Step through Units
 
-for iUn = 1:17%numel(UnitData)
+for iUn = 1:numel(UnitData)
         
     %%% skips merged units for now
     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
         continue
     end
     
-    if UnitData(iUn).kw_p>0.05
-        continue
-    end
+%     if UnitData(iUn).kw_p>0.05
+%         continue
+%     end
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
@@ -100,22 +101,20 @@ for iUn = 1:17%numel(UnitData)
     % Get sound parameters
     dBSPL       = UnitData(iUn).spl;
     LP          = UnitData(iUn).lpn;
-    
-    spkshift    = 0;%UnitData(iUn).IntTime_spk;
-    
+        
     
     % Load data files
     
-%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
         fprintf('Loading %s sess %s...\n',subject,session)
         clear TrialData Info RateStream SoundStream SpoutStream
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
-%     end
-%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
+    end
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
-%     end
+    end
     if ~isfield(Info,'artifact')
         continue
     end
@@ -146,9 +145,9 @@ for iUn = 1:17%numel(UnitData)
     
     %% Get MPH data
     
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     MPH = makeMPHtable(TrialData,Info.artifact(channel).trials',dBSPL,LP,spiketimes,RateStream);
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
     
     
@@ -185,21 +184,6 @@ for iUn = 1:17%numel(UnitData)
     end  %this_rate
     
 end %iUn
-
-
-figure; hist(pvalues,0:0.01:1)
-sum(pvalues<0.05)/length(pvalues)
-keyboard
-
-hfcc = figure;
-plot([0 1]',[0 1]','-k')
-hold on
-for irate = 1:3
-    plot(Data(iUn,irate).Res_L1o.dprime(:,2),Data(iUn,irate).Res_t10.dprime(:,2),'ok','LineWidth',2)
-end
-axis square
-
-print_eps_kp(hfcc,fullfile(fn.figs,'MPHclass','CompareClassifiers'))
 
 
 end %function

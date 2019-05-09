@@ -167,19 +167,21 @@ for istim = allStim'
         trans_TDidx = find(TrialData(pst_TDidx,:).trID==pstid);
         
         % Collect spikes/FR/rms for this transition
-        kt=0;
-        for it = trans_TDidx'
-            kt=kt+1;
+        for ipd = 1:numel(allPds)
             
-            newPd_ts  =  t2(it)+[0 cumsum(1000./allPds)];
-            if numel(newPd_ts)~=(numel(allPds)+1), keyboard, end
-            
-            for ipd = 1:numel(allPds)
+            kt=0;
+            for it = trans_TDidx'
+                
+                newPd_ts  =  t2(it)+[0 cumsum(1000./allPds)];
+                if numel(newPd_ts)~=(numel(allPds)+1), keyboard, end
+                
                 
                 % skip if this period extends beyond recording duration
                 if ceil(newPd_ts(ipd))+ceil(1000/allPds(ipd))-1 > length(Stream_FRsmooth)
                     continue
                 end
+                
+                kt=kt+1;
                                 
                 % Determine whether this period was in
                 % the first or second half of the trial
@@ -222,9 +224,15 @@ for istim = allStim'
                 MPH_temp(ipd).y                    = [MPH_temp(ipd).y kt.*ones(size(sp))];
                 MPH_temp(ipd).FRsmooth(kt,:)       = Stream_FRsmooth(ceil(newPd_ts(ipd))+[1:ceil(1000/allPds(ipd))]-1);
                 
-            end %ipd
+            end %it
             
-        end %it
+            MPH_temp(ipd).raster((kt+1):end,:)   = [];
+            MPH_temp(ipd).FRsmooth((kt+1):end,:) = [];
+            
+            if size(MPH_temp(ipd).raster,1) ~= size(MPH_temp(ipd).Prev500msFR,2)
+                keyboard
+            end
+        end %ipd
         
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -245,8 +253,8 @@ for istim = allStim'
                 pstid  ...
                 mode(MPH_temp(ipd).seqPos)  ...
                 mode(round(MPH_temp(ipd).pdtime))...
-                mean(MPH_temp(ipd).Prev500msFR)  ...
-                mean(MPH_temp(ipd).Prev100msFR) ...
+                {MPH_temp(ipd).Prev500msFR} ...
+                {MPH_temp(ipd).Prev100msFR} ...
                 MPH_temp(ipd).PrevAMrt500 ...
                 MPH_temp(ipd).PrevAMrt100 ...
                 {MPH_temp(ipd).raster} {MPH_temp(ipd).x} {MPH_temp(ipd).y}...

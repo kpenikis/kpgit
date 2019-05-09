@@ -73,23 +73,17 @@ if ~exist(datafile,'file')
 end
 fprintf(' loading data file %s...',datafile)
 clear epData;
-% try
-load(datafile,'-mat'); %loads data struct: epData
-% catch
-%     try
-%         matObj = matfile(datafile);
-%     end
-% end
+
+epData = load(datafile,'-mat'); %loads data struct: epData
+
 if ~exist('epData','var')
-    try
-        epData = struct('epocs',epocs,'streams',streams,'info',info);
-        clear streams epocs info
-    catch
-        keyboard
-    end
-else
-    disp('done.')
+    keyboard
+elseif isfield(epData,'epData')
+    epData = epData.epData;
+    disp('(old file) done.')
 end
+disp('done.')
+
 
 BLOCK = strtok(BLOCK,'.');
 

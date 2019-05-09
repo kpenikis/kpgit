@@ -1,7 +1,7 @@
 function [Info,DATA] = identify_artifact_trials_64ch(Info,DATA,TrialData)
 % [Info,DATA] = identify_artifact_trials(Info,DATA,TrialData)
 %  Find the trials that contain artifact. Mostly automatic, but may ask for
-%  user input about borderline cases. Usually called by pp_processPhys, but
+%  user input about borderline cases. Usually called by ProcessPhys, but
 %  can also be run on partially processed sessions, by using
 %  coldcall_identify_artifact. 
 %  KP, 2019-01
@@ -44,40 +44,47 @@ for ishank = Shanks
     % Find where RMS is above threshold
     std_factor  = 1;
     thresh1 = median(rms_ch) + std(rms_ch) * std_factor;
-    mult_factor = 1.5;
+    mult_factor = 1.8;
     thresh2 = median(rms_ch) * mult_factor;
     
     artifact_flag_rms = rms_ch > thresh2;
     
+    while sum(artifact_flag_rms)/length(artifact_flag_rms) > 0.02  %flag max 2% of data
+        mult_factor = mult_factor+0.2;
+        fprintf('   increasing threshold to %0.1f * median RMS\n',mult_factor)
+        thresh2 = median(rms_ch) * mult_factor;
+        artifact_flag_rms = rms_ch > thresh2;
+    end
     
-    % Check while debugging
-%     keyboard
     
-%     hfart = figure(1); clf
-%     plot(find(artifact_flag_rms),DATA(ich,artifact_flag_rms),'r','LineWidth',1.5)
-%     hold on
-%     plot(dataFilt,'k')
-%     
-%     hfart = figure(1); clf
-%     plot(rms_ch,'k'); hold on
-%     plot([0 length(dataFilt)],[thresh2 thresh2],'b')
-%     
-%     hfart = figure(1); clf
-%     plot(find(artifact_flag_rms),DATA(ich,artifact_flag_rms),'r','LineWidth',1.5)
-%     hold on
-%     plot(DATA(54,:),'k')
-%     
-%     hfart = figure(1); clf
-%     plot(find(artifact_flag_rms),rms_ch(1,artifact_flag_rms),'r.','LineWidth',1.5)
-%     hold on
-%     for iich = channels(2:2:8)
-%         clear dataFilt rms_ch
-%         dataFilt = filter_data( double(DATA(iich,:)), Info.fs );
-%         rms_ch = envelope(single(dataFilt),window_size,'rms');
-%         plot(rms_ch)
-%     end
-%     
-%     close(hfart)
+    % Plots for debugging
+% % %     keyboard
+% % %     
+% % %     hfart = figure(1); clf
+% % %     plot(artifact_flag_rms.*DATA(ich,:),'r','LineWidth',1.5)
+% % %     hold on
+% % %     plot(find(~artifact_flag_rms),dataFilt(~artifact_flag_rms),'k')
+% % %     
+% % %     hfart = figure(1); clf
+% % %     plot(rms_ch,'k'); hold on
+% % %     plot([0 length(dataFilt)],[thresh2 thresh2],'b','LineWidth',2)
+% % %     
+% % %     hfart = figure(1); clf
+% % %     plot(find(artifact_flag_rms),DATA(ich,artifact_flag_rms),'r','LineWidth',1.5)
+% % %     hold on
+% % %     plot(DATA(54,:),'k')
+% % %     
+% % %     hfart = figure(1); clf
+% % %     plot(find(artifact_flag_rms),rms_ch(1,artifact_flag_rms),'r.','LineWidth',1.5)
+% % %     hold on
+% % %     for iich = channels(2:2:8)
+% % %         clear dataFilt rms_ch
+% % %         dataFilt = filter_data( double(DATA(iich,:)), Info.fs );
+% % %         rms_ch = envelope(single(dataFilt),window_size,'rms');
+% % %         plot(rms_ch)
+% % %     end
+% % %     
+% % %     close(hfart)
     
     
     % Downsample to 1 ms
@@ -100,8 +107,8 @@ for ishank = Shanks
             ArtifactFlags_TrGrp(it,ishank) = manually_check_this_trial( it, ...
                 dataFilt(1, round(TrialData.onset(it)/1000*Info.fs):round(TrialData.offset(it)/1000*Info.fs)) );
         
-        elseif it==1 && (sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))/(TrialData.offset(it)-TrialData.onset(it)))>0.05
-            % Plot trial 1 to check manually if more than 5 percent is flagged
+        elseif it==1 && (sum(ismember(TrialData.onset(it):TrialData.offset(it),artifact_flag_rms_ms))/(TrialData.offset(it)-TrialData.onset(it)))>0.1
+            % Plot trial 1 to check manually if more than 10 percent is flagged
             ArtifactFlags_TrGrp(it,ishank) = manually_check_this_trial( it, ...
                 dataFilt(1, round(TrialData.onset(it)/1000*Info.fs):round(TrialData.offset(it)/1000*Info.fs)) );
         end
