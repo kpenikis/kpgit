@@ -39,19 +39,19 @@ for iUn = 1:size(Data,1)
     %-----------------------------------
     % Get trial-by-trial firing history
     Data(iUn,:)   = getFRhist( Data(iUn,:),   UnitData(iUn), spkshift );
-    DataSh(iUn,:) = getFRhist( DataSh(iUn,:), UnitData(iUn), spkshift );
+    
+    %DataSh(iUn,:) = getFRhist( DataSh(iUn,:), UnitData(iUn), spkshift );
+    % can't run for shuffled data! because classifier shuffled spike times
+    % are not saved. instead, running classifier again.
+    
     %-----------------------------------
 end %iUn
 
 
 % Resave Data structures
 savedir = fullfile(fn.processed,'MPHclassifier');
-
 save(fullfile(savedir,'ClassData'),'Data','-v7.3')
 
-clear Data
-Data = DataSh;
-save(fullfile(savedir,'ClassData_shuff'),'Data','-v7.3')
 
 
 end

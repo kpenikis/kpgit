@@ -99,7 +99,6 @@ for istim = allStim'
     
     
     % Add trials from ITI blocks
-    
     if istim==3 || istim==6
         iti_TDidx = st_TDidx_ALL( TrialData.ITIflag(st_TDidx_ALL) == 1 );
         skip_it = TrialData.trID(iti_TDidx-1)<6; %only use ITI trials that followed IR trials (thus, skip those after Warns)

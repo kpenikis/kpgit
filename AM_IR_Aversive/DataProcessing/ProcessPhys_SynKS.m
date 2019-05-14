@@ -303,8 +303,10 @@ fprintf('  done.\n')
 fprintf(' writing dat file...')
 fidn=fopen(fullfile(saveDirSorting,datName),'w');
 fwrite(fidn,int16( dataClean * 1e6),'int16'); %(int16 format requires integers)
-fclose(fidn);  
+fclose(fidn); 
 fprintf('  done.\n')
+
+clear DATA
 
 
 %% SPIKE SORTING (kilosort)

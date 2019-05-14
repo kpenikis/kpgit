@@ -58,33 +58,33 @@ for ishank = Shanks
     
     
     % Plots for debugging
-% % %     keyboard
-% % %     
-% % %     hfart = figure(1); clf
-% % %     plot(artifact_flag_rms.*DATA(ich,:),'r','LineWidth',1.5)
-% % %     hold on
-% % %     plot(find(~artifact_flag_rms),dataFilt(~artifact_flag_rms),'k')
-% % %     
-% % %     hfart = figure(1); clf
-% % %     plot(rms_ch,'k'); hold on
-% % %     plot([0 length(dataFilt)],[thresh2 thresh2],'b','LineWidth',2)
-% % %     
-% % %     hfart = figure(1); clf
-% % %     plot(find(artifact_flag_rms),DATA(ich,artifact_flag_rms),'r','LineWidth',1.5)
-% % %     hold on
-% % %     plot(DATA(54,:),'k')
-% % %     
-% % %     hfart = figure(1); clf
-% % %     plot(find(artifact_flag_rms),rms_ch(1,artifact_flag_rms),'r.','LineWidth',1.5)
-% % %     hold on
-% % %     for iich = channels(2:2:8)
-% % %         clear dataFilt rms_ch
-% % %         dataFilt = filter_data( double(DATA(iich,:)), Info.fs );
-% % %         rms_ch = envelope(single(dataFilt),window_size,'rms');
-% % %         plot(rms_ch)
-% % %     end
-% % %     
-% % %     close(hfart)
+    keyboard
+    
+%     hfart = figure(1); clf
+%     plot(artifact_flag_rms.*DATA(ich,:),'r','LineWidth',1.5)
+%     hold on
+%     plot(find(~artifact_flag_rms),dataFilt(~artifact_flag_rms),'k')
+%     
+%     hfart = figure(1); clf
+%     plot(rms_ch,'k'); hold on
+%     plot([0 length(dataFilt)],[thresh2 thresh2],'b','LineWidth',2)
+%     
+%     hfart = figure(1); clf
+%     plot(find(artifact_flag_rms),DATA(ich,artifact_flag_rms),'r','LineWidth',1.5)
+%     hold on
+%     plot(DATA(54,:),'k')
+%     
+%     hfart = figure(1); clf
+%     plot(find(artifact_flag_rms),rms_ch(1,artifact_flag_rms),'r.','LineWidth',1.5)
+%     hold on
+%     for iich = channels(2:2:8)
+%         clear dataFilt rms_ch
+%         dataFilt = filter_data( double(DATA(iich,:)), Info.fs );
+%         rms_ch = envelope(single(dataFilt),window_size,'rms');
+%         plot(rms_ch)
+%     end
+%     
+%     close(hfart)
     
     
     % Downsample to 1 ms

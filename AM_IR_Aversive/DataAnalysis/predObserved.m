@@ -11,17 +11,23 @@ function predObserved(USE_MEASURE)
 %
 
 
-% close all
+% for significance calculation must measure each IR stimulus separately
+% (add in fig 2 and run again)
+
+
+close all
 global fn AMrates rateVec_AC rateVec_DB 
 
 %!!!!!!!!!!!!!!!!!
-exclOnset   = 1; keyboard
+exclOnset   = 0; 
 %!!!!!!!!!!!!!!!!!
 plotMTF     = 1;
 %!!!!!!!!!!!!!!!!!
 minTrs      = 10;
 %!!!!!!!!!!!!!!!!!
 colorswitch = 'iBMF_FR'; 'iBMF_VS'; 'subject';
+%!!!!!!!!!!!!!!!!!
+alfa        = 0.05;
 %!!!!!!!!!!!!!!!!!
 
 
@@ -33,6 +39,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
@@ -44,7 +53,7 @@ AMrates = [2 4 8 16 32];
 
 
 if nargin<1
-    USE_MEASURE = 'FR'; 'TrV'; 'FF';
+    USE_MEASURE =  'FF'; 'FR'; 'TrV';
 end
 
 switch USE_MEASURE
@@ -52,16 +61,19 @@ switch USE_MEASURE
         units = 'Hz';
         switch units
             case 'Hz'
-                axmin = 0.01;
-                axmax = 10*ceil(max([UnitData.BaseFR])/10);
+                axmin = 10^-2;
+                axmax = 10^2; %10*ceil(2+max([UnitData.BaseFR])/10);
+                axscale = 'log';
             case 'z'
                 axmin = -1;
                 axmax = 1.5;
+                axscale = 'linear';
         end
     case {'TrV' 'FF'}
-        units = ' ';
+        units = 'Hz';
         axmin = 0.01;
         axmax = 4;
+        axscale = 'linear';
 end
 
 
@@ -75,41 +87,48 @@ scrsz = get(0,'ScreenSize');
 vsmallsq = [1 scrsz(4)/4 scrsz(3)/4 scrsz(4)/4];
 smallsq  = [1 scrsz(4)/3 scrsz(3)/3 scrsz(4)/3];
 
-% Prepare the figure
+
+%~~~~~~~~~~~~~~~~~~~
+%~~~~  Mean IR  ~~~~
 hf1 = figure;
 set(hf1,'Position',smallsq,'NextPlot','add')
 hold on
 plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
 axis square
-set(gca,'xscale','log','yscale','log')
+set(gca,'xscale',axscale,'yscale',axscale)
 xlim([axmin axmax])
 ylim([axmin axmax])
-xlabel('Predicted')
-ylabel('Observed')
+xlabel(['Predicted IR ' USE_MEASURE])
+ylabel(['Observed IR ' USE_MEASURE])
 
-% Prepare another figure, for individual sequences' observed responses
+
+%~~~~~~~~~~~~~~~~~~~
+%~~~~  Each IR  ~~~~
 hf2 = figure;
 set(hf2,'Position',smallsq,'NextPlot','add')
 hold on
 plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
 axis square
-set(gca,'xscale','log','yscale','log')
+set(gca,'xscale',axscale,'yscale',axscale)
 xlim([axmin axmax])
 ylim([axmin axmax])
-xlabel('Predicted IR response')
-ylabel('Observed IR response')
+xlabel(['Predicted IR ' USE_MEASURE])
+ylabel(['Observed IR ' USE_MEASURE])
 
-% Prepare a third figure, Observed-Predicted as a fct of BaseFR
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%~~~~  Diff vs baseline rate  ~~~~
 hf3 = figure;
 set(hf3,'Position',smallsq,'NextPlot','add')
 subplot(1,5,1:4)
 hold on
-plot([axmin axmax],[0 0],'Color',[0.7 0.7 0.7])
+plot([0.01 10^2],[0 0],'Color',[0.7 0.7 0.7])
 set(gca,'xscale','log')
-xlim([axmin axmax])
+xlim([axmin 10^2])
 ylim([-5 5])
 xlabel('Baseline FR')
-ylabel('Observed - Predicted IR response')
+ylabel(['Observed - Predicted IR ' USE_MEASURE])
+
 
 % Set colors
 colors = [ 250 250 250;...
@@ -121,6 +140,7 @@ colors = [ 250 250 250;...
 colors = [ colors; ...
             [37  84 156]./255 ;...
             [19 125 124]./255 ];
+        
         
 %% Select a datapoint (or a few?) to highlight
 
@@ -142,11 +162,13 @@ Pdata.Subject = ' ';
 Pdata.Session = ' ';
 Pdata.Channel = nan;
 Pdata.Clu     = nan;
-Pdata.IRstim  = nan;
+Pdata.iUn     = nan;
 Pdata.BaseFR  = nan;
-Pdata.pval    = nan;
 Pdata.predIR  = nan;
 Pdata.obsIR   = nan;
+Pdata.stid    = nan;
+Pdata.pval    = nan;
+
 
 
 
@@ -167,9 +189,7 @@ for iUn = 1:numel(UnitData)
     % Get sound parameters
     dBSPL       = UnitData(iUn).spl;
     LP          = UnitData(iUn).lpn;
-    
-    spkshift    = UnitData(iUn).IntTime_spk;
-    
+        
     
     % Load data files
     
@@ -233,7 +253,9 @@ for iUn = 1:numel(UnitData)
     
     FRmeans = nan(size(allStim'));
     FRvars  = nan(size(allStim'));
+    FF      = nan(size(allStim'));
     FRtrials= cell(size(allStim));
+    
     
     for istim = allStim'
         
@@ -241,150 +263,182 @@ for iUn = 1:numel(UnitData)
         
         %%%  Skip ITI stimuli (?)
         ITIflag = 0;%unique(TrialData.ITIflag(st_TDidx_ALL));
+        TDidx = st_TDidx_ALL;%(TrialData.ITIflag(st_TDidx_ALL) == ITIflag(is));
         
-        for is = 1:numel(ITIflag)
-            TDidx = st_TDidx_ALL(TrialData.ITIflag(st_TDidx_ALL) == ITIflag(is));
+        % Get timestamps of onsets and offsets
+        clear t2 t3 Duration t_win
+        t2 = TrialData.onset(TDidx);
+        t3 = TrialData.offset(TDidx);
+        switch USE_MEASURE
+            case 'FR'
+                Duration = mode(diff([t2 t3],1,2));
+            case 'FF'  % equalize analysis window across stimuli
+                Duration = 1000;
+        end
+        t3 = t2 + Duration;
+        
+        if exclOnset
+            t2 = t2+150;
+        end
+        
+        % Randomly permute the order of trials, for the simulation
+        % below
+        kt = randperm(length(t2));
+        t2 = t2(kt);
+        t3 = t3(kt);
+        
+        % Collect responses for each trial
+        FR_resp = nan(numel(t2),1);
+        
+        for it = 1:numel(t2)
             
-            % Get timestamps of onsets and offsets
-            clear t2 t3 Duration t_win
-            t2 = TrialData.onset(TDidx);
-            t3 = TrialData.offset(TDidx);
-            Duration = mode(diff([t2 t3],1,2));
-            t3 = t2 + Duration;
-            
-            if exclOnset
-                t2 = t2+200;
+            switch units
+                case 'Hz'
+                    FR1 = mean(Stream_FRsmooth((t2(it)+1):t3(it)));
+                    FR2 = sum(spiketimes>t2(it) & spiketimes<=t3(it)) / Duration * 1000;
+                    %the outcome is identical either way
+                    FR_resp(it,1) = FR1;
+                case 'z'
+                    FR_resp(it,1) = mean(Stream_zscore((t2(it)+1):t3(it)));
             end
             
-            % Randomly permute the order of trials, for the simulation
-            % below
-            kt = randperm(length(t2));
-            t2 = t2(kt);
-            t3 = t3(kt);
-            
-            % Now collect FR responses
-            FR_resp = nan(numel(t2),1);
-            
-            for it = 1:numel(t2)
-                
-                switch units
-                    case 'Hz'
-                        FR1 = mean(Stream_FRsmooth((t2(it)+1):t3(it)));
-                        FR2 = sum(spiketimes>t2(it) & spiketimes<=t3(it)) / Duration * 1000;
-                        %the outcome is identical either way
-                        FR_resp(it,1) = FR1;
-                    case 'z'
-                        FR_resp(it,1) = mean(Stream_zscore((t2(it)+1):t3(it)));
-                end
-                
-            end %it
-            
-            % -- OBSERVED --
-            % Calculate the mean normalized FR for this stimulus
-            FRmeans(istim) = mean(FR_resp,1);
-            FRvars(istim)  = var(FR_resp,1);
-            
-            FRtrials{istim} = FR_resp;
-            
-        end %iti filter
+        end %it
+        
+        
+        % Calculate the mean FR for this stimulus
+        FRmeans(istim==allStim')  = mean(FR_resp,1);
+        FRvars(istim==allStim')   = var(FR_resp,1);
+        
+        % Calculate the mean FF for this stimulus
+        FF(istim==allStim')       = bootstrap_for_FF(FR_resp,min(Ntrials(2:end)));
+        % FF(istim)  = FRvars(istim) / FRmeans(istim);
+        
+        FRtrials{istim==allStim'} = FR_resp;
+        
     end %istim
     
+    
+    %% ----  OBSERVED IR RESPONSE  ----
+    
+    switch USE_MEASURE
+        case 'FR'
+            IR_Observations  = FRmeans(7:end);
+            IR_Obs_sems      = sqrt(FRvars(7:end)) ./ sqrt(Ntrials(7:end));
+            
+        case 'FF'
+            IR_Observations  = FF(7:end);
+            IR_Obs_sems      = zeros(size(IR_Observations));
+    end
     
     
     
     %% ----  PREDICTED IR RESPONSE  ----
     
-    % Calculate prediction for IR response, based on
     % weighted average of periodic responses
-    IR_Prediction = sum( FRmeans(2:6) .* ((1./AMrates)/sum(1./AMrates)) );
     
-    % add error bars
-    %weighted sum of variances, then converted to overall SEM [--> var(a+b)=var(a)+var(b) ]
-    IR_Pred_sem2 = sqrt( sum( FRvars(2:6) .* ((1./AMrates)/sum(1./AMrates)) ) ) / sqrt(length(AMrates));
-    %weighted sum of SEMs
-    IR_Pred_sem  = sum( ( sqrt(FRvars(2:6))./sqrt(Ntrials(2:6)) ) .* ((1./AMrates)/sum(1./AMrates)) );
+    switch USE_MEASURE
+        case 'FR'
+            IR_Prediction   = sum( FRmeans(2:6) .* ((1./AMrates)/sum(1./AMrates)) );
+            
+            % Errorbar option #1: weighted sum of variances, then converted to overall SEM [--> var(a+b)=var(a)+var(b) ]
+            IR_Pred_sem2   = sqrt( sum( FRvars(2:6) .* ((1./AMrates)/sum(1./AMrates)) ) ) / sqrt(length(AMrates));
+            % Errorbar option #1: weighted sum of SEMs
+            IR_Pred_sem    = sum( ( sqrt(FRvars(2:6))./sqrt(Ntrials(2:6)) ) .* ((1./AMrates)/sum(1./AMrates)) );
+            
+        case 'FF'
+            IR_Prediction  = sum( FF(2:6) .* ((1./AMrates)/sum(1./AMrates)) );
+            IR_Pred_sem    = 0;
+    end
     
     
     
-    %% Simulate IR trials for within unit statistics
+    %% Compare FR distributions
     
-    ntrs = cellfun(@length,FRtrials);
-    nt = min(ntrs(ntrs>0));
-    if nt<minTrs, keyboard, end
-    
-    FR_sim = zeros(nt,1);
-    for it = 1:nt
-        for ir = 1:5
-            FR_sim(it) = FR_sim(it) + FRtrials{ir+1}(it) * ((1./AMrates(ir))/sum(1./AMrates));
+    if strcmp(USE_MEASURE,'FR')
+        
+        % Simulate IR trials for within unit statistics
+        ntrs = cellfun(@length,FRtrials);
+        nt = min(ntrs(ntrs>0));
+        if nt<minTrs, keyboard, end
+        
+        FR_sim = zeros(nt,1);
+        for it = 1:nt
+            for ir = 1:5
+                FR_sim(it) = FR_sim(it) + FRtrials{ir+1}(it) * ((1./AMrates(ir))/sum(1./AMrates));
+            end
         end
+        
+        % Stats
+        thisNIR = 0;
+        pvals   = [];
+        for iir = 7:length(FRtrials)
+            if isempty(FRtrials{iir}), continue, end
+            thisNIR = thisNIR+1;
+            [~,pvals(thisNIR)] = ttest2(FR_sim,FRtrials{iir}(1:nt));
+        end
+        
+    else
+        pvals = nan(1,sum(allStim>6));
     end
     
-    if ~isempty(FRtrials{7})
-        NIR = NIR+1;
-        
-        [~,pvals(NIR)] = ttest2(FR_sim,FRtrials{7}(1:nt));
-        
-        % Save data to table
-        Pdata_addrow = { subject session channel clu 7 UnitData(iUn).BaseFR pvals(NIR) IR_Prediction mean(FRtrials{7})  };
+    
+    %% Save data to table
+    
+    for is = 1:sum(allStim>6)
+        Pdata_addrow = { subject session channel clu iUn  UnitData(iUn).BaseFR  IR_Prediction  IR_Observations(is)  allStim(is+6)  pvals(is) };
         Pdata = [Pdata; Pdata_addrow];
     end
-    if numel(FRtrials)>7
-        NIR = NIR+1;
-        
-        [~,pvals(NIR)] = ttest2(FR_sim,FRtrials{8}(1:nt));
-        
-        % Save data to table
-        Pdata_addrow = { subject session channel clu 8 UnitData(iUn).BaseFR pvals(NIR) IR_Prediction mean(FRtrials{8})  };
-        Pdata = [Pdata; Pdata_addrow];
-    end
-    
-    
     
     
     %%
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    if plotMTF && iUn==ex_Un                     % INDIVIDUAL UNIT ZFR MTF
+    if plotMTF && iUn==ex_Un                         % INDIVIDUAL UNIT MTF
         
-        xvec = [1:5 8+(1:numel(allStim(7:end)))];
-        msize = Ntrials./5;
+        xvals = [1:5 8+(1:numel(allStim(7:end)))];
+        switch USE_MEASURE
+            case 'FR'
+                y_vals = FRmeans';
+                y_errs = FRmeans' + (FRvars.^0.5)'.*[-ones([length(FRmeans) 1]) ones([length(FRmeans) 1])]; %for sem instead of std ./ (Ntrials.^0.5)'
+            case 'FF'
+                y_vals = FF';
+                y_errs = zeros(length(FF),2);
+        end
         
         hmtf = figure; hold on
         set(hmtf,'Position',smallsq)
         
         % Plot baseline FR
-        plot([0 max(xvec)+1],[UnitData(iUn).BaseFR UnitData(iUn).BaseFR],'--k','LineWidth',0.5)
+        plot([0 max(xvals)+1],[UnitData(iUn).BaseFR UnitData(iUn).BaseFR],'--k','LineWidth',0.5)
         
         % Plot periodic stimuli
         for ir = 1:5
-            plot(xvec(ir),FRmeans(ir+1),'o','MarkerSize',15,...
+            plot(xvals(ir),y_vals(ir+1), 'o','MarkerSize',15,...
                 'MarkerFaceColor',colors(ir+1,:),'MarkerEdgeColor','none')
-            plot([xvec(ir) xvec(ir)],[FRmeans(ir+1)-(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1))) FRmeans(ir+1)+(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1)))],...
+            plot([xvals(ir) xvals(ir)], y_errs(ir+1,:), ...
                 '-','Color',colors(ir+1,:),'LineWidth',2)
         end
         
         % Plot IR prediction
-        fill([6 max(xvec)+1 max(xvec)+1 6],IR_Prediction + IR_Pred_sem.*[-1 -1 1 1],0.8.*[1 1 1],'EdgeColor','none')
-        plot([6 max(xvec)+1],[IR_Prediction IR_Prediction],'k','LineWidth',1)
-%         plot(7,IR_Prediction,'o','MarkerSize',15,'LineWidth',2,'Color',[32 129 255]./255)
-%         plot([7 7],[IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],'-','LineWidth',2,'Color',[32 129 255]./255)
+        fill([6 max(xvals)+1 max(xvals)+1 6],IR_Prediction + IR_Pred_sem.*[-1 -1 1 1],0.8.*[1 1 1],'EdgeColor','none')
+        plot([6 max(xvals)+1],[IR_Prediction IR_Prediction],'k','LineWidth',1)
         
         % Plot IR observed
-        for ir = 6:length(xvec)
-            plot(xvec(ir),FRmeans(ir+1),'o','MarkerSize',15,...
+        for ir = 6:length(xvals)
+            plot(xvals(ir),y_vals(ir+1),'o','MarkerSize',15,...
                 'MarkerFaceColor',colors(ir+1,:),'MarkerEdgeColor','none')
-            plot([xvec(ir) xvec(ir)],[FRmeans(ir+1)-(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1))) FRmeans(ir+1)+(sqrt(FRvars(ir+1))/sqrt(Ntrials(ir+1)))],...
+            plot([xvals(ir) xvals(ir)],y_errs(ir+1,:),...
                 '-','Color',colors(ir+1,:),'LineWidth',2)
         end
         
         % Finish formatting
-        set(gca,'XTick',min(xvec):max(xvec),...
+        set(gca,'XTick',min(xvals):max(xvals),...
             'XTickLabel',[Info.stim_ID_key(2:6)' ' ' 'Linear Prediction' ' ' Info.stim_ID_key(allStim(7:end))' ],...
             'TickLabelInterpreter','none')
         xtickangle(45)
         
-        xlim([-1+min(xvec) max(xvec)+1])
+        xlim([-1+min(xvals) max(xvals)+1])
         ylim([axmin 15])
-        ylabel(sprintf('FR response\n(%s)', units))
+        ylabel(sprintf('%s response\n(%s)',USE_MEASURE, units))
         
         % Save MTF figure
         savedir = fullfile(fn.processed,subject,session,'Rasters',[subject '_' session '_' num2str(shank) '_' num2str(clu)]);
@@ -399,9 +453,10 @@ for iUn = 1:numel(UnitData)
     end
         
         
-        
+    
+    
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    %                                            POPULATION ZFR COMPARISON
+    %                                                      POPULATION PLOT
     
     % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
     % Add datapoint to plots
@@ -427,52 +482,60 @@ for iUn = 1:numel(UnitData)
             plotcol = subjcol;
     end
     
-    
+    %~~~~~~~~~~~~~~~~~~~
+    %~~~~  Mean IR  ~~~~
     figure(hf1); hold on
     
     % horizontal errorbars (prediction error)
-    plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[mean(FRmeans(7:end)) mean(FRmeans(7:end))],'Color',plotcol)
+    plot(IR_Prediction + IR_Pred_sem*[-1 1],[mean(IR_Observations) mean(IR_Observations)],'Color',plotcol)
     % vertical errorbars (observation error)
-    plot([IR_Prediction IR_Prediction],[mean(FRmeans(7:end))-mean(sqrt(FRvars(7:end))./sqrt(Ntrials(7:end)))...
-        mean(FRmeans(7:end))+mean(sqrt(FRvars(7:end))./sqrt(Ntrials(7:end)))],'Color',plotcol)
-    %                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10))) mean(zFRmeans(7:10))+sqrt(mean(zFRvars(7:10)))./sqrt(sum(blocks_N(7:10)))],plotcol)
-    %                     plot([IR_Prediction IR_Prediction],[mean(zFRmeans(7:10))-sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4) mean(zFRmeans(7:10))+sqrt((1/4)*sum(zFRvars(7:10)))./sqrt(4)],plotcol)
+    plot([IR_Prediction IR_Prediction], mean(IR_Observations) + mean(IR_Obs_sems)*[-1 1],'Color',plotcol)
+    
     % mean point
-    ip=scatter(IR_Prediction,mean(FRmeans(7:end)),150,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+    ip=scatter(IR_Prediction,mean(IR_Observations),100,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
     if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
         ip.MarkerFaceColor = [32 129 255]./255;
         ip.MarkerFaceAlpha = 0.65;
     end
+    if strcmp(USE_MEASURE,'FR') && any(pvals)<alfa
+        ip.MarkerEdgeColor = 'g';
+    end
     
+    %~~~~~~~~~~~~~~~~~~~
+    %~~~~  Each IR  ~~~~
     figure(hf2); hold on
     
-    for is = 7:length(allStim)
-        
+    for is = 1:sum(allStim>6)
         % horizontal errorbars (prediction error)
-        plot([IR_Prediction-IR_Pred_sem IR_Prediction+IR_Pred_sem],[FRmeans(is) FRmeans(is)],'Color',plotcol)
+        plot(IR_Prediction + IR_Pred_sem*[-1 1],[IR_Observations(is) IR_Observations(is)],'Color',plotcol)
         % vertical errorbars (observation error)
-        plot([IR_Prediction IR_Prediction],[FRmeans(is)-sqrt(FRvars(is))./sqrt(Ntrials(is)) FRmeans(is)+sqrt(FRvars(is))./sqrt(Ntrials(is))],'Color',plotcol)
+        plot([IR_Prediction IR_Prediction], IR_Observations(is) + IR_Obs_sems(is)*[-1 1],'Color',plotcol)
         % mean point
-        ip=scatter(IR_Prediction,FRmeans(is),100,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+        ip=scatter(IR_Prediction,IR_Observations(is),100,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
         if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
             ip.MarkerFaceColor = [32 129 255]./255;
             ip.MarkerFaceAlpha = 0.65;
         end
-        
+        if strcmp(USE_MEASURE,'FR') && pvals(is)<alfa
+            ip.MarkerEdgeColor = 'g';
+        end
+        NIR = NIR+1;
     end %is
     
-    
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    %~~~~  Diff vs baseline rate  ~~~~
     figure(hf3); hold on
     
-    for is = 7:length(allStim)
+    for is = 1:sum(allStim>6)
         
-        % vertical errorbars (observation error)
-        %             plot([UnitData(iUn).BaseFR UnitData(iUn).BaseFR], FRmeans(is)-IR_Prediction + (sqrt(FRvars(is))./sqrt(Ntrials(is))).*[-1 1],'Color',plotcol)
         % mean point
-        ip=scatter(UnitData(iUn).BaseFR, FRmeans(is)-IR_Prediction, 200,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+        ip=scatter(UnitData(iUn).BaseFR, IR_Observations(is)-IR_Prediction, 200,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
         if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
             ip.MarkerFaceColor = [32 129 255]./255;
             ip.MarkerFaceAlpha = 0.65;
+        end
+        if strcmp(USE_MEASURE,'FR') && pvals(is)<alfa
+            ip.MarkerEdgeColor = 'g';
         end
         
     end %is
@@ -486,13 +549,13 @@ for iUn = 1:numel(UnitData)
 end %iUn
 
 
-%% Stats
-[iIR_sig_bonferroni,iIR_sig_bonferroniholm] = checkSignificance_bonferroni(pvals,0.05);
+%% Stats corrections?
 
 Pdata(1,:)=[];
 
-Pdata.iIR_sig_bonferroni     = iIR_sig_bonferroni';
-Pdata.iIR_sig_bonferroniholm = iIR_sig_bonferroniholm';
+% [iIR_sig_bonferroni,iIR_sig_bonferroniholm] = checkSignificance_bonferroni([Pdata.pval],alfa);
+% Pdata.iIR_sig_bonferroni     = iIR_sig_bonferroni';
+% Pdata.iIR_sig_bonferroniholm = iIR_sig_bonferroniholm';
 
 
 %% Finish figures
@@ -503,9 +566,8 @@ title(['Pred vs. Obs IR responses, avg IR, N = ' num2str(N) ' units'])
 
 % hf2
 figure(hf2); hold on
-plot(Pdata.predIR(find(iIR_sig_bonferroni))',Pdata.obsIR(find(iIR_sig_bonferroni))','sg')
-title(['Pred vs. Obs IR responses, each IR seq, N=' num2str(size(Pdata,1)) ', ' num2str(N) ' units'])
-
+title(['Pred vs. Obs IR responses, each IR seq, N=' num2str(size(Pdata,1)) ' comparisons, ' num2str(N) ' units'])
+ 
 % hf3
 xhist = -5:0.25:5;
 diffhist = hist([Pdata.obsIR]-[Pdata.predIR],xhist);
@@ -515,8 +577,8 @@ figure(hf3);
 subplot(1,6,6) 
 hold on
 fill(diffhist,xhist,'k','EdgeColor','none')
-plot([yh yh],mean([Pdata.obsIR]-[Pdata.predIR]) + std([Pdata.obsIR]-[Pdata.predIR]).*[-1 1],'b-','LineWidth',3)
-plot(yh,mean([Pdata.obsIR]-[Pdata.predIR]),'bd','MarkerSize',14,'MarkerEdgeColor','none','MarkerFaceColor','b')
+plot([yh yh],mean([Pdata.obsIR]-[Pdata.predIR],'omitnan') + std([Pdata.obsIR]-[Pdata.predIR],'omitnan').*[-1 1],'b-','LineWidth',2)
+plot(yh,mean([Pdata.obsIR]-[Pdata.predIR],'omitnan'),'bd','MarkerSize',14,'MarkerEdgeColor','none','MarkerFaceColor','b')
 xlim([0 yh])
 ylim([-5 5])
 set(gca,'ytick',[],'xtick',[])
@@ -525,25 +587,28 @@ box off
 
 %% Save figures
 
-savedir = fullfile(fn.figs,'PredObs','exclOnset');
+savedir = fullfile(fn.figs,'PredObs');
+if exclOnset
+    savedir = fullfile(savedir,'exclOnset');
+end
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-savename = 'PredObs_avgIR';
+savename = sprintf('PredObs_avgIR_%s',USE_MEASURE);
 print_eps_kp(hf1,fullfile(savedir,savename))
 print_svg_kp(hf1,fullfile(savedir,savename))
 
-savename = 'PredObs_eachIR';
+savename = sprintf('PredObs_eachIR_%s',USE_MEASURE);
 print_eps_kp(hf2,fullfile(savedir,savename))
 print_svg_kp(hf2,fullfile(savedir,savename))
 
-savename = 'PredObs_DiffsBaseFR';
+savename = sprintf('PredObs_DiffsBaseFR_%s',USE_MEASURE);
 print_eps_kp(hf3,fullfile(savedir,savename))
 print_svg_kp(hf3,fullfile(savedir,savename))
 
 
-save(fullfile(savedir,'Pdata'),'Pdata','-v7.3')
+save(fullfile(savedir,['Pdata_' USE_MEASURE]),'Pdata','-v7.3')
 
 
 
