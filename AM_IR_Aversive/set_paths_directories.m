@@ -22,9 +22,9 @@ if strncmp(computername,'Regina',5)
     
 elseif strncmp(computername,'william',5)  
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    % Mac in 1006
+    % iMac in 1006
     basefolder  = '/Volumes/KPspace/GDFS/My Drive/Sanes/DATADIR/AMaversive';
-    includePath='';
+    includePath='/Local/Users/sanesuser/Documents/MATLAB/KiloSort';
     
 else
     if nargin==3 && UMS_flag

@@ -202,8 +202,8 @@ for iUn = 1:numel(UnitData)
             case 'spikes'
                 thisMPH(1).raster  = vertcat(MPH_rate(iPdc,:).raster{:});
         end
-        thisMPH(1).Prev500msFR  = sum([MPH_rate(iPdc,:).Prev500msFR] .* nTrs) / sum(nTrs); 
-        thisMPH(1).Prev100msFR  = sum([MPH_rate(iPdc,:).Prev100msFR] .* nTrs) / sum(nTrs); 
+        thisMPH(1).Prev500msFR  = cell2mat(MPH_rate(iPdc,:).Prev500msFR')'; 
+        thisMPH(1).Prev100msFR  = cell2mat(MPH_rate(iPdc,:).Prev100msFR')'; 
         thisMPH(1).PrevAMrt500  = sum([MPH_rate(iPdc,:).PrevAMrt500] .* nTrs) / sum(nTrs);
         thisMPH(1).PrevAMrt100  = sum([MPH_rate(iPdc,:).PrevAMrt100] .* nTrs) / sum(nTrs);
         thisMPH(1).nTrs         = sum(nTrs);
@@ -235,8 +235,8 @@ for iUn = 1:numel(UnitData)
                         thisMPH(np).raster  = vertcat(MPH_rate(iIR,:).raster{:});
                 end
                 
-                thisMPH(np).Prev500msFR  = sum([MPH_rate(iIR,:).Prev500msFR] .* nTrs) / sum(nTrs);
-                thisMPH(np).Prev100msFR  = sum([MPH_rate(iIR,:).Prev100msFR] .* nTrs) / sum(nTrs);
+                thisMPH(np).Prev500msFR  = cell2mat(MPH_rate(iIR,:).Prev500msFR')';
+                thisMPH(np).Prev100msFR  = cell2mat(MPH_rate(iIR,:).Prev100msFR')';
                 thisMPH(np).PrevAMrt500  = sum([MPH_rate(iIR,:).PrevAMrt500] .* nTrs) / sum(nTrs);
                 thisMPH(np).PrevAMrt100  = sum([MPH_rate(iIR,:).PrevAMrt100] .* nTrs) / sum(nTrs);
                 thisMPH(np).nTrs         = sum(nTrs);
@@ -265,8 +265,8 @@ for iUn = 1:numel(UnitData)
                 case 'spikes'
                     thisMPH(np).raster  = vertcat(MPH_rate(iTr,:).raster{:});
             end
-            thisMPH(np).Prev500msFR  = sum([MPH_rate(iTr,:).Prev500msFR] .* nTrs) / sum(nTrs);
-            thisMPH(np).Prev100msFR  = sum([MPH_rate(iTr,:).Prev100msFR] .* nTrs) / sum(nTrs);
+            thisMPH(np).Prev500msFR  = cell2mat(MPH_rate(iTr,:).Prev500msFR')';
+            thisMPH(np).Prev100msFR  = cell2mat(MPH_rate(iTr,:).Prev100msFR')';
             thisMPH(np).PrevAMrt500  = sum([MPH_rate(iTr,:).PrevAMrt500] .* nTrs) / sum(nTrs);
             thisMPH(np).PrevAMrt100  = sum([MPH_rate(iTr,:).PrevAMrt100] .* nTrs) / sum(nTrs);
             thisMPH(np).nTrs         = sum(nTrs);
