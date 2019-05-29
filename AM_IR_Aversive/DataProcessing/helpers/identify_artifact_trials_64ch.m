@@ -58,7 +58,7 @@ for ishank = Shanks
     
     
     % Plots for debugging
-    keyboard
+%     keyboard
     
 %     hfart = figure(1); clf
 %     plot(artifact_flag_rms.*DATA(ich,:),'r','LineWidth',1.5)

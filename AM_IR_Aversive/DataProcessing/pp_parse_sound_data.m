@@ -112,12 +112,16 @@ for it = 1:numel(trialID)
         
         %  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .  .
         % ITI following Warn
-                
+        
         % onset and offset (samples)
         if it<length(trialOnset)
             ITI_BlockOffsets(nt+nw) = trialOnset(it+1)-1;
         else
-            ITI_BlockOffsets(nt+nw) = size(SoundData,2);
+            if round((size(SoundData,2) - round(1*Info.fs_sound)) +(1.5*Info.fs_sound))  > size(SoundData,2)
+                continue
+            else
+                ITI_BlockOffsets(nt+nw) = size(SoundData,2);
+            end
         end
         ITI_BlockOnsets(nt+nw)  = ITI_BlockOffsets(nt+nw) - round(1*Info.fs_sound);
         
@@ -154,7 +158,10 @@ for it = 1:numel(trialID)
     
     
     % Check that duration makes sense
-    if abs((trialOnset(it)+pdcDur+IRDur)-trialOffset(it))>1, keyboard, end
+    if abs((trialOnset(it)+pdcDur+IRDur)-trialOffset(it))>1 
+        keyboard
+        continue
+    end
     
     nt = nt+1;
     
