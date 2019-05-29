@@ -56,6 +56,11 @@ switch REFERENCE
 end
 
 
+% Truncate Streams
+Stream_Spks      = Stream_Spks(1:StreamNSamples);
+Stream_FRsmooth  = Stream_FRsmooth(1:StreamNSamples);
+Stream_zscore    = Stream_zscore(1:StreamNSamples);
+
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Set ymax based on overall FR of unit

@@ -5,7 +5,7 @@ function FF  = bootstrap_for_FF( TrialResps, nTrs )
 
 warning('off', 'MATLAB:rankDeficientMatrix')
 rng('shuffle')
-Iterations = 100;
+Iterations = 1000;
 
 FFi = nan(1,Iterations);
 

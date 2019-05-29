@@ -8,7 +8,7 @@ function screenUnitsRasters(SUBJECT,SESSION)
 %
 
 
-UseTempFolder = 0;
+UseTempFolder = 1;
 
 
 %% Load files
@@ -261,7 +261,8 @@ for iUn = 1:numel(Clusters)
     %% Save figures
     
     if UseTempFolder
-        savedir = fullfile(fn.processed,'Rasters_TEMP',sprintf('%s_%s_%i_%i',SUBJECT,SESSION,thisClu.shank,thisClu.clusterID));
+%         savedir = fullfile(fn.processed,'Rasters_TEMP',sprintf('%s_%s_%i_%i',SUBJECT,SESSION,thisClu.shank,thisClu.clusterID));
+        savedir = fullfile(fn.sessdata,'Rasters','tmp',sprintf('%s_%s_%i_%i',SUBJECT,SESSION,thisClu.shank,thisClu.clusterID));
     else
         savedir = fullfile(fn.sessdata,'Rasters',sprintf('%s_%s_%i_%i',SUBJECT,SESSION,thisClu.shank,thisClu.clusterID));
     end

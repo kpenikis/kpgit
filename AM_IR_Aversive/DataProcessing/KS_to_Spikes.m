@@ -26,6 +26,10 @@ catch % bc i moved the probe files
     if any(strcmp(pathparts,'ProcessedData'))
         pathparts(strcmp(pathparts,'ProcessedData')) = '';
     end
+    if any(strcmp(pathparts,'KPspace'))
+        pathparts(strcmp(pathparts,'KPspace')) = '';
+        pathparts(strcmp(pathparts,'GDFS')) = {'GoogleDrive'};
+    end
     rez.ops.chanMapFile = ['/' fullfile(pathparts{:})];
     load(rez.ops.chanMapFile,'chanMap','connected', 'xcoords', 'ycoords','kcoords');
     if ~exist('connected','var')

@@ -1,4 +1,4 @@
-function AssessUnits(select_subject, select_session )
+function AssessUnits( RERUN )
 %
 %  AssessUnits( [subject, session, channel, clu] )
 %   All inputs are optional. Any variables not specified will be cycled
@@ -12,7 +12,7 @@ function AssessUnits(select_subject, select_session )
 %   If the unit entered as the input already exists, the program will exit. 
 %   In the future, could allow the row to update individually.
 %   
-%  KP, 2018-06
+%  KP, 2018-06, updated 2019-05
 %
 
 
@@ -34,12 +34,10 @@ minTrs   =  10;
 
 %%  Prepare UnitInfo table and UnitData struct
 
-RERUN = 1;
 if nargin<1 %start over, re-running all units
-    
     RERUN = input('If want to re-run ALL UNITS, enter 1. Otherwise, enter 0.   ');
-    
 end
+
 
 if RERUN == 1
     
@@ -77,7 +75,7 @@ if nargin>0 && exist('select_subject','var')
         subjects = {select_subject};
     end
 else
-    subjects = { 'AAB_265058' 'WWWf_253400' 'WWWlf_253395'  }; %'AAB_265059' 
+    subjects = { 'AAB_265058' 'AAB_265054' 'WWWf_253400' 'WWWlf_253395'  }; %'AAB_265059' 
 end
 
 for subj = 1:numel(subjects)
@@ -111,8 +109,7 @@ for sess = Sessions'
     
 session = char(sess);
 
-% Skip unconfirmed SU for now
-if any(strcmp(session,{'Jan21-AM' 'Jan25-AM' 'Jan31-AM'}))
+if ~isempty(strfind(session,'-VS'))
     continue
 end
 
@@ -126,7 +123,8 @@ filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.pr
 
 % FOR NOW, ADD PLACEHOLDER FOR ARTIFACT TRIALS FOR SYNAPSE/KS DATA
 if ~isfield(Info,'artifact')
-        Info.artifact(64).trials = [];
+    keyboard
+    Info.artifact(64).trials = [];
 end
 
  
@@ -152,7 +150,7 @@ if exist('Spikes','var')                                     % >>> UMS <<<
                 shank      = kcoords(chanMap==channel);
                 spiketimes = unique(Spikes.sorted(Channels(ich)).spiketimes(Spikes.sorted(Channels(ich)).assigns==clu') * 1000);  %ms
                 
-                if ~isempty(spiketimes)
+                if ~isempty(spiketimes) && ~any(strcmp({UnitData.Subject},subject) & strcmp({UnitData.Session},session) & [UnitData.Channel]==channel & [UnitData.Clu]==clu)
                     assess_this_unit
                 end
                 
@@ -177,7 +175,7 @@ elseif exist('Clusters','var')                                % >>> KS <<<
         shank      = Clusters(iclu).shank;
         spiketimes = unique(Clusters(iclu).spikeTimes * 1000)'; %ms
         
-        if ~isempty(spiketimes)
+        if ~isempty(spiketimes) && ~any(strcmp({UnitData.Subject},subject) & strcmp({UnitData.Session},session) & [UnitData.Channel]==channel & [UnitData.Clu]==clu)
             assess_this_unit
         end
         

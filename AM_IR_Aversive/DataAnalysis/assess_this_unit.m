@@ -35,7 +35,7 @@ RespType = 'na';
 bs_hist = 1;
 bs_smth = 20;
 
-[Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(round(spiketimes),...
+[Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(unique(round(spiketimes)),...
     length(SpoutStream),TrialData.onset(1),TrialData.offset(1),bs_hist,bs_smth,'silence');
 
 
@@ -118,7 +118,7 @@ for spl = dBSPL'
         %  and adjust spiketimes accordingly
         
         try
-        IntegrationTime_spk = calculateIntegrationTime(round(spiketimes),TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType);
+        IntegrationTime_spk = calculateIntegrationTime(unique(round(spiketimes)),TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType);
         catch
             warning('integration time program didnt run properly')
             IntegrationTime_spk = 0;
@@ -282,10 +282,11 @@ for spl = dBSPL'
         %% Save info to table
         
         add_row = { subject session channel clu RespType };
+        [add_row{end+1:size(UnitInfo,2)}] = deal(nan);
         
         UnitInfo = [ UnitInfo; add_row ];
         
-        %
+        
         %                 % Save fig
         % %                 savedir = fullfile(fn.processed,'Units',sprintf('%s_%s_%i_%i',subject,session,channel,clu));
         %                 savedir = fullfile(fn.processed,'Units',RespType);

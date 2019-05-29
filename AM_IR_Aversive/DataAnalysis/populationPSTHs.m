@@ -28,7 +28,7 @@ clear q
 % Filter Unit files to just this session and sort by baseline FR
 UnitData = UnitData(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT));
 UnitInfo = UnitInfo(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT),:);
-[~, baseFRrank] = sort([UnitInfo.BaseFR]);
+[~, baseFRrank] = sort([UnitData.BaseFR]);
 UnitInfo = UnitInfo(baseFRrank,:);
 UnitData = UnitData(baseFRrank);
 

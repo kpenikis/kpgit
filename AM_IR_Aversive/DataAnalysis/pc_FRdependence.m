@@ -54,9 +54,10 @@ rateVec_DB = q.buffer;
 
 %%  FR HISTORY DEPENDENCE FOR HIGH D' 
 
-dp_thresh = 1;
-alpha_thr = 0.01;
-thisMet = 'Prev100msFR';
+dp_thresh   = 1;
+alpha_thr   = 0.01;
+thisMet     = 'Prev100msFR';
+nIterations = 1000;
 
 hf=figure; 
 set(hf,'Position',halfscreen,'NextPlot','add')
@@ -106,34 +107,32 @@ for iUn = 1:size(Data,1)
             ntp = size(DataSh(iUn,irate).data(1).(thisMet),1);
             nto = size(DataSh(iUn,irate).data(id).(thisMet),1);
             
-            if abs(ntp-nto)/mean([ntp nto]) < 0.1 
-                [h_ks,p] = kstest2(DataSh(iUn,irate).data(1).(thisMet),DataSh(iUn,irate).data(id).(thisMet),'Alpha',alpha_thr);
-                
-            else
-                % Bootstrap to compare distributions
-                nIterations = 1000;
-                p=ones(nIterations,1);
-                
-                if ntp>nto
-                    bs_data = DataSh(iUn,irate).data(1).(thisMet);
-                    ss_data = DataSh(iUn,irate).data(id).(thisMet);
-                    nt = nto;
-                elseif ntp<nto
-                    bs_data = DataSh(iUn,irate).data(id).(thisMet);
-                    ss_data = DataSh(iUn,irate).data(1).(thisMet);
-                    nt = ntp;
-                end
-                
-                for ii = 1:nIterations
-                    [~,p(ii)] = kstest2(ss_data,bs_data(randi(length(bs_data),1,nt)));
-                end
-                qr = quantile(p,[0.05 0.95]);
-                if qr(1)<=alpha_thr
-                    h_ks = 1;
-                else
-                    h_ks = 0;
-                end
+            % Bootstrap to compare distributions
+            p=ones(nIterations,1);
+            dm=ones(nIterations,1);
+            
+            if ntp>nto
+                bs_data = DataSh(iUn,irate).data(1).(thisMet);
+                ss_data = DataSh(iUn,irate).data(id).(thisMet);
+                nt = nto;
+            elseif ntp<nto
+                bs_data = DataSh(iUn,irate).data(id).(thisMet);
+                ss_data = DataSh(iUn,irate).data(1).(thisMet);
+                nt = ntp;
             end
+            
+            for ii = 1:nIterations
+                p(ii)  = ranksum(ss_data,bs_data(randi(length(bs_data),1,nt)));
+                dm(ii) = median(ss_data) - median(bs_data(randi(length(bs_data),1,nt)));
+            end
+            qr = quantile(p,0.025);
+            qd = quantile(dm,[0.025 0.975]);
+            if qd(1)>0 || qd(2)<0    %qr(1)<=alpha_thr
+                sigFR = 1;
+            else
+                sigFR = 0;
+            end
+            
             
             % Plot results of same datapoints but shuffled spikes
             x_mean   = mean(DataSh(iUn,irate).data(1).(thisMet));
@@ -143,7 +142,7 @@ for iUn = 1:size(Data,1)
             
             figure(hf); hold on
             
-            if h_ks
+            if sigFR
                 plot(x_mean + x_std*[-1 1],[y_mean y_mean],'-','LineWidth',1,'Color','k')
                 plot([x_mean x_mean],y_mean + y_std*[-1 1],'-','LineWidth',1,'Color','k')
                 plot(x_mean,y_mean,'.','MarkerSize',50,'Color','k')
@@ -226,33 +225,29 @@ for iUn = 1:size(Data,1)
             ntp = size(Data(iUn,irate).data(1).(thisMet),1);
             nto = size(Data(iUn,irate).data(id).(thisMet),1);
             
-            if abs(ntp-nto)/mean([ntp nto]) < 0.1
-                [h_ks,p] = kstest2(Data(iUn,irate).data(1).(thisMet),Data(iUn,irate).data(id).(thisMet),'Alpha',alpha_thr);
-                
+            % Bootstrap to compare distributions
+            p=ones(nIterations,1);
+            
+            if ntp>nto
+                bs_data = Data(iUn,irate).data(1).(thisMet);
+                ss_data = Data(iUn,irate).data(id).(thisMet);
+                nt = nto;
+            elseif ntp<nto
+                bs_data = Data(iUn,irate).data(id).(thisMet);
+                ss_data = Data(iUn,irate).data(1).(thisMet);
+                nt = ntp;
+            end
+            
+            for ii = 1:nIterations
+                p(ii)  = ranksum(ss_data,bs_data(randi(length(bs_data),1,nt)));
+                dm(ii) = median(ss_data) - median(bs_data(randi(length(bs_data),1,nt)));
+            end
+            qr = quantile(p,0.025);
+            qd = quantile(dm,[0.025 0.975]);
+            if qd(1)>0 || qd(2)<0    %qr(1)<=alpha_thr
+                sigFR = 1;
             else
-                % Bootstrap to compare distributions
-                nIterations = 1000;
-                p=ones(nIterations,1);
-                
-                if ntp>nto
-                    bs_data = Data(iUn,irate).data(1).(thisMet);
-                    ss_data = Data(iUn,irate).data(id).(thisMet);
-                    nt = nto;
-                elseif ntp<nto
-                    bs_data = Data(iUn,irate).data(id).(thisMet);
-                    ss_data = Data(iUn,irate).data(1).(thisMet);
-                    nt = ntp;
-                end
-                
-                for ii = 1:nIterations
-                    [~,p(ii)] = kstest2(ss_data,bs_data(randi(length(bs_data),1,nt)));
-                end
-                qr = quantile(p,[0.05 0.95]);
-                if qr(1)<=alpha_thr
-                    h_ks = 1;
-                else
-                    h_ks = 0;
-                end
+                sigFR = 0;
             end
             
             
@@ -264,7 +259,7 @@ for iUn = 1:size(Data,1)
             
             figure(hf); hold on
             
-            if h_ks
+            if sigFR
                 
                 plot(x_mean + x_std*[-1 1],[y_mean y_mean],'-','LineWidth',1,'Color','b')
                 plot([x_mean x_mean],y_mean + y_std*[-1 1],'-','LineWidth',1,'Color','b')
