@@ -27,6 +27,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
@@ -80,14 +83,6 @@ colors = [ colors; ...
 yvals = 2.^[0:7];
 
 
-%% Select a datapoint (or a few?) to highlight
-
-ex_subj = 'xWWWf_253400';
-ex_sess = 'GA';
-ex_ch   = 16;
-ex_clu  = 1;
-
-
 %% Preallocate
 
 N=0;
@@ -105,7 +100,7 @@ Pdata.predIR  = nan;
 Pdata.obsIR   = nan;
 
 
-for iUn = 6:numel(UnitData)
+for iUn = 115:numel(UnitData)
     
     close all
     
@@ -123,9 +118,7 @@ for iUn = 6:numel(UnitData)
     % Get sound parameters
     dBSPL       = UnitData(iUn).spl;
     LP          = UnitData(iUn).lpn;
-    
-    spkshift    = 0;%UnitData(iUn).IntTime_spk;
-    
+        
     
     % Load data files
     
@@ -144,7 +137,6 @@ for iUn = 6:numel(UnitData)
     end
     
     % Get spiketimes and shift based on calculated integration time
-    
     if exist('Spikes','var')                                 % >>> UMS <<<
         
         spiketimes = unique(round(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift));  %ms
@@ -187,18 +179,18 @@ for iUn = 6:numel(UnitData)
         iPdc = find( (MPH_rate.ThisStimID==irate+1 & MPH_rate.Starttime>=T)...
             | (MPH_rate.ThisStimID==irate+1 & MPH_rate.PrevStimID==irate+1) );
         if ~all(MPH_rate.PrevPd(iPdc)==this_rate), keyboard, end
-        np=1;
+%         np=1;
         
         % Irregular context info
-        theseIRs = unique(MPH_rate.ThisStimID(MPH_rate.ThisStimID>6));
-        iIR = []; nIR = numel(theseIRs);
-        for thisIR = theseIRs
-            iIR = [iIR find(MPH_rate.Starttime>=T & MPH_rate.ThisStimID==thisIR) ];
-            PPds = unique(MPH_rate.PrevPd( MPH_rate.Starttime>=T & MPH_rate.ThisStimID==thisIR ));
-            for ip = PPds'
-                np = np+1;
-            end
-        end
+        theseIRs = unique(MPH_rate.ThisStimID(MPH_rate.ThisStimID>6))';
+%         iIR = []; nIR = numel(theseIRs);
+%         for thisIR = theseIRs
+%             iIR = [iIR find(MPH_rate.Starttime>=T & MPH_rate.ThisStimID==thisIR) ];
+%             PPds = unique(MPH_rate.PrevPd( MPH_rate.Starttime>=T & MPH_rate.ThisStimID==thisIR ));
+%             for ip = PPds'
+%                 np = np+1;
+%             end
+%         end
         
         
         %==========================================================
@@ -267,7 +259,8 @@ for iUn = 6:numel(UnitData)
         histbin   = floor(size(this_MPH_raster,2)/30);
         histMP    = []; histMP = binspikecounts(mean(this_MPH_raster,1),histbin)/histbin*1000;
         meanFR    = mean(this_MPH_FR,1);
-        semFR     = std(this_MPH_FR,1);% / sqrt(size(this_MPH_FR,1));
+        stdFR     = std(this_MPH_FR,1);
+        semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
         patchPdc  = [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)];
         patchX    = [ 1:size(this_MPH_FR,2) size(this_MPH_FR,2):-1:1 1 ] -0.5;
         nPdcPds   = size(this_MPH_FR,1);
@@ -331,9 +324,10 @@ for iUn = 6:numel(UnitData)
             yb = [0; yb(1); yb; yb(end); 0];
             
             meanFR    = mean(this_MPH_FR,1);
-            semFR     = std(this_MPH_FR,1);% / sqrt(size(this_MPH_FR,1));
+            stdFR     = std(this_MPH_FR,1);
+            semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
             
-            subplot(hsp(np-1,1)); hold on
+            subplot(hsp(min(np-1,2),1)); hold on
             patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.5)
             patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
             plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
@@ -388,9 +382,10 @@ for iUn = 6:numel(UnitData)
                 histbin = floor(size(this_MPH_raster,2)/30);
                 histMP = []; histMP = binspikecounts(mean(this_MPH_raster,1),histbin)/histbin*1000;
                 meanFR    = mean(this_MPH_FR,1);
-                semFR     = std(this_MPH_FR,1);% / sqrt(size(this_MPH_FR,1));
+                stdFR     = std(this_MPH_FR,1);
+                semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
                 
-                subplot(hsp(MPH_rate(ii,:).SeqPos,(thisIR==theseIRs)+1)); hold on
+                subplot(hsp(MPH_rate(ii,:).SeqPos,find(thisIR==theseIRs)+1)); hold on
                 patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.5)
                 patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
                 plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
@@ -413,9 +408,9 @@ for iUn = 6:numel(UnitData)
         if ~exist(savedir,'dir')
             mkdir(savedir);
         end
-        savename = sprintf('MPH_%iHz_%s_%s_ch%i_clu%i_std',this_rate,subject,session,channel,clu);
+        savename = sprintf('MPH_%iHz_%s_%s_ch%i_clu%i',this_rate,subject,session,channel,clu);
         
-        print_eps_kp(hfe(irate),fullfile(savedir,savename))
+%         print_eps_kp(hfe(irate),fullfile(savedir,savename))
         
         
     end  %this_rate

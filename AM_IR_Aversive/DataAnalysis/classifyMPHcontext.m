@@ -9,22 +9,21 @@ function Data = classifyMPHcontext(USE_MEASURE)
 
 
 global fn AMrates rateVec_AC rateVec_DB trMin Iterations
-fn = set_paths_directories([],[],1);
 
+%!!!!!!!!!!!!!!!!!!!
 if nargin<1
     USE_MEASURE = 'FR'; 'spikes';
 end
-
+%!!!!!!!!!!!!!!!!!!!
+RERUN       =   0;
 %!!!!!!!!!!!!!!!!!!!
 trMin       =  10;
 %!!!!!!!!!!!!!!!!!!!
-Iterations  =  1000;
+Iterations  =  10;
 %!!!!!!!!!!!!!!!!!!!
-tVarBin     = 31;
+tVarBin     =  31;
 %!!!!!!!!!!!!!!!!!!!
-N=0;
-%!!!!!!!!!!!!!!!!!!!
-SHUFFLE_SPIKES = 1;
+SHUFFLE_SPIKES = 0;
 %!!!!!!!!!!!!!!!!!!!
 
 
@@ -51,13 +50,26 @@ AMrates = [2 4 8 16 32];
 
 %% Preallocate
 
-Data = struct;
-
 savedir = fullfile(fn.processed,'MPHclassifier');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
+if SHUFFLE_SPIKES
+    savename = 'ClassData_shuff';
+else
+    savename = 'ClassData';
+end
+
+if RERUN
+    Data = struct;
+    Un1  = 1;
+else
+    q = load(fullfile(savedir,savename));
+    Data = q.Data;
+    clear q
+    Un1  = size(Data,1)+1;
+end
 
 %% Figure settings
 
@@ -94,7 +106,7 @@ colors = [ colors; ...
 
 %% Step through Units
 
-for iUn = 1:numel(UnitData)
+for iUn = Un1:numel(UnitData)
         
     %%% skips merged units for now
     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
@@ -280,7 +292,7 @@ for iUn = 1:numel(UnitData)
         fprintf('   running classifier: leave one tr out\n')
         Data(iUn,irate).Res_L1o  = get_classifier_data( thisMPH, -1 );
 %         fprintf('   running classifier: 10 trial templates\n')
-        Data(iUn,irate).Res_t10  = [];%get_classifier_data( thisMPH, 10 );
+%         Data(iUn,irate).Res_t10  = [];%get_classifier_data( thisMPH, 10 );
         
         
         % Add to plot
@@ -300,7 +312,7 @@ for iUn = 1:numel(UnitData)
     
     
     % Save Data to tmp folder
-    save(fullfile(savedir,'tmp','ClassData_shuff'),'Data','-v7.3')
+    save(fullfile(savedir,'tmp',savename),'Data','-v7.3')
     fprintf('\n')
     
     catch
@@ -310,7 +322,7 @@ for iUn = 1:numel(UnitData)
 end %iUn
 
 % Save final Data struct
-save(fullfile(savedir,'ClassData_shuff'),'Data','-v7.3')
+save(fullfile(savedir,savename),'Data','-v7.3')
 
 return
 

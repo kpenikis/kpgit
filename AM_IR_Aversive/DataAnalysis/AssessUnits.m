@@ -121,10 +121,9 @@ filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.pr
 filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
 
 
-% FOR NOW, ADD PLACEHOLDER FOR ARTIFACT TRIALS FOR SYNAPSE/KS DATA
-if ~isfield(Info,'artifact')
+% Make sure there's enough baseline FR data
+if ((TrialData.offset(1)/1000) - (TrialData.onset(1)/1000)) < 23
     keyboard
-    Info.artifact(64).trials = [];
 end
 
  

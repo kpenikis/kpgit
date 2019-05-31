@@ -1,7 +1,6 @@
 % function assess_this_unit
 
 
-
 %% GET STIM INFO
 [dBSPL,LP] = theseSoundParams(TrialData);
 % if numel(dBSPL)>1 || numel(LP)>1

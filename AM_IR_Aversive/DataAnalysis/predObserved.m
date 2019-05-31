@@ -72,7 +72,7 @@ switch USE_MEASURE
     case {'TrV' 'FF'}
         units = 'Hz';
         axmin = 0.01;
-        axmax = 4;
+        axmax = 6;
         axscale = 'linear';
 end
 
@@ -447,7 +447,7 @@ for iUn = 1:numel(UnitData)
         end
         savename = sprintf('%s_%s_clu%i_FR-MTF_%s_exclOnset',...
             subject,session,clu,units);
-        print_eps_kp(hmtf,fullfile(savedir,savename),1)
+%         print_eps_kp(hmtf,fullfile(savedir,savename),1)
 %         print_svg_kp(hmtf,fullfile(savedir,savename),1)
         
     end

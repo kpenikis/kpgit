@@ -27,6 +27,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
@@ -114,9 +117,9 @@ for iUn = 1:numel(UnitData)
         continue
     end
     
-    if UnitData(iUn).kw_p>0.05
-        continue
-    end
+%     if UnitData(iUn).kw_p>0.05
+%         continue
+%     end
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
