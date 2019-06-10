@@ -1,4 +1,4 @@
-function [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_sound_data(SoundData,epocs,Info)
+function [TrialData,SpoutStream,SoundStream,RateStream,Phase0,Info] = pp_parse_sound_data(SoundData,epocs,Info)
 %
 % called by: ProcessPhys_SynKS
 % to make TrialData table for AM aversive experiment
@@ -37,17 +37,12 @@ SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
 
 RateStream = round(resample(double(SoundData(1,:)),10000,round(Info.fs_sound*10),5));
 
+%%%%%%%%%%%%%%
+getPhase0Data;
+%%%%%%%%%%%%%%
 
 
-%%
-
-
-%xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-% AM period offsets
-Phase0_epoc = round(epocs.AMrt.onset * Info.fs_sound); %samples
-% [~,LOCS,w,~]= findpeaks(double(SoundData(5,:)),'MinPeakProminence',0.9);
-% Phase0_Stream = LOCS+(w./2);
-%xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+%% Trial Data
 
 % Onsets and offsets of trials (StimTrial TTL)
 trialOnset   = round(epocs.TTyp.onset * Info.fs_sound); %samples

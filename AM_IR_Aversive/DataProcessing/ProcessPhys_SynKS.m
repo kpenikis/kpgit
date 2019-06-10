@@ -160,7 +160,7 @@ end
 
 if strcmp(BlockType,'behavior')
 
-    [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_sound_data( epData.streams.rVrt.data, epData.epocs, Info );
+    [TrialData,SpoutStream,SoundStream,RateStream,Phase0,Info] = pp_parse_sound_data( epData.streams.rVrt.data, epData.epocs, Info );
     
 elseif strcmp(BlockType,'vocodedspeech')
 

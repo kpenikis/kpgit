@@ -14,6 +14,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 AMrates = [2 4 8 16 32];
 
@@ -59,7 +62,7 @@ ex_ch   = 63;
 ex_clu  = 1230;
 
 ex_Un   = find(strcmp({UnitData.Subject},ex_subj) & strcmp({UnitData.Session},ex_sess) & [UnitData.Channel]==ex_ch & [UnitData.Clu]==ex_clu);
-
+ex_Un   = numel(UnitData);
 
 %% 
 
@@ -81,19 +84,17 @@ for iUn = 1:numel(UnitData)
     % Get sound parameters
     dBSPL       = UnitData(iUn).spl;
     LP          = UnitData(iUn).lpn;
-    
-    spkshift    = UnitData(iUn).IntTime_spk;
-    
+        
     
     % Load data files
     
-    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1 ||  ~exist('Phase0','var') 
         fprintf('Loading %s sess %s...\n',subject,session)
-        clear TrialData Info
+        clear Info TrialData SoundStream SpoutStream RateStream Phase0
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
     end
-    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || ( ~exist('Spikes','var') || ~exist('Clusters','var') )
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
     end
@@ -298,7 +299,7 @@ for iUn = 1:numel(UnitData)
         end
         
         %--------- Delta Nspk ---------
-        if iUn==ex_Un || p_wsr<0.05
+        if iUn==ex_Un || p_wsr<0
             
             ymaxval = max(Nspk_paired(:))+1;
             

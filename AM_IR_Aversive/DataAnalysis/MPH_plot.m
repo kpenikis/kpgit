@@ -1,4 +1,4 @@
-function MPHcontextComparisons
+function MPH_plot
 %
 %  MPHcontextComparisons
 %
@@ -9,7 +9,6 @@ function MPHcontextComparisons
 
 
 global fn AMrates rateVec_AC rateVec_DB trMin RateStream
-fn = set_paths_directories([],[],1);
 
 %!!!!!!!!!!!!!!!!!
 trMin   =  10;
@@ -80,7 +79,7 @@ colors = [ colors; ...
     [19 125 124]./255 ];
 
 % yvals = [5 10 20 30 50 75 100];
-yvals = 2.^[0:7];
+yvals = 2.^[0:9];
 
 
 %% Preallocate
@@ -100,7 +99,7 @@ Pdata.predIR  = nan;
 Pdata.obsIR   = nan;
 
 
-for iUn = 115:numel(UnitData)
+for iUn = 124:numel(UnitData)
     
     close all
     
@@ -122,16 +121,16 @@ for iUn = 115:numel(UnitData)
     
     % Load data files
     
-%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1 || ~exist('TrialData','var')
         fprintf('Loading %s sess %s...\n',subject,session)
         clear TrialData Info
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
-%     end
-%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
+    end
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || (~exist('Spikes','var') || ~exist('Clusters','var'))
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
-%     end
+    end
     if ~isfield(Info,'artifact')
         continue
     end
@@ -246,6 +245,7 @@ for iUn = 115:numel(UnitData)
         
         % Store data
         PdData(1,1).stimID = MPH_rate(ip,:).ThisStimID;
+        PdData(1,1).nPds   = size(this_MPH_raster,1);
         PdData(1,1).FR  = sum(sum( this_MPH_raster ))/size(this_MPH_raster,1)/Period*1000;
         PdData(1,1).SEM = std(sum(this_MPH_raster,2)/Period*1000) / sqrt(size(this_MPH_raster,1));
         PdData(1,1).FF  = var(sum(this_MPH_raster,2)/Period*1000) / mean(sum(this_MPH_raster,2)/Period*1000);
@@ -307,6 +307,7 @@ for iUn = 115:numel(UnitData)
             
             % Store data
             PdData(np,1).stimID = MPH_rate(ip,:).ThisStimID;
+            PdData(np,1).nPds   = size(this_MPH_raster,1);
             PdData(np,1).FR  = sum(sum( this_MPH_raster ))/size(this_MPH_raster,1)/Period*1000;
             PdData(np,1).SEM = std(sum(this_MPH_raster,2)/Period*1000) / sqrt(size(this_MPH_raster,1));
             PdData(np,1).FF  = var(sum(this_MPH_raster,2)/Period*1000) / mean(sum(this_MPH_raster,2)/Period*1000);
@@ -329,11 +330,17 @@ for iUn = 115:numel(UnitData)
             
             subplot(hsp(min(np-1,2),1)); hold on
             patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.5)
-            patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
-            plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
-            %             plot(xb*(size(this_MPH_raster,2)/(length(histMP)+1)),yb,...
-            %                 'Color',colors(ips,:),'LineWidth',2)
+            if ips>6
+                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(ips,:),'EdgeColor','none','FaceAlpha',0.5)
+                plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(ips,:),'LineWidth',3)
+            else
+                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
+                plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
+            end
             title(sprintf('Following %s (%i pds)',Info.stim_ID_key{ips},size(this_MPH_raster,1)))
+            if np>3
+                title(sprintf('Following IR (%i,%i pds)',PdData(np,1).nPds,PdData(np-1,1).nPds))
+            end
             
             % - - - - - - - - - - - - - - - -
             
@@ -369,6 +376,7 @@ for iUn = 115:numel(UnitData)
                 
                 % Store data
                 PdData(np,1).stimID = MPH_rate(ii,:).ThisStimID;
+                PdData(np,1).nPds   = size(this_MPH_raster,1);
                 PdData(np,1).FR  = sum(sum( this_MPH_raster ))/size(this_MPH_raster,1)/Period*1000;
                 PdData(np,1).SEM = std(sum(this_MPH_raster,2)/Period*1000) / sqrt(size(this_MPH_raster,1));
                 PdData(np,1).FF  = var(sum(this_MPH_raster,2)/Period*1000) / mean(sum(this_MPH_raster,2)/Period*1000);
@@ -410,7 +418,7 @@ for iUn = 115:numel(UnitData)
         end
         savename = sprintf('MPH_%iHz_%s_%s_ch%i_clu%i',this_rate,subject,session,channel,clu);
         
-%         print_eps_kp(hfe(irate),fullfile(savedir,savename))
+        print_eps_kp(hfe(irate),fullfile(savedir,savename))
         
         
     end  %this_rate
