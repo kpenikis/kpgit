@@ -92,9 +92,9 @@ for ii = 4:size(SESSIONS,1)
 %     end
 %     fprintf('done.\n')
 %     
-%     catch
-%         keyboard
-%     end
+    catch
+        keyboard
+    end
 end
 
 

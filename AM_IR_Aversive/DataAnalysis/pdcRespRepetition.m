@@ -187,6 +187,11 @@ for iUn = 1:numel(UnitData)
         end %ipd
         
         
+        % Quick check of n trials from beginning to end of periodic
+        if (size(Rastermats{1},1) / size(Rastermats{end},1)) >1.5
+            keyboard
+        end
+        
         
         %% ~~~~~~~~~~~~  MEASURE RESPONSES  ~~~~~~~~~~~~
         

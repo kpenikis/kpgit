@@ -99,7 +99,7 @@ Pdata.predIR  = nan;
 Pdata.obsIR   = nan;
 
 
-for iUn = 124:numel(UnitData)
+for iUn = 122%4:numel(UnitData)
     
     close all
     
@@ -261,7 +261,8 @@ for iUn = 124:numel(UnitData)
         meanFR    = mean(this_MPH_FR,1);
         stdFR     = std(this_MPH_FR,1);
         semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
-        patchPdc  = [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)];
+        plErr     = stdFR;
+        patchPdc  = [meanFR fliplr(meanFR) meanFR(1)] + [-plErr fliplr(plErr) -plErr(1)];
         patchX    = [ 1:size(this_MPH_FR,2) size(this_MPH_FR,2):-1:1 1 ] -0.5;
         nPdcPds   = size(this_MPH_FR,1);
         
@@ -327,14 +328,15 @@ for iUn = 124:numel(UnitData)
             meanFR    = mean(this_MPH_FR,1);
             stdFR     = std(this_MPH_FR,1);
             semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
+            plErr     = stdFR;   
             
             subplot(hsp(min(np-1,2),1)); hold on
             patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.5)
             if ips>6
-                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(ips,:),'EdgeColor','none','FaceAlpha',0.5)
+                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-plErr fliplr(plErr) -plErr(1)], colors(ips,:),'EdgeColor','none','FaceAlpha',0.5)
                 plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(ips,:),'LineWidth',3)
             else
-                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
+                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-plErr fliplr(plErr) -plErr(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
                 plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
             end
             title(sprintf('Following %s (%i pds)',Info.stim_ID_key{ips},size(this_MPH_raster,1)))
@@ -392,10 +394,11 @@ for iUn = 124:numel(UnitData)
                 meanFR    = mean(this_MPH_FR,1);
                 stdFR     = std(this_MPH_FR,1);
                 semFR     = std(this_MPH_FR,1) / sqrt(size(this_MPH_FR,1));
+                plErr     = stdFR;
                 
                 subplot(hsp(MPH_rate(ii,:).SeqPos,find(thisIR==theseIRs)+1)); hold on
                 patch(patchX, patchPdc, 'k','EdgeColor','none','FaceAlpha',0.5)
-                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-semFR fliplr(semFR) -semFR(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
+                patch(patchX, [meanFR fliplr(meanFR) meanFR(1)] + [-plErr fliplr(plErr) -plErr(1)], colors(irate+1,:),'EdgeColor','none','FaceAlpha',0.5)
                 plot((1:size(this_MPH_FR,2))-0.5, meanFR, 'Color',colors(irate+1,:),'LineWidth',3)
                 %                 bar(linspace(1,size(this_MPH_raster,2),length(histMP)),histMP,...
                 %                     'FaceColor',colors(irate+1,:),'EdgeColor','none','BarWidth',1)
@@ -416,7 +419,7 @@ for iUn = 124:numel(UnitData)
         if ~exist(savedir,'dir')
             mkdir(savedir);
         end
-        savename = sprintf('MPH_%iHz_%s_%s_ch%i_clu%i',this_rate,subject,session,channel,clu);
+        savename = sprintf('MPH_%iHz_%s_%s_ch%i_clu%i_std',this_rate,subject,session,channel,clu);
         
         print_eps_kp(hfe(irate),fullfile(savedir,savename))
         

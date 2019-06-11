@@ -25,7 +25,7 @@ plotMTF     = 1;
 %!!!!!!!!!!!!!!!!!
 minTrs      = 10;
 %!!!!!!!!!!!!!!!!!
-colorswitch = 'iBMF_FR'; 'iBMF_VS'; 'subject';
+colorswitch = 'subject'; 'iBMF_FR'; 'iBMF_VS'; 
 %!!!!!!!!!!!!!!!!!
 alfa        = 0.05;
 %!!!!!!!!!!!!!!!!!
@@ -81,7 +81,7 @@ end
 %% Figure settings
 
 set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',14)
+set(0,'DefaultAxesFontSize',12)
 
 scrsz = get(0,'ScreenSize');
 vsmallsq = [1 scrsz(4)/4 scrsz(3)/4 scrsz(4)/4];
@@ -141,6 +141,9 @@ colors = [ colors; ...
             [37  84 156]./255 ;...
             [19 125 124]./255 ];
         
+subjcolors = cmocean('phase',1+numel(unique({UnitData.Subject})));
+Subjects   = unique({UnitData.Subject});
+
         
 %% Select a datapoint (or a few?) to highlight
 
@@ -184,7 +187,7 @@ for iUn = 1:numel(UnitData)
     shank       = UnitData(iUn).Shank;
     channel     = UnitData(iUn).Channel(1);
     clu         = UnitData(iUn).Clu(1);
-    subjcol     = [1 1 1];
+    subjcol     = subjcolors(strcmp(subject,Subjects),:);
     
     % Get sound parameters
     dBSPL       = UnitData(iUn).spl;
@@ -276,6 +279,10 @@ for iUn = 1:numel(UnitData)
                 Duration = 1000;
         end
         t3 = t2 + Duration;
+        if t3(end)>length(Stream_FRsmooth)
+            t3 = t3(1:end-1);
+            t2 = t2(1:end-1);
+        end
         
         if exclOnset
             t2 = t2+150;
@@ -492,13 +499,12 @@ for iUn = 1:numel(UnitData)
     plot([IR_Prediction IR_Prediction], mean(IR_Observations) + mean(IR_Obs_sems)*[-1 1],'Color',plotcol)
     
     % mean point
-    ip=scatter(IR_Prediction,mean(IR_Observations),100,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+    ip=scatter(IR_Prediction,mean(IR_Observations),100,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
     if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
         ip.MarkerFaceColor = [32 129 255]./255;
-        ip.MarkerFaceAlpha = 0.65;
     end
     if strcmp(USE_MEASURE,'FR') && any(pvals)<alfa
-        ip.MarkerEdgeColor = 'g';
+        ip.MarkerFaceColor = 'k';
     end
     
     %~~~~~~~~~~~~~~~~~~~
@@ -511,13 +517,12 @@ for iUn = 1:numel(UnitData)
         % vertical errorbars (observation error)
         plot([IR_Prediction IR_Prediction], IR_Observations(is) + IR_Obs_sems(is)*[-1 1],'Color',plotcol)
         % mean point
-        ip=scatter(IR_Prediction,IR_Observations(is),100,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+        ip=scatter(IR_Prediction,IR_Observations(is),100,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
         if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
             ip.MarkerFaceColor = [32 129 255]./255;
-            ip.MarkerFaceAlpha = 0.65;
         end
         if strcmp(USE_MEASURE,'FR') && pvals(is)<alfa
-            ip.MarkerEdgeColor = 'g';
+            ip.MarkerFaceColor = 'k';
         end
         NIR = NIR+1;
     end %is
@@ -529,13 +534,12 @@ for iUn = 1:numel(UnitData)
     for is = 1:sum(allStim>6)
         
         % mean point
-        ip=scatter(UnitData(iUn).BaseFR, IR_Observations(is)-IR_Prediction, 200,'o','MarkerFaceAlpha',0.45,'MarkerFaceColor',plotcol,'MarkerEdgeColor','none');
+        ip=scatter(UnitData(iUn).BaseFR, IR_Observations(is)-IR_Prediction, 200,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
         if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
             ip.MarkerFaceColor = [32 129 255]./255;
-            ip.MarkerFaceAlpha = 0.65;
         end
         if strcmp(USE_MEASURE,'FR') && pvals(is)<alfa
-            ip.MarkerEdgeColor = 'g';
+            ip.MarkerFaceColor = 'k';
         end
         
     end %is
@@ -566,7 +570,7 @@ title(['Pred vs. Obs IR responses, avg IR, N = ' num2str(N) ' units'])
 
 % hf2
 figure(hf2); hold on
-title(['Pred vs. Obs IR responses, each IR seq, N=' num2str(size(Pdata,1)) ' comparisons, ' num2str(N) ' units'])
+title(['Pred vs. Obs IR responses, each IR seq, N=' num2str(size(Pdata,1)) ' comparisons (' num2str(sum([Pdata.pval]<alfa)) ' sig), ' num2str(N) ' units'])
  
 % hf3
 xhist = -5:0.25:5;

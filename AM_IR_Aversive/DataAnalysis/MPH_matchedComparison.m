@@ -1,11 +1,11 @@
-function MPH_matchedComparison()
+function MPH_matchedComparison(USE_MEASURE)
 %
 %  MPHanalyses( [subject, session, channel, clu] )
 %   All inputs are optional. Any variables not specified will be cycled
 %   through.
 %
-%  KP, 2018-04, 2019-03
-%
+ KP, 2018-04, 2019-03
+
 
 
 
@@ -41,7 +41,9 @@ rateVec_DB = q.buffer;
 ContextStr = {'Periodic' 'IR (AC)' 'IR (DB)'};
 SeqPosStr = {'Early' 'Late'};
 
-USE_MEASURE = 'FR';
+if nargin<1
+    USE_MEASURE = 'FR';
+end
 switch USE_MEASURE
     case 'FR'
         units = 'Hz';
@@ -394,10 +396,10 @@ for iUn = 1:numel(UnitData)
             
             if ~any(isnan([PdData(idx,:).FR]))
                 
-                plot(PdData(idx,2).FR, PdData(idx,1).FR, 'o','MarkerSize',15,'Color', colors(find(this_rate==AMrates)+1,:) )
+                plot(PdData(idx,2).(USE_MEASURE), PdData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color', colors(find(this_rate==AMrates)+1,:) )
             
                 % Save values for stats later
-                PairedData = [ PairedData; PdData(idx,2).FR PdData(idx,1).FR ];
+                PairedData = [ PairedData; PdData(idx,2).(USE_MEASURE) PdData(idx,1).(USE_MEASURE) ];
             end
             
             % Should I compare against 'within periodic' again?
@@ -424,6 +426,8 @@ if ~exist(savedir,'dir')
 end
 print_eps_kp(hf,fullfile(savedir,['matchedMPH_' USE_MEASURE]));
 
+% Save data
+save(fullfile(savedir,['matchedMPH_' USE_MEASURE]),'PairedData','-v7.3')
 
 
 end %function
