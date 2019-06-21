@@ -37,10 +37,6 @@ SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
 
 RateStream = round(resample(double(SoundData(1,:)),10000,round(Info.fs_sound*10),5));
 
-%%%%%%%%%%%%%%
-getPhase0Data;
-%%%%%%%%%%%%%%
-
 
 %% Trial Data
 
@@ -304,6 +300,12 @@ TrialData = sortrows(TrialData,'onset');
 Info.stim_ID_key = { 'Warn';  '2Hz';   '4Hz';   '8Hz';  '16Hz';  '32Hz';   'AC';  'DB'  };
 %   0: silence          1       2        3        4       5        6        7       8
 
+
+
+%% 
+%%%%%%%%%%%%%%
+getPhase0Data;
+%%%%%%%%%%%%%%
 
 
 end

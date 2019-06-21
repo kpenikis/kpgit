@@ -2,12 +2,11 @@
 close all
 
 if ~exist('SoundData','var')
-    SoundData = epData.streams.rVrt.data;
-end
+    SoundData = 
 
 % Get RateStream (fs = 1 kHz; 1 ms)
-idxms = round( 1 : Info.fs_sound/1000 : length(SoundData(1,:)) );
-RateStream = double(SoundData(1,idxms));
+idxms = round( 1 : Info.fs_sound/1000 : length(epData.streams.rVrt.data(1,:)) );
+RateStream = double(epData.streams.rVrt.data(1,idxms));
 
 
 % Get Phase0 timestamps (fs = 1 kHz; 1 ms precision)

@@ -63,6 +63,10 @@ for iUn = 1:size(Data,1)
     
     for irate = 1:size(Data,2)
         
+        if isempty(Data(iUn,irate).data)
+            continue
+        end
+        
         N = N + size(Data(iUn,irate).Res_L1o.dprime,1);
         
         plot_vals = [plot_vals; Data(iUn,irate).Res_L1o.dprime(:,2)];
@@ -173,9 +177,13 @@ end
 subplot(2,2,4); hold on
 
 legstr = cell(1,9);
-colors_bmf = cmocean('delta',13);
-colors_bmf([1 2 12 13],:) = [];
-colors_bmf(5,:) = [0 0 0];
+try
+    colors_bmf = cmocean('delta',13);
+    colors_bmf([1 2 12 13],:) = [];
+    colors_bmf(5,:) = [0 0 0];
+catch
+    colors_bmf = winter(9);
+end
 
 for isp = 1:9
     
@@ -214,6 +222,10 @@ dp_t10 = [];
 for iUn = 1:size(Data,1)
     
     for irate = 1:size(Data,2)
+        if isempty(Data(iUn,irate).data)
+            continue
+        end
+        
         dp_L1o  =  [dp_L1o; Data(iUn,irate).Res_L1o.dprime(:,2)];
         dp_t10  =  [dp_t10; Data(iUn,irate).Res_t10.dprime(:,2)];
     end

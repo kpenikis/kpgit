@@ -54,6 +54,7 @@ for ii = 4:size(SESSIONS,1)
     end
     
     % Load epData file
+    clear epData
     fprintf('Loading epData for %s %s... \n',subject,session)
     try
         epData = load([fullfile(fn.raw,subject,Info.epData_fn) '.mat'],'-mat');
@@ -78,7 +79,7 @@ for ii = 4:size(SESSIONS,1)
     %%%%%%%%%%%%%%
     
     
-    try 
+%     try 
         
     % Re-save TrialData
     save(fullfile(fn.processed,subject,filename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');

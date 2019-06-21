@@ -127,31 +127,25 @@ for iUn = Un1:numel(UnitData)
     dBSPL       = UnitData(iUn).spl;
     LP          = UnitData(iUn).lpn;
     
-%     spkshift    = UnitData(iUn).IntTime_spk;
-    
     
     % Load data files
-    
-    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1 || ~exist('TrialData','var')
         fprintf('Loading %s sess %s...\n',subject,session)
         clear TrialData Info RateStream SoundStream SpoutStream
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
     end
-    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1
+    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || ~exist('TrialData','var')
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
     end
-%     if ~isfield(Info,'artifact')
-%         continue
-%     end
     
     if ~exist('RateStream','var')
         keyboard
     end
     
-    % Get spiketimes and shift based on calculated integration time
     
+    % Get spiketimes and shift based on calculated integration time
     if exist('Spikes','var')                                 % >>> UMS <<<
         
         spiketimes = unique(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift);  %ms
@@ -187,7 +181,7 @@ for iUn = Un1:numel(UnitData)
     
     for this_rate = AMrates
         
-        fprintf(' %iHz\n',this_rate)
+        fprintf(' %iHz',this_rate)
         Period = 1000/this_rate;
         irate     = find(AMrates==this_rate);
         
@@ -199,6 +193,7 @@ for iUn = Un1:numel(UnitData)
             | (MPH_rate.ThisStimID==irate+1 & MPH_rate.PrevStimID==irate+1) );
         
         if isempty(iPdc)
+            fprintf('   ...skipping bc no valid Pdc MPH\n')
             continue
         end
         
@@ -292,8 +287,9 @@ for iUn = Un1:numel(UnitData)
         fprintf('   running classifier: leave one tr out\n')
         Data(iUn,irate).Res_L1o  = get_classifier_data( thisMPH, -1 );
 %         fprintf('   running classifier: 10 trial templates\n')
-%         Data(iUn,irate).Res_t10  = [];%get_classifier_data( thisMPH, 10 );
+        Data(iUn,irate).Res_t10  = []; %get_classifier_data( thisMPH, 10 );
         
+        fprintf(' \n')
         
         % Add to plot
 %         these_idx       = Data(iUn,irate).Res_t10.dprime(:,1);
