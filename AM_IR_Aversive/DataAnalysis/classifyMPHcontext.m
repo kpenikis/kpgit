@@ -1,4 +1,4 @@
-function Data = classifyMPHcontext(USE_MEASURE)
+function Data = ClassifyMPHcontext(USE_MEASURE)
 %
 %  classifyMPHcontext
 %
@@ -15,11 +15,11 @@ if nargin<1
     USE_MEASURE = 'FR'; 'spikes';
 end
 %!!!!!!!!!!!!!!!!!!!
-RERUN       =   0;
+RERUN       =   1;
 %!!!!!!!!!!!!!!!!!!!
 trMin       =  10;
 %!!!!!!!!!!!!!!!!!!!
-Iterations  =  10;
+Iterations  =  1000;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     =  31;
 %!!!!!!!!!!!!!!!!!!!
@@ -106,7 +106,7 @@ colors = [ colors; ...
 
 %% Step through Units
 
-for iUn = Un1:numel(UnitData)
+for iUn = 1:numel(UnitData)
         
     %%% skips merged units for now
     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
@@ -148,12 +148,12 @@ for iUn = Un1:numel(UnitData)
     % Get spiketimes and shift based on calculated integration time
     if exist('Spikes','var')                                 % >>> UMS <<<
         
-        spiketimes = unique(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift);  %ms
+        spiketimes = unique(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 - spkshift);  %ms
         
     elseif exist('Clusters','var')                            % >>> KS <<<
         
         iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == clu);
-        spiketimes = unique(Clusters(iClu).spikeTimes * 1000 + spkshift)';
+        spiketimes = unique(Clusters(iClu).spikeTimes * 1000 - spkshift)';
         
     end
     

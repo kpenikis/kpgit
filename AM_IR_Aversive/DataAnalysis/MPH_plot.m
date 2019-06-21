@@ -138,12 +138,12 @@ for iUn = 122%4:numel(UnitData)
     % Get spiketimes and shift based on calculated integration time
     if exist('Spikes','var')                                 % >>> UMS <<<
         
-        spiketimes = unique(round(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift));  %ms
+        spiketimes = unique(round(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 - spkshift));  %ms
         
     elseif exist('Clusters','var')                            % >>> KS <<<
         
         iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == clu);
-        spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 + spkshift)');
+        spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 - spkshift)');
         
     end
     

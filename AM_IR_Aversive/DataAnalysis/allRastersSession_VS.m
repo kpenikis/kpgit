@@ -131,6 +131,7 @@ for ist = Stimuli
         raster_x = [];
         raster_y = [];
         stim   = nan( numel(TDidx), Duration+1 );
+        psth   = nan( numel(TDidx), Duration+1 );
         
         % Collect spikes/FR/rms for this stimulus/unit
         for it = 1:numel(TDidx)
@@ -144,6 +145,8 @@ for ist = Stimuli
             
             raster_x = [raster_x sp];
             raster_y = [raster_y it*ones(1,numel(sp))];
+            
+            psth(it,:) = Stream_FRsmooth(1, t2(it) : t3(it) );
             
         end %it
         
@@ -169,6 +172,12 @@ for ist = Stimuli
         
         add_y = [add_y add_y(end) + numel(TDidx)];
         N_un = N_un + 1;
+        
+        % Save data for shihab
+%         AvgEnv = mean(stim,1);
+%         PSTH   = mean(psth,1);
+%         savedataname = sprintf('VSresponse_Clu%i_Stim%i',thisClu.clusterID,ist);
+%         save(fullfile(fn.root,'SharedData',savedataname),'AvgEnv','PSTH','-v7.3')
         
     end % iUn
     

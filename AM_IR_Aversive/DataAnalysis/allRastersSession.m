@@ -4,8 +4,11 @@ function allRastersSession(SUBJECT,SESSION)
 %    Plots a raster and psth for each stimulus, for all SU from the session.
 %    Uses Clusters struct, not UnitData table. 
 %
-%  KP, 2019-01, updated 2019-02
+%  KP, 2019-01, updated 2019-06
 %
+
+keyboard
+% add TTP limit
 
 
 %% Load files
@@ -16,6 +19,13 @@ filename = sprintf( '%s_sess-%s_Info'     ,SUBJECT,SESSION); load(fullfile(fn.pr
 filename = sprintf( '%s_sess-%s_TrialData',SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 filename = sprintf( '%s_sess-%s_Spikes'   ,SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 
+q = load(fullfile(fn.processed,'Units'));
+UnitData = q.UnitData;
+UnitInfo = q.UnitInfo;
+clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Sort units by FR
 [~, inspks] = sort(cellfun(@(x) sum(x>(TrialData.onset(1)/1000) & x<(TrialData.offset(1)/1000)), {Clusters.spikeTimes},'UniformOutput',true)); % baseline FR (during silence)
@@ -28,7 +38,9 @@ Clusters = Clusters(inspks);
 close all
 
 set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',20)
+set(0,'DefaultAxesFontSize',16)
+rasterdotsize  = 10;
+psthlinewidth  = 4;
 rng('shuffle')
 
 scrsz = get(0,'ScreenSize');   %[left bottom width height]
@@ -51,10 +63,8 @@ colors = [ colors; ...
     [19 125 124]./255 ;...
     [ 0   0   0]./255];
 
-rasterdotsize  = 10;
-psthlinewidth  = 4;
-
-raster_colors = [0.2 0.2 0.2; 0.5 0.5 0.5];
+raster_colors = [0 0 0; 0.2 0.5 0.8];
+patch_colors  = [0.9 0.9 0.9; 1 1 1];
 
 Info.stim_ID_key{9} = 'Silence';
 rmsrange = [];
@@ -66,8 +76,9 @@ for ist = Stimuli
     
     stid = Stimuli(ist);
     
-    add_y = 0;%zeros(1,7);
-    N_un  = 0;%zeros(1,7);
+    add_y    = 0;%zeros(1,7);
+    N_un     = 0;%zeros(1,7);
+    ytickstr = cell(1,numel(Clusters));
     
     %%
     % Set up figure
@@ -83,17 +94,11 @@ for ist = Stimuli
     
     for iUn = 1:numel(Clusters)
         
-        % FOR NOW, ADD PLACEHOLDER FOR ARTIFACT TRIALS FOR SYNAPSE/KS DATA
-        if ~isfield(Info,'artifact')
-            keyboard
-            Info.artifact(64).trials = [];
-        end        
-        
         % Get spiketimes
         thisClu = Clusters(iUn);
         maxChan = thisClu.maxChannel;
         %originally: seconds, not rounded
-        spiketimes = round(thisClu.spikeTimes*1000)';
+        spiketimes = round(thisClu.spikeTimes*1000 - spkshift)';
         
         
         % Get stimulus params
@@ -101,7 +106,6 @@ for ist = Stimuli
         if numel(dBSPL)>1 || numel(LP)>1
             keyboard
         end
-        
         
         % Convert FR to z-score
         bs_smth = 20;
@@ -207,24 +211,32 @@ for ist = Stimuli
         figure(hf(ist)); hold on
         
         % Stimulus RMS
-        subplot(hs(ist,1)); hold on
-        plot(0:Duration, mean(stim,1,'omitnan'),...
-            'LineWidth',psthlinewidth,'Color',colors(stid,:))
-        set(gca,'Color','none','xtick',[],'ytick',[])
+        if iUn == numel(Clusters)
+            subplot(hs(ist,1)); hold on
+            plot(0:Duration, mean(stim,1,'omitnan'),...
+                'LineWidth',psthlinewidth,'Color','k')
+            set(gca,'Color','none','xtick',[],'ytick',[])
+        end
         
         % Raster
         subplot(hs(ist,2)); hold on
+%         patch([0 Duration Duration 0], add_y(end) + [0 0 it it],...
+%             patch_colors(1+mod(N_un,2),:),'EdgeColor','none')
+%         plot([raster_x; raster_x], raster_y + add_y(end) + [-0.5; 0.5],...
+%             '-','Color',raster_colors(1+mod(N_un,2),:),'LineWidth',4)
         plot(raster_x, raster_y + add_y(end),...
-            '.','MarkerSize',rasterdotsize,'Color',raster_colors(1+mod(N_un,2),:))
+            '.','Color',raster_colors(1+mod(N_un,2),:),'MarkerSize',rasterdotsize)
         set(gca,'Color','none','xtick',[],...
-            'tickdir','out','ticklength',40/Duration.*[1 1])
+            'tickdir','out','ticklength',0.01.*[1 1])
         box off
         
         
         add_y = [add_y add_y(end) + max(kt)];
         N_un = N_un + 1;
+        ytickstr{N_un} = num2str(thisClu.clusterID);
         
     end % iUn
+    
     
     if add_y == 0
         continue
@@ -233,10 +245,13 @@ for ist = Stimuli
     suptitle(sprintf('%s   |   %s %s   |   %i units',...
         Info.stim_ID_key{stid}, SUBJECT,SESSION,N_un ))
     
-    set(gca,'ytick',add_y,'yticklabel',[],'ylim',[0 add_y(end)+1],...
-        'xtick',0:500:Duration,'xticklabel',0:500:Duration)
+    set(gca,'ytick',add_y,'yticklabel',ytickstr,'ylim',[0 add_y(end)+1],...
+        'xtick',unique([0:500:Duration Duration]),'xticklabel',unique([0:500:Duration Duration]))
     xlabel('Time (ms)')
-    ylabel([num2str(mode(diff(add_y))) ' trials each'])
+    ylabel([num2str(mode(diff(add_y))) ' trials each'])    
+%     ax = ancestor(gca,'axes');
+%     yrule = ax.YAxis;
+%     yrule.FontSize = 16;
     
     subplot(hs(ist,1));
     rmsrange = [rmsrange; get(gca,'ylim')];
@@ -251,7 +266,11 @@ for ist = Stimuli
     end
     
     savename = sprintf('%s_%s_%s',SUBJECT,SESSION,Info.stim_ID_key{ist});
+
     print_eps_kp(hf(ist),fullfile(savedir,savename))
+    
+%     set(gcf,'PaperOrientation','landscape')
+%     print(hf(ist),fullfile(savedir,savename),'-dpdf','-bestfit')
     
     
 end %ist

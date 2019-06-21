@@ -2,8 +2,9 @@ function addToTrialData_Phase0_RateStream
 %
 %  save_Phase0_RateStream
 %
-%  KP, 2019-04
+%  KP, 2019-04, updated 2019-06 
 %
+
 %%
         %     fs = epData.streams.rVrt.fs (1/5 of phys data)
         % epData.streams.rVrt.data
@@ -39,7 +40,7 @@ clear q
 
 SESSIONS = unique(UnitInfo(:,1:2));
 
-for ii = 4:size(SESSIONS,1)
+for ii = 1:size(SESSIONS,1)
     
     subject   = SESSIONS{ii,1}{:};
     session   = SESSIONS{ii,2}{:};
@@ -48,9 +49,11 @@ for ii = 4:size(SESSIONS,1)
     clear Info TrialData SoundStream SpoutStream RateStream Phase0 
     filename = sprintf( '%s_sess-%s_Info'      ,subject,session); load(fullfile(fn.processed,subject,filename));
     filename = sprintf( '%s_sess-%s_TrialData' ,subject,session); load(fullfile(fn.processed,subject,filename));
-    clear RateStream Phase0
-    if exist('RateStream','var') && exist('Phase0','var')
-        continue
+    
+    % Change this depending on how you want to update the stim data
+    clear Phase0
+    if ~exist('RateStream','var') 
+        keyboard
     end
     
     % Load epData file

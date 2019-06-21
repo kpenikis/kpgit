@@ -55,6 +55,7 @@ path(genpath(includePath),path);
 
 
 % Set basic folders
+fn.root       = basefolder;
 fn.raw        = fullfile(basefolder,'RawData');
 fn.processed  = fullfile(basefolder,'ProcessedData');
 fn.stim       = fullfile(basefolder,'Stimuli');

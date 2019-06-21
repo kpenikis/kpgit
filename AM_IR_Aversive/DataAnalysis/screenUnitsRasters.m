@@ -60,7 +60,7 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = 1:numel(Clusters)    
+for iUn = 9:numel(Clusters)    
     
     close all
     
@@ -246,8 +246,8 @@ for iUn = 1:numel(Clusters)
     set(gca,'xlim',[1 length(thisClu.maxChTemp)],'xtick',[],'Color','none')
     title(sprintf('%i events | %0.1f Hz',length(spiketimes),meanFR ))
     subplot(1,3,2);
-    histogram([-diff(spiketimes) diff(spiketimes)],[-60:60],'EdgeColor','none','FaceColor','k','FaceAlpha',1);
-    set(gca,'xlim',[-50 50],'Color','none')
+    histogram([-diff(spiketimes) diff(spiketimes)],[-200:200],'EdgeColor','none','FaceColor','k','FaceAlpha',1);
+    set(gca,'xlim',[-200 200],'Color','none')
     title(sprintf('%0.1f%% violation rate', 100*sum(diff(spiketimes)<3)/length(spiketimes) ))
     subplot(1,3,3);
     try
@@ -261,7 +261,6 @@ for iUn = 1:numel(Clusters)
     %% Save figures
     
     if UseTempFolder
-%         savedir = fullfile(fn.processed,'Rasters_TEMP',sprintf('%s_%s_%i_%i',SUBJECT,SESSION,thisClu.shank,thisClu.clusterID));
         savedir = fullfile(fn.sessdata,'Rasters','tmp',sprintf('%s_%s_%i_%i',SUBJECT,SESSION,thisClu.shank,thisClu.clusterID));
     else
         savedir = fullfile(fn.sessdata,'Rasters',sprintf('%s_%s_%i_%i',SUBJECT,SESSION,thisClu.shank,thisClu.clusterID));
@@ -277,6 +276,8 @@ for iUn = 1:numel(Clusters)
     
     savename = sprintf('%s_%s_%i_%i_clu%i',SUBJECT,SESSION,thisClu.shank,maxChan,thisClu.clusterID);
     print_eps_kp(hfClu,fullfile(savedir,savename))
+    
+    keyboard
     
     close(hf); close(hfClu)
     clear hf hs hfClu

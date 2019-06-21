@@ -1,4 +1,4 @@
-function predObserved(USE_MEASURE)
+function PredictedObserved(USE_MEASURE)
 % predObserved(USE_MEASURE)
 % 
 %   Based on MTF of each unit for Pdc stim, calculate predicted IR response.
@@ -16,7 +16,7 @@ function predObserved(USE_MEASURE)
 
 
 close all
-global fn AMrates rateVec_AC rateVec_DB 
+global fn AMrates rateVec_AC rateVec_DB minTrs
 
 %!!!!!!!!!!!!!!!!!
 exclOnset   = 0; 
@@ -212,12 +212,12 @@ for iUn = 1:numel(UnitData)
     
     if exist('Spikes','var')                                 % >>> UMS <<<
         
-        spiketimes = unique(round(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift));  %ms
+        spiketimes = unique(round(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 - spkshift));  %ms
         
     elseif exist('Clusters','var')                            % >>> KS <<<
         
         iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == clu);
-        spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 + spkshift)');
+        spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 - spkshift)');
         
     end
     
@@ -341,16 +341,12 @@ for iUn = 1:numel(UnitData)
     
     %% ----  PREDICTED IR RESPONSE  ----
     
-    % weighted average of periodic responses
-    
+    % simple weighted avg of tuning curve
+        
     switch USE_MEASURE
         case 'FR'
-            IR_Prediction   = sum( FRmeans(2:6) .* ((1./AMrates)/sum(1./AMrates)) );
             
-            % Errorbar option #1: weighted sum of variances, then converted to overall SEM [--> var(a+b)=var(a)+var(b) ]
-            IR_Pred_sem2   = sqrt( sum( FRvars(2:6) .* ((1./AMrates)/sum(1./AMrates)) ) ) / sqrt(length(AMrates));
-            % Errorbar option #1: weighted sum of SEMs
-            IR_Pred_sem    = sum( ( sqrt(FRvars(2:6))./sqrt(Ntrials(2:6)) ) .* ((1./AMrates)/sum(1./AMrates)) );
+            [IR_Prediction,IR_Pred_sem] = predictIRresponse(FRmeans(2:6),FRvars(2:6),Ntrials(2:6));
             
         case 'FF'
             IR_Prediction  = sum( FF(2:6) .* ((1./AMrates)/sum(1./AMrates)) );
@@ -359,30 +355,11 @@ for iUn = 1:numel(UnitData)
     
     
     
-    %% Compare FR distributions
+    %% Simulate IR responses to compare distributions
     
     if strcmp(USE_MEASURE,'FR')
         
-        % Simulate IR trials for within unit statistics
-        ntrs = cellfun(@length,FRtrials);
-        nt = min(ntrs(ntrs>0));
-        if nt<minTrs, keyboard, end
-        
-        FR_sim = zeros(nt,1);
-        for it = 1:nt
-            for ir = 1:5
-                FR_sim(it) = FR_sim(it) + FRtrials{ir+1}(it) * ((1./AMrates(ir))/sum(1./AMrates));
-            end
-        end
-        
-        % Stats
-        thisNIR = 0;
-        pvals   = [];
-        for iir = 7:length(FRtrials)
-            if isempty(FRtrials{iir}), continue, end
-            thisNIR = thisNIR+1;
-            [~,pvals(thisNIR)] = ttest2(FR_sim,FRtrials{iir}(1:nt));
-        end
+        [IR_Prediction_sim, IR_Pred_std_sim, pvals] = predictIRresponse_simulation(FRtrials);
         
     else
         pvals = nan(1,sum(allStim>6));
@@ -405,7 +382,7 @@ for iUn = 1:numel(UnitData)
         switch USE_MEASURE
             case 'FR'
                 y_vals = FRmeans';
-                y_errs = FRmeans' + (FRvars.^0.5)'.*[-ones([length(FRmeans) 1]) ones([length(FRmeans) 1])]; %for sem instead of std ./ (Ntrials.^0.5)'
+                y_errs = FRmeans' + (FRvars.^0.5)'.*[-ones([length(FRmeans) 1]) ones([length(FRmeans) 1])]; %std, for sem instead: ./ (Ntrials.^0.5)'
             case 'FF'
                 y_vals = FF';
                 y_errs = zeros(length(FF),2);
@@ -428,6 +405,10 @@ for iUn = 1:numel(UnitData)
         % Plot IR prediction
         fill([6 max(xvals)+1 max(xvals)+1 6],IR_Prediction + IR_Pred_sem.*[-1 -1 1 1],0.8.*[1 1 1],'EdgeColor','none')
         plot([6 max(xvals)+1],[IR_Prediction IR_Prediction],'k','LineWidth',1)
+        % Also plot prediction from simulation
+        plot([7 7],IR_Prediction_sim + IR_Pred_std_sim*[-1 1],'k','LineWidth',2)
+        plot( 7, IR_Prediction_sim, 'ok','MarkerSize',15,...
+                'MarkerFaceColor','k','MarkerEdgeColor','none')
         
         % Plot IR observed
         for ir = 6:length(xvals)
@@ -457,8 +438,8 @@ for iUn = 1:numel(UnitData)
 %         print_eps_kp(hmtf,fullfile(savedir,savename),1)
 %         print_svg_kp(hmtf,fullfile(savedir,savename),1)
         
-    end
-        
+    end % plot MTF
+    
         
     
     

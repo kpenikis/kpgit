@@ -29,6 +29,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 filename = sprintf( '%s_sess-%s_Info'     ,SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 filename = sprintf( '%s_sess-%s_TrialData',SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
@@ -96,7 +99,7 @@ for stid = unique([TrialData.trID])'
         clu     = UnitData(iUn).Clu(1);
         
         % Get spiketimes (KS)
-        spiketimes = round(Clusters(([Clusters.maxChannel]==channel & [Clusters.clusterID]==clu)).spikeTimes*1000)';
+        spiketimes = round(Clusters(([Clusters.maxChannel]==channel & [Clusters.clusterID]==clu)).spikeTimes*1000 - spkshift)';
         
         [Stream_FRsmooth,Stream_zscore,Stream_spikes,ymaxval] = convertSpiketimesToFR(spiketimes,...
             length(SpoutStream),TrialData.onset(1),TrialData.offset(1),20,50,'silence');

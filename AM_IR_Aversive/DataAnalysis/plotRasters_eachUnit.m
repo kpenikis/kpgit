@@ -19,6 +19,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
@@ -117,15 +120,15 @@ for iUn = theseUnits
     if ~isfield(Info,'artifact')
         Info.artifact(64).trials = [];
     end
-    Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
+%     Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
     
     
     % Get spiketimes
     if exist('Spikes','var')
         spikes = Spikes.sorted(channel);
-        spiketimes = round(spikes.spiketimes(spikes.assigns==clu') * 1000);  %ms
+        spiketimes = round(spikes.spiketimes(spikes.assigns==clu') * 1000 - spkshift);  %ms
     elseif exist('Clusters','var')
-        spiketimes = round(Clusters([Clusters.clusterID]==clu & [Clusters.maxChannel]==channel).spikeTimes *1000)';
+        spiketimes = round(Clusters([Clusters.clusterID]==clu & [Clusters.maxChannel]==channel).spikeTimes *1000 - spkshift)';
     end
     
     

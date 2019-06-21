@@ -24,6 +24,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Filter Unit files to just this session and sort by baseline FR
 UnitData = UnitData(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT));
@@ -101,16 +104,19 @@ for stid = unique([TrialData.trID])'
     
     for iUn = 1:size(UnitInfo,1)
         
-        %%% still must edit for merged units
-        %     if numel(UnitInfo(iUn,:).Session{:})>2  %strncmp(UnitInfo.RespType{iUn},'merged',6)
-        %         continue
-        %     end
+        if ismember(iUn,iNarrow)
+            unCol = ColNarrow;
+        elseif ismember(iUn,iRegSpk)
+            unCol = ColRegSpk;
+        else
+            continue
+        end
         
         channel = UnitData(iUn).Channel(1);
         clu     = UnitData(iUn).Clu(1);
         
         % Get spiketimes (KS)
-        spiketimes = round(Clusters(([Clusters.maxChannel]==channel & [Clusters.clusterID]==clu)).spikeTimes*1000)';
+        spiketimes = round(Clusters(([Clusters.maxChannel]==channel & [Clusters.clusterID]==clu)).spikeTimes*1000 - spkshift)';
         
         % Get sound parameters
         [dBSPL,LP] = theseSoundParams(TrialData);
@@ -197,14 +203,6 @@ for stid = unique([TrialData.trID])'
         
         %% Add to plot
         
-        if ismember(iUn,iNarrow)
-            unCol = ColNarrow;
-        elseif ismember(iUn,iRegSpk)
-            unCol = ColRegSpk;
-        else
-            keyboard
-        end
-        
         subplot(hs(3)); hold on
         plot([raster_x; raster_x], [raster_y; raster_y] + 0.45.*[-ones(size(raster_y)); ones(size(raster_y))],...
             'Color',unCol,'LineWidth',2)
@@ -218,8 +216,6 @@ for stid = unique([TrialData.trID])'
             PSTH_Nar = [PSTH_Nar; mean(psth,1)];
         elseif ismember(iUn,iRegSpk)
             PSTH_Reg = [PSTH_Reg; mean(psth,1)];
-        else
-            keyboard
         end
         
         
@@ -244,26 +240,26 @@ for stid = unique([TrialData.trID])'
     
     savedir = '/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/ProcessedData/SessionPopulationRasters';
     savename = sprintf('%s_%s_%s',SUBJECT,SESSION,Info.stim_ID_key{stid});
-%     print_eps_kp(hf(stid),fullfile(savedir,savename))
+    print_eps_kp(hf(stid),fullfile(savedir,savename))
     
     
     %% Normalized PSTHs
     
-    PSTH_Nar_norm = PSTH_Nar - repmat(min(PSTH_Nar,[],2),1,size(PSTH_Nar,2));
-    PSTH_Nar_norm = PSTH_Nar_norm ./ repmat(max(PSTH_Nar_norm,[],2),1,size(PSTH_Nar_norm,2));
-    
-    PSTH_Reg_norm = PSTH_Reg - repmat(min(PSTH_Reg,[],2),1,size(PSTH_Reg,2));
-    PSTH_Reg_norm = PSTH_Reg_norm ./ repmat(max(PSTH_Reg_norm,[],2),1,size(PSTH_Reg_norm,2));
-    
-    hf2(stid) = figure;
-    set(hf2(stid),'Position',tallfig.* [1 1 figwidthscales(stid) 1],'NextPlot','add')
-    hold on
-    imagesc([PSTH_Reg_norm; PSTH_Nar_norm])
-    colormap(cmocean('ice'))
-    xlim([0 Duration])
-    ylim(0.5+[0 N_un])
-    
-    title(Info.stim_ID_key{stid})
+%     PSTH_Nar_norm = PSTH_Nar - repmat(min(PSTH_Nar,[],2),1,size(PSTH_Nar,2));
+%     PSTH_Nar_norm = PSTH_Nar_norm ./ repmat(max(PSTH_Nar_norm,[],2),1,size(PSTH_Nar_norm,2));
+%     
+%     PSTH_Reg_norm = PSTH_Reg - repmat(min(PSTH_Reg,[],2),1,size(PSTH_Reg,2));
+%     PSTH_Reg_norm = PSTH_Reg_norm ./ repmat(max(PSTH_Reg_norm,[],2),1,size(PSTH_Reg_norm,2));
+%     
+%     hf2(stid) = figure;
+%     set(hf2(stid),'Position',tallfig.* [1 1 figwidthscales(stid) 1],'NextPlot','add')
+%     hold on
+%     imagesc([PSTH_Reg_norm; PSTH_Nar_norm])
+%     colormap(cmocean('ice'))
+%     xlim([0 Duration])
+%     ylim(0.5+[0 N_un])
+%     
+%     title(Info.stim_ID_key{stid})
     
     
 end %stid

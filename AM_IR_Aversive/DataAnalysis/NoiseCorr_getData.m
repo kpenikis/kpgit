@@ -105,12 +105,12 @@ for iUn1 = 1:numel(UnitData)
         % Get spiketimes and shift based on calculated integration time
         if exist('Spikes','var')                                 % >>> UMS <<<
             
-            spiketimes = unique(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==Clu1') * 1000 + spkshift);  %ms
+            spiketimes = unique(Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==Clu1') * 1000 - spkshift);  %ms
             
         elseif exist('Clusters','var')                            % >>> KS <<<
             
             iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == Clu1);
-            spiketimes = unique(Clusters(iClu).spikeTimes * 1000 + spkshift)';
+            spiketimes = unique(Clusters(iClu).spikeTimes * 1000 - spkshift)';
             
         end
         
@@ -122,12 +122,12 @@ for iUn1 = 1:numel(UnitData)
 %         convWin = 1;
         recLen = length(SoundStream);
         
-        spiketimes1 = unique(round( Clusters([Clusters.clusterID]==Clu1).spikeTimes' * 1000 + spkshift ));
+        spiketimes1 = unique(round( Clusters([Clusters.clusterID]==Clu1).spikeTimes' * 1000 - spkshift ));
         sp1 = zeros(1,recLen);
         sp1(spiketimes1) = 1;
 %         sp1 = convolveGauss(sp1,convWin);
         
-        spiketimes2 = unique(round( Clusters([Clusters.clusterID]==Clu2).spikeTimes' * 1000 + spkshift ));
+        spiketimes2 = unique(round( Clusters([Clusters.clusterID]==Clu2).spikeTimes' * 1000 - spkshift ));
         sp2 = zeros(1,recLen);
         sp2(spiketimes2) = 1;
 %         sp2 = convolveGauss(sp2,convWin);

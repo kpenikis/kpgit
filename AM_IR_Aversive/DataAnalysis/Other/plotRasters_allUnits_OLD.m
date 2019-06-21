@@ -1,4 +1,4 @@
-function plotRasters_allUnits(stimID)
+function plotRasters_allUnits_OLD(stimID)
 %
 %  plotRasters_allUnits()
 %    Plots a raster and psth for each stimulus, with all SU in the UnitData

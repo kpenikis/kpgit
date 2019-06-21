@@ -1,7 +1,7 @@
 function allSession_zScore(SUBJECT,SESSION)
 %
 %  allRastersSession(SUBJECT, SESSION )
-%    Plots a raster and psth for each stimulus, for all SU from the session.
+%    Plots a raster and psth for each stimulus, for all SU from one session.
 %    Uses Clusters struct, not UnitData table. 
 %
 %  KP, 2019-01, updated 2019-02
@@ -16,6 +16,13 @@ filename = sprintf( '%s_sess-%s_Info'     ,SUBJECT,SESSION); load(fullfile(fn.pr
 filename = sprintf( '%s_sess-%s_TrialData',SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 filename = sprintf( '%s_sess-%s_Spikes'   ,SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 
+q = load(fullfile(fn.processed,'Units'));
+UnitData = q.UnitData;
+UnitInfo = q.UnitInfo;
+clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Sort units by FR
 [~, inspks] = sort(cellfun(@(x) sum(x>(TrialData.onset(1)/1000) & x<(TrialData.offset(1)/1000)), {Clusters.spikeTimes},'UniformOutput',true)); % baseline FR (during silence)
@@ -28,33 +35,14 @@ Clusters = Clusters(inspks);
 close all
 
 set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',20)
+set(0,'DefaultAxesFontSize',12)
+psthlinewidth  = 2;
 rng('shuffle')
 
 scrsz = get(0,'ScreenSize');   %[left bottom width height]
 tallrect   = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
-fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
-largerect = [1 scrsz(4)/2 scrsz(3)/3 scrsz(4)/2];
 
 figwidthscales = [1.5 1 1 1 1 1 1.937 1.937 1];
-
-
-% Set colors
-colors = [   0 200 150;...
-    84  24  69;...
-    120  10  41;...
-    181   0  52;...
-    255  87  51;...
-    255 153   0]./255;
-colors = [ colors; ...
-    [37  84 156]./255 ;...
-    [19 125 124]./255 ;...
-    [ 0   0   0]./255];
-
-rasterdotsize  = 10;
-psthlinewidth  = 4;
-
-raster_colors = [0.2 0.2 0.2; 0.5 0.5 0.5];
 
 Info.stim_ID_key{9} = 'Silence';
 rmsrange = [];
@@ -66,9 +54,10 @@ for ist = Stimuli
     
     stid = Stimuli(ist);
     
-    add_y = 0;%zeros(1,7);
-    N_un  = 0;%zeros(1,7);
-    zDataALL=[];
+    add_y    = 0;%zeros(1,7);
+    N_un     = 0;%zeros(1,7);
+    ytickstr = cell(1,numel(Clusters));
+    zDataALL = [];
     
     %%
     % Set up figure
@@ -94,7 +83,7 @@ for ist = Stimuli
         thisClu = Clusters(iUn);
         maxChan = thisClu.maxChannel;
         %originally: seconds, not rounded
-        spiketimes = round(thisClu.spikeTimes*1000)';
+        spiketimes = unique(round(thisClu.spikeTimes*1000-spkshift)');
         
         
         % Get stimulus params
@@ -206,16 +195,17 @@ for ist = Stimuli
         % Stimulus RMS
         subplot(hs(ist,1)); hold on
         plot(0:Duration, mean(stim,1,'omitnan'),...
-            'LineWidth',psthlinewidth,'Color',colors(stid,:))
+            'LineWidth',psthlinewidth,'Color','k')
         set(gca,'Color','none','xtick',[],'ytick',[])
         
-        % Save average zScoreactivity for this unit
+        % Save average zScore activity for this unit
 %         subplot(hs(ist,2)); hold on
 %         image(0:Duration, N_un*ones(1,size(zData,2)), mean(zData,1,'omitnan') )
         zDataALL = [zDataALL; mean(zData,1,'omitnan')];
         
         add_y = [add_y add_y(end) + max(kt)];
         N_un = N_un + 1;
+        ytickstr{N_un} = num2str(thisClu.clusterID);
         
     end % iUn
     
@@ -227,16 +217,15 @@ for ist = Stimuli
     
     imagesc(zDataALL)
     
-%     colorbar
     cmocean('balance','pivot',0)
     caxis([-1 3])
     
     box off    
     set(gca,'Color','none','xtick',[],...
-        'tickdir','out','ticklength',40/Duration.*[1 1])
+        'tickdir','out','ticklength',0.01.*[1 1])
     
-    set(gca,'yticklabel',[],'ylim',[0.5 N_un+0.5],...
-        'xtick',0:500:Duration,'xticklabel',0:500:Duration)
+    set(gca,'ytick',1:N_un,'yticklabel',ytickstr,'ylim',[0.5 N_un+0.5],...
+        'xtick',unique([0:500:Duration Duration]),'xticklabel',unique([0:500:Duration Duration]))
     xlabel('Time (ms)')
 %     ylabel([num2str(mode(diff(add_y))) ' trials each'])
     
@@ -258,21 +247,26 @@ for ist = Stimuli
     end
     
     savename = sprintf('%s_%s_zSc_%s',SUBJECT,SESSION,Info.stim_ID_key{ist});
-    print_eps_kp(hf(ist),fullfile(savedir,savename))
+%     print_eps_kp(hf(ist),fullfile(savedir,savename))
+    set(gcf,'PaperOrientation','landscape')
+    print(hf(ist),fullfile(savedir,savename),'-dpdf','-bestfit')
     
     
 end %ist
 
 
-
+% Print figure for legend
 hcb=figure;
 imagesc(zDataALL)
 cmocean('balance','pivot',0)
 caxis([-1 3])
 colorbar
+set(gca,'ytick',1:N_un,'yticklabel',ytickstr,'ylim',[0.5 N_un+0.5])
 
 savename = sprintf('%s_%s_zSc_Colorbar',SUBJECT,SESSION,Info.stim_ID_key{ist});
-print_eps_kp(hcb,fullfile(savedir,savename))
+% print_eps_kp(hcb,fullfile(savedir,savename))
+set(gcf,'PaperOrientation','landscape')
+print(hf(ist),fullfile(savedir,savename),'-dpdf','-bestfit')
 
 
 

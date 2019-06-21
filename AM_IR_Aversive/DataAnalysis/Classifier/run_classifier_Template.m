@@ -90,6 +90,11 @@ pHit		=	p(1);
 pFA			=	pp(1);
 dp			=	calculate_dprime(pHit,pFA);
 dp			=	abs(dp);
+
+% If dp=nan and neither raster has 0 spikes; may need more iterations?
+% if isnan(dp) && ~any(sum(sum(ng_mat))==0 || sum(sum(go_mat))==0)
+%     keyboard
+% end
 %---Note: you can calculate dprime on each iteration instead and then
 %average those values across all iterations. I've tried that and it's
 %more/less the same results.---%

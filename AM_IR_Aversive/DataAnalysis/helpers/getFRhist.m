@@ -19,12 +19,12 @@ filename = sprintf( '%s_sess-%s_Spikes'   ,Subject,Session); load(fullfile(fn.pr
 % Get spiketimes and shift based on calculated integration time
 if exist('Spikes','var')                                 % >>> UMS <<<
     
-    spiketimes = unique(Spikes.sorted(Channel).spiketimes(Spikes.sorted(Channel).assigns==Clu') * 1000 + spkshift);  %ms
+    spiketimes = unique(Spikes.sorted(Channel).spiketimes(Spikes.sorted(Channel).assigns==Clu') * 1000 - spkshift);  %ms
     
 elseif exist('Clusters','var')                           %  >>> KS <<<
     
     iClu = find([Clusters.maxChannel] == Channel & [Clusters.clusterID] == Clu);
-    spiketimes = unique(Clusters(iClu).spikeTimes * 1000 + spkshift)';
+    spiketimes = unique(Clusters(iClu).spikeTimes * 1000 - spkshift)';
     
 end
 

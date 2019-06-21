@@ -1,10 +1,11 @@
-function pdcRespRepetition
+function PdcRespRepetition
 %  
 % KP, 2019-04
 %
 
 close all
 minNtr = 10;
+alfa   = 0.01;
 
 %% Load Unit data files
 
@@ -99,16 +100,20 @@ for iUn = 1:numel(UnitData)
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
     end
     
+    if ~exist('Phase0','var')
+        sprintf('\nPHASE0 DOES NOT EXIST FOR SESSION %s\n',session)
+        continue
+    end
     
     % Get spiketimes and shift based on calculated integration time 
     if exist('Spikes','var')                                 % >>> UMS <<<
         
-        spiketimes = unique(round( Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 + spkshift ));  %ms
+        spiketimes = unique(round( Spikes.sorted(channel).spiketimes(Spikes.sorted(channel).assigns==clu') * 1000 - spkshift ));  %ms
         
     elseif exist('Clusters','var')                            % >>> KS <<<
         
         iClu = find([Clusters.maxChannel] == channel & [Clusters.clusterID] == clu);
-        spiketimes = unique(round( Clusters(iClu).spikeTimes * 1000 + spkshift ))';
+        spiketimes = unique(round( Clusters(iClu).spikeTimes * 1000 - spkshift ))';
         
     end
     
@@ -188,9 +193,9 @@ for iUn = 1:numel(UnitData)
         
         
         % Quick check of n trials from beginning to end of periodic
-        if (size(Rastermats{1},1) / size(Rastermats{end},1)) >1.5
-            keyboard
-        end
+%         if (size(Rastermats{1},1) / size(Rastermats{end},1)) >1.5
+%             keyboard
+%         end
         
         
         %% ~~~~~~~~~~~~  MEASURE RESPONSES  ~~~~~~~~~~~~
@@ -198,7 +203,7 @@ for iUn = 1:numel(UnitData)
         these_pds = find(cellfun(@(x) size(x,1),Rastermats)>minNtr)'; %lower?
         
         % -> -> -> -> -> -> ->
-        if numel(these_pds)<2
+        if numel(these_pds)<irate
             continue
         end
         
@@ -265,11 +270,25 @@ for iUn = 1:numel(UnitData)
         nspks = [];
         nspks = cellfun(@(x) sum(x(1:minTrs,:),2), Rastermats(x_end),'UniformOutput',false);
         Nspk_paired(:,2) = sum(horzcat(nspks{:}),2);
+%         diffNspk = diff(Nspk_paired,1,2);
         
-        p_wsr = signrank(Nspk_paired(:,1),Nspk_paired(:,2));
-%         p_kwt = kruskalwallis(Nspk_paired);
+        p_wsr = signrank(Nspk_paired(:,1),Nspk_paired(:,2)); %matched sample
         p_rs  = ranksum(Nspk_paired(:,1),Nspk_paired(:,2));
-        DeltaNspk{AMrates==irate} = [median(Nspk_paired,1) p_wsr];
+%         p_kwt = kruskalwallis(Nspk_paired);
+        DeltaNspk{AMrates==irate} = [median(Nspk_paired,1) p_rs];
+        
+        catlabel = '';
+        if p_rs<alfa && DeltaNspk{AMrates==irate}(:,1) > DeltaNspk{AMrates==irate}(:,2)
+            catlabel = 'A';
+        elseif p_rs<alfa && DeltaNspk{AMrates==irate}(:,1) < DeltaNspk{AMrates==irate}(:,2)
+            catlabel = 'F';
+        elseif p_rs>=alfa
+            catlabel = 'NC';
+        elseif p_rs<alfa && DeltaNspk{AMrates==irate}(:,1) == DeltaNspk{AMrates==irate}(:,2) %ask dan: can i use means to categorize?
+%             keyboard
+        end
+        
+        fprintf('   %i: %s',irate,catlabel)
         
         
         %% Individual unit plots 
@@ -379,18 +398,24 @@ for iUn = 1:numel(UnitData)
         
     end %irate
     
-    UnitData(iUn).SlopesFR      = Slopes_FR;
     UnitData(iUn).DeltaNspk     = DeltaNspk;
+    UnitData(iUn).SlopesFR      = Slopes_FR;
     UnitData(iUn).SlopesVS      = Slopes_VS;
     UnitData(iUn).SlopesPh      = Slopes_Ph;
     
-    
+    fprintf('\n')
 end %iUn
 
-AllSlopesFR  = vertcat(UnitData.SlopesFR);
+
+% Get data to plot
 AllDeltaNspk = vertcat(UnitData.DeltaNspk);
+AllSlopesFR  = vertcat(UnitData.SlopesFR);
 AllSlopesVS  = vertcat(UnitData.SlopesVS);
 AllSlopesPh  = vertcat(UnitData.SlopesPh);
+
+% Clear unnecessary variables then re-save UnitData
+UnitData = rmfield(UnitData,{'SlopesFR' 'SlopesVS' 'SlopesPh'});
+save(fullfile(fn.processed,'Units'),'UnitInfo','UnitData','-v7.3');
 
 
 %% FR
@@ -414,8 +439,8 @@ for irate = AMrates
     
     DeltaNspk_irate = vertcat(AllDeltaNspk{:,irate==AMrates});
     
-    isig = DeltaNspk_irate(:,3)<0.05;
-    ins  = DeltaNspk_irate(:,3)>=0.05;
+    isig = DeltaNspk_irate(:,3)<alfa;
+    ins  = DeltaNspk_irate(:,3)>=alfa;
     
     hf_dNS=figure;
     set(hf_dNS,'Position',tallfig)

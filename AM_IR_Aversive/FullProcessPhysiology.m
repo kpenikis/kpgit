@@ -8,29 +8,31 @@ ProcessPhys_SynKS( 'Aug25-AM' )
 %    source activate phy
 %    phy template-gui params.py
 
-KS_to_Spikes(SUBJECT,SESSION)     % <-- MUST run this after manual sorting
+KS_to_Spikes(SUBJECT,SESSION)      % <-- MUST run this after manual sorting
+
+% Then check and finalize
+screenUnitsRasters(SUBJECT,SESSION)
+KS_to_Spikes(SUBJECT,SESSION)    
 
 
-%% Rasters and initial analysis 
+%% Section 1 analyses
 
 % Add to overall dataset: 
 AssessUnits( RERUN_flag )       %change save name in file to not overwrite
     getWaveformShapes('Units_fn','Plot_savename')
 
-% To check single session:
-allRastersSession(SUBJECT,SESSION)
-screenUnitsRasters(SUBJECT,SESSION)
+% Plots
 
+    allRastersSession(SUBJECT,SESSION)
+    populationPSTHs(SUBJECT,SESSION)
 
-predObserved  
-    %not set up for merged units
-pdcRespRepetition
-
-
-(MPHcontextComparisons)
-classifyMPHcontext
-pc_plotResults
-pc_FRdependence
+PredictedObserved
+    PdcRespRepetition
+MPH_plot
+MPH_matchedComparison
+ClassifyMPHcontext
+cl_plotResults
+cl_FRdependence
 
 
 

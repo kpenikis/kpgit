@@ -184,7 +184,7 @@ UnitInfo.WidthHalfMax  = SpikeWidthData(:,1);
 UnitInfo.TimetoTrough  = SpikeWidthData(:,2);
 UnitInfo.TroughPeak    = SpikeWidthData(:,3);
 
-% save(fullfile(fn.processed,Units_fn),'UnitInfo','UnitData','-v7.3');
+save(fullfile(fn.processed,Units_fn),'UnitInfo','UnitData','-v7.3');
 
 
 

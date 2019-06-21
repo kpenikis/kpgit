@@ -15,6 +15,9 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+%-------
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+%-------
 
 % Filter Unit files to just this session and sort by baseline FR
 UnitData = UnitData(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT));
@@ -47,7 +50,7 @@ for ii = 16:-1:12
         clu     = UnitData(iUn).Clu(1);
         
         % Get spiketimes (KS)
-        spiketimes = unique(round(Clusters(([Clusters.maxChannel]==channel & [Clusters.clusterID]==clu)).spikeTimes*1000)');
+        spiketimes = unique(round(Clusters(([Clusters.maxChannel]==channel & [Clusters.clusterID]==clu)).spikeTimes*1000 - spkshift)');
         
         % Make gaussian smoothed version as well
         [Stream_FRsmooth,Stream_zscore,Stream_spikes,ymaxval] = convertSpiketimesToFR(spiketimes,...
