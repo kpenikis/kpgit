@@ -1,0 +1,34 @@
+
+
+fprintf(' checking for sound drop out...\n')
+ 
+data = double(SoundData(2,:)); 
+ 
+data_rms = envelope(data,round(Info.fs_sound*2),'rms');
+ 
+samp_beg = Info.fs_sound*TrialData.onset(2)/1000;
+samp_end = Info.fs_sound*TrialData.onset(end)/1000;
+ 
+thresh = std(data_rms)*4 + mean(data_rms);
+ 
+flagged = find(data_rms>thresh);
+buffer = round(Info.fs_sound*0.5);
+flagged = (flagged(1)-buffer):(flagged(end)+buffer);
+
+% figure; plot(envelope(data,round(Info.fs_sound*2),'rms'))
+% hold on
+% plot(flagged,thresh*ones(size(flagged)),'r')
+
+data(flagged) = 0; % can't be nans for envelope function
+
+% Remake sound stream
+SoundStream_long = envelope(data,40,'rms');
+SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
+
+% Also resample sound flag to mark artifact trials later
+flag_01   = zeros(size(data));
+flag_01(flagged) = 1;
+SoundFlag = resample(flag_01,10000,round(Info.fs_sound*10),5);
+
+
+ 
