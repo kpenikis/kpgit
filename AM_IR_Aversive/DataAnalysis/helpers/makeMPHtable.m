@@ -21,7 +21,7 @@ Stream_FRsmooth = convertSpiketimesToFR(round(spiketimes),round(max(spiketimes)+
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
-all_TDidx = get_clean_trials(TrialData,artifact_trs,spl,lpn);
+all_TDidx = get_clean_trials(TrialData,artifact_trs,spl,lpn,1);
 allStim = unique(TrialData.trID(all_TDidx));
 
 

@@ -68,6 +68,9 @@ raster_colors = [0.2 0.2 0.2; 0.5 0.5 0.5];
 Stimuli = unique([TrialData.trID])';
 Stimuli(Stimuli==0)=[];
 
+AvgEnv = nan(numel(Stimuli),6000);
+PSTH   = nan(numel(Stimuli),6000);
+
 for ist = Stimuli
     
     stid = Stimuli(ist);
@@ -87,14 +90,13 @@ for ist = Stimuli
         'xticklabel',[0 (figwidthscales(stid)*1000)])
     
     theseClus = 1:numel(Clusters); %[13 4 11 12 13 15]
-    for iUn = theseClus 
+    for iUn = 11%theseClus 
         
         % Get spiketimes
         thisClu = Clusters(iUn);
         maxChan = thisClu.maxChannel;
         %originally: seconds, not rounded
         spiketimes = unique(round(thisClu.spikeTimes*1000)');
-        
         
         % Get stimulus params
         dBSPL = UnitData(iUn).spl;
@@ -173,9 +175,10 @@ for ist = Stimuli
         add_y = [add_y add_y(end) + numel(TDidx)];
         N_un = N_un + 1;
         
+        
         % Save data for shihab
-%         AvgEnv = mean(stim,1);
-%         PSTH   = mean(psth,1);
+        AvgEnv(ist,1:size(stim,2)) = mean(stim,1);
+        PSTH(ist,1:size(psth,2))   = mean(psth,1);
 %         savedataname = sprintf('VSresponse_Clu%i_Stim%i',thisClu.clusterID,ist);
 %         save(fullfile(fn.root,'SharedData',savedataname),'AvgEnv','PSTH','-v7.3')
         
@@ -206,12 +209,26 @@ for ist = Stimuli
     end
     
     savename = sprintf('%s_%s_%s',SUBJECT,SESSION,Info.stim_ID_key{ist});
-    print_eps_kp(hf(ist),fullfile(savedir,savename))
+%     print_eps_kp(hf(ist),fullfile(savedir,savename))
     
     
 end %ist
 
 
+% Save data for shihab
+
+AvgEnv = (AvgEnv-min(min(AvgEnv)));
+AvgEnv = AvgEnv / max(max(AvgEnv));
+
+Info.stim_ID_key{3} = 'ICantBlabSuch';
+Info.stim_ID_key{4} = 'ImTheLorax';
+StimInfo=Info;
+Info=struct();
+Info.fs             = 1000;
+Info.rows_stim_label = StimInfo.stim_ID_key;
+
+savename = sprintf('VSresponses_Clu%i', thisClu.clusterID);
+save(fullfile(fn.root,'SharedData',savename),'AvgEnv','PSTH','Info','-v7.3')
 
 
 

@@ -118,7 +118,7 @@ for ist = Stimuli
         % Get all stimuli presented with these parameters, given a
         % sufficient number of trials without diruptive artifact
         % while the animal was drinking
-        [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP);
+        [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,1);
         allStim = unique(TrialData.trID(all_TDidx))';
         
         Silence = false;
@@ -245,7 +245,7 @@ for ist = Stimuli
     suptitle(sprintf('%s   |   %s %s   |   %i units',...
         Info.stim_ID_key{stid}, SUBJECT,SESSION,N_un ))
     
-    set(gca,'ytick',add_y,'yticklabel',ytickstr,'ylim',[0 add_y(end)+1],...
+    set(gca,'ytick',add_y(2:end),'yticklabel',ytickstr,'ylim',[0 add_y(end)+1],...
         'xtick',unique([0:500:Duration Duration]),'xticklabel',unique([0:500:Duration Duration]))
     xlabel('Time (ms)')
     ylabel([num2str(mode(diff(add_y))) ' trials each'])    

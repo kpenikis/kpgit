@@ -1,4 +1,4 @@
-function PlotExampleResponses(SUBJECT,SESSION, CluID)
+function [FR_allSt,std_allSt] = PlotExampleResponses(SUBJECT,SESSION, CluID, maxChan)
 %
 %  PlotExampleResponses( SUBJECT, SESSION, CluID )
 %    Plots a raster and psth for each stimulus for the designated cell.
@@ -40,9 +40,13 @@ iUn = find(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT) &
 if numel(iUn)~=1, keyboard, end
 
 % Get spiketimes
-maxChan = UnitData(iUn).Channel;
-iClu = find([Clusters.clusterID] == CluID);
-spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 - spkshift)');
+if nargin<4
+    maxChan = UnitData(iUn).Channel;
+    iClu = find([Clusters.clusterID] == CluID);
+    spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 - spkshift)');
+else
+    spiketimes = unique(round( Spikes.sorted(maxChan).spiketimes(Spikes.sorted(maxChan).assigns==CluID') * 1000 - spkshift ));  %ms
+end
 
 
 %% Prepare figures
@@ -85,6 +89,9 @@ FRtrials  = cell(1,numel(Stimuli));
 FR_allSt  = nan(1,numel(Stimuli));
 std_allSt = nan(1,numel(Stimuli));
 
+AvgEnv = nan(numel(Stimuli),2000);
+PSTH   = nan(numel(Stimuli),2000);
+
 for ist = Stimuli
     
     stid = Stimuli(ist);
@@ -116,7 +123,7 @@ for ist = Stimuli
     % Get all stimuli presented with these parameters, given a
     % sufficient number of trials without diruptive artifact
     % while the animal was drinking
-    [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP);
+    [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,1);
     allStim = unique(TrialData.trID(all_TDidx))';
     
     Silence = false;
@@ -235,10 +242,11 @@ for ist = Stimuli
     
     %-------- Raster --------
     subplot(hs(ist,2)); hold on
-    plot([raster_x(raster_y<=TTP); raster_x(raster_y<=TTP)], raster_y(raster_y<=TTP) + [-0.5; 0.5] ,...
-        'Color','k','LineWidth',psthlinewidth/2)
-    set(gca,'Color','none','xtick',[],...
-        'tickdir','out','ticklength',0.01.*[1 1])
+    if ~isempty(raster_y(raster_y<=TTP))
+        plot([raster_x(raster_y<=TTP); raster_x(raster_y<=TTP)], raster_y(raster_y<=TTP) + [-0.5; 0.5] ,...
+            'Color','k','LineWidth',psthlinewidth/2)
+    end
+    set(gca,'Color','none','xtick',[])
     box off
     
     set(gca,'ytick',[],'ylim',[0.5 TTP+0.5],'xtick',[],'visible','off')
@@ -249,7 +257,7 @@ for ist = Stimuli
     plot(0:Duration, mean(psth,1,'omitnan'),...
         'LineWidth',psthlinewidth,'Color','k')
     set(gca,'Color','none','xtick',unique([0:500:Duration Duration]),...
-        'xticklabel',unique([0:500:Duration Duration]))
+        'xticklabel',unique([0:500:Duration Duration]),'tickdir','out','ticklength',0.01.*[1 1])
     xlabel('Time (ms)')
     box off
     hold off
@@ -257,20 +265,39 @@ for ist = Stimuli
     ymaxval = max(ymaxval,max(mean(psth,1,'omitnan')));
     
     % Save RMS and PSTH data
-%     AvgEnv = mean(stim,1,'omitnan');
-%     AvgEnv = (AvgEnv-min(AvgEnv))/max(AvgEnv-min(AvgEnv));
-%     PSTH   = mean(psth,1,'omitnan');
-%     savename = sprintf('AMresponse_Stim2');
-%     save(fullfile(savedir,savename),'AvgEnv','PSTH','-v7.3')
+    AvgEnv(ist,1:size(stim,2)) = mean(stim,1,'omitnan');
+    PSTH(ist,1:size(psth,2))   = mean(psth,1,'omitnan');
+
     
 end %ist
+
+
+% Save data for shihab
+
+% AvgEnv = (AvgEnv-min(min(AvgEnv)));
+% AvgEnv = AvgEnv / max(max(AvgEnv));
+% AvgEnv = AvgEnv(2:end,:);
+% 
+% PSTH   = PSTH(2:end,:);
+% 
+% StimInfo=Info;
+% Info=struct();
+% Info.fs             = 1000;
+% Info.rows_stim_label = StimInfo.stim_ID_key(2:end-1);
+% 
+% savename = sprintf('AMresponses_Clu%i', CluID);
+% save(fullfile(savedir,savename),'AvgEnv','PSTH','Info','-v7.3')
+
+
+
+
 
 [IR_Prediction_sim, IR_Pred_std_sim, pvals] = predictIRresponse_simulation(FRtrials);
 
 
 %% Plot FR tuning curve
 
-xvals = [1:5 8+(1:numel(allStim(7:end)))];
+xvals = [1:5 allStim(allStim>6)+2]; 
 switch USE_MEASURE
     case 'FR'
         y_vals = FR_allSt;
@@ -305,23 +332,24 @@ plot( 7, IR_Prediction_sim, 'ok','MarkerSize',20,...
     'MarkerEdgeColor','k','MarkerFaceColor','none','LineWidth',4)
 
 % Plot IR observed
-for ir = 6:length(xvals)
-    plot(xvals(ir),y_vals(ir+1),'o','MarkerSize',20,...
-        'MarkerFaceColor',colors(ir+1,:),'MarkerEdgeColor','none')
-    plot([xvals(ir) xvals(ir)],y_vals(ir+1) + y_errs(ir+1)*[-1 1],...
-        '-','Color',colors(ir+1,:),'LineWidth',4)
-    if pvals(ir-5)<0.05
-        plot(xvals(ir),y_vals(ir+1) + 1.5*y_errs(ir+1),'*k')
+for ir = 1:sum(xvals>5)
+    plot(xvals(5+ir),y_vals(xvals(5+ir)-2),'o','MarkerSize',20,...
+        'MarkerFaceColor',colors(xvals(5+ir)-2,:),'MarkerEdgeColor','none')
+    plot([xvals(5+ir) xvals(5+ir)],y_vals(xvals(5+ir)-2) + y_errs(xvals(5+ir)-2)*[-1 1],...
+        '-','Color',colors(xvals(5+ir)-2,:),'LineWidth',4)
+    if pvals(xvals(5+ir)-8)<0.05
+        plot(xvals(5+ir),y_vals(xvals(5+ir)-2) + 1.5*y_errs(xvals(5+ir)-2),'*k')
     end
 end
 
 % Finish formatting
-set(gca,'XTick',min(xvals):max(xvals),...
-    'XTickLabel',[Info.stim_ID_key(2:6)' ' ' 'Linear Prediction' ' ' Info.stim_ID_key(allStim(7:end))' ],...
+set(gca,'XTick',sort([xvals 7]),...
+    'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
     'TickLabelInterpreter','none')
 xtickangle(45)
 
 xlim([-1+min(xvals) max(xvals)+1])
+keyboard
 ylim([0 16])
 ylabel(sprintf('%s',USE_MEASURE))
 

@@ -1,4 +1,4 @@
-function MPH_plot
+function MPH_plot(thisUn)
 %
 %  MPHcontextComparisons
 %
@@ -17,6 +17,9 @@ tVarBin = 31;
 %!!!!!!!!!!!!!!!!!
 N=0;
 
+if nargin<1 || ~exist('thisUn','var')
+    thisUn = 1:numel(UnitData);
+end
 
 %% Load Unit data files
 
@@ -29,6 +32,11 @@ clear q
 %-------
 spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
+
+% Load Classifier results
+q = load(fullfile(fn.processed,'MPHclassifier','ClassData.mat'));
+ClassData = q.Data;
+clear q
 
 % Load IR stimulus rate vectors
 q = load(fullfile(fn.stim,'rateVec_AC'));
@@ -99,7 +107,7 @@ Pdata.predIR  = nan;
 Pdata.obsIR   = nan;
 
 
-for iUn = 122%4:numel(UnitData)
+for iUn = thisUn %4:numel(UnitData)
     
     close all
     
@@ -152,6 +160,9 @@ for iUn = 122%4:numel(UnitData)
     
     % Set ymaxval
     yin = find( ( max(yvals, 2+3*max(nanmean(UnitData(iUn).FR_raw_tr,1)) ) - yvals )==0 );
+    yin = 8;
+    
+    
     
     
     %% Get MPH data
@@ -159,6 +170,9 @@ for iUn = 122%4:numel(UnitData)
     %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     MPH = makeMPHtable(TrialData,Info.artifact(channel).trials',dBSPL,LP,spiketimes,RateStream);
     %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
+    
+    
     
     
     
@@ -344,6 +358,13 @@ for iUn = 122%4:numel(UnitData)
                 title(sprintf('Following IR (%i,%i pds)',PdData(np,1).nPds,PdData(np-1,1).nPds))
             end
             
+            % Label with classifier result
+            iCD = cellfun(@(x) all(ismember(x,iTrans(PStIDs==ips))), {ClassData(thisUn,irate).data.indices});
+            if any(ClassData(thisUn,irate).Res_L1o.dprime(:,1)==find(iCD))
+                dprime = ClassData(thisUn,irate).Res_L1o.dprime(ClassData(thisUn,irate).Res_L1o.dprime(:,1)==find(iCD),2);
+                text( 0.8*ceil(1000/this_rate), 0.95*yvals(yin(1)),sprintf('dp=%0.2f',dprime))
+            end
+            
             % - - - - - - - - - - - - - - - -
             
         end %PStIDs
@@ -403,6 +424,14 @@ for iUn = 122%4:numel(UnitData)
                 %                 bar(linspace(1,size(this_MPH_raster,2),length(histMP)),histMP,...
                 %                     'FaceColor',colors(irate+1,:),'EdgeColor','none','BarWidth',1)
                 title(sprintf('%s, prevPd: %ih Hz (%i pds)',Info.stim_ID_key{thisIR},ipp,size(this_MPH_raster,1)))
+                
+                % Label with classifier result
+                iCD = cellfun(@(x) all(ismember(x,iIR)), {ClassData(thisUn,irate).data.indices});
+                if any(ClassData(thisUn,irate).Res_L1o.dprime(:,1)==find(iCD))
+                    dprime = ClassData(thisUn,irate).Res_L1o.dprime(ClassData(thisUn,irate).Res_L1o.dprime(:,1)==find(iCD),2);
+                    text( 0.8*ceil(1000/this_rate), 0.95*yvals(yin(1)),sprintf('dp=%0.2f',dprime))
+                end
+                
                 hold off
                 % - - - - - - - - - - - - - - - -
                 
@@ -426,9 +455,15 @@ for iUn = 122%4:numel(UnitData)
         
     end  %this_rate
     
+    
+    [Stream_FRsmooth,~,~,~] = convertSpiketimesToFR(spiketimes,...
+        length(SoundStream),TrialData.onset(1),TrialData.offset(1),[],5000,'silence');
+    figure; plot(Stream_FRsmooth)
+    hold on
+    plot([TrialData.onset(1) TrialData.offset(1)],[30 30],'r')
+    
+    
 end %iUn
-
-keyboard
 
 
 

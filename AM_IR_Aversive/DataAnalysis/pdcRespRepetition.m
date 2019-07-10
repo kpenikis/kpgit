@@ -132,7 +132,7 @@ for iUn = 1:numel(UnitData)
         
         % -> -> -> -> -> -> -> -> -> -> -> -> -> -> -> -> -> -> 
         % Right away, skip units with v low FR for this stimulus
-        if nanmean(UnitData(iUn).FR_raw_tr(:,1+find(AMrates==irate))) < 2  %lower? iUn=155 4hz, eg
+        if nanmean(UnitData(iUn).FR_raw_tr(:,1+find(AMrates==irate))) < 0.5  %lower? iUn=155 4hz, eg
             continue
         end
         
@@ -273,7 +273,7 @@ for iUn = 1:numel(UnitData)
 %         diffNspk = diff(Nspk_paired,1,2);
         
         p_wsr = signrank(Nspk_paired(:,1),Nspk_paired(:,2)); %matched sample
-        p_rs  = ranksum(Nspk_paired(:,1),Nspk_paired(:,2));
+        p_rs  = ranksum(Nspk_paired(:,1),Nspk_paired(:,2));  %non-matched
 %         p_kwt = kruskalwallis(Nspk_paired);
         DeltaNspk{AMrates==irate} = [median(Nspk_paired,1) p_rs];
         

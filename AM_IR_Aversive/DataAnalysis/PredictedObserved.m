@@ -11,8 +11,8 @@ function PredictedObserved(USE_MEASURE)
 %
 
 
-% for significance calculation must measure each IR stimulus separately
-% (add in fig 2 and run again)
+keyboard
+% color according to Facilitating or Adapting
 
 
 close all
@@ -76,6 +76,7 @@ switch USE_MEASURE
         axscale = 'linear';
 end
 
+yval=10;
 
 
 %% Figure settings
@@ -86,7 +87,6 @@ set(0,'DefaultAxesFontSize',12)
 scrsz = get(0,'ScreenSize');
 vsmallsq = [1 scrsz(4)/4 scrsz(3)/4 scrsz(4)/4];
 smallsq  = [1 scrsz(4)/3 scrsz(3)/3 scrsz(4)/3];
-
 
 %~~~~~~~~~~~~~~~~~~~
 %~~~~  Mean IR  ~~~~
@@ -125,7 +125,7 @@ hold on
 plot([0.01 10^2],[0 0],'Color',[0.7 0.7 0.7])
 set(gca,'xscale','log')
 xlim([axmin 10^2])
-ylim([-5 5])
+ylim(yval*[-1 1])
 xlabel('Baseline FR')
 ylabel(['Observed - Predicted IR ' USE_MEASURE])
 
@@ -144,16 +144,20 @@ colors = [ colors; ...
 subjcolors = cmocean('phase',1+numel(unique({UnitData.Subject})));
 Subjects   = unique({UnitData.Subject});
 
+MarkSize   = 75;
+
         
 %% Select a datapoint (or a few?) to highlight
 
-ex_subj = 'AAB_265058';
+ex_subj = 'xAAB_265058';
 ex_sess = 'Jan17-AM';
 ex_ch   = 63;
 ex_clu  = 1230;
 
 ex_Un   = find(strcmp({UnitData.Subject},ex_subj) & strcmp({UnitData.Session},ex_sess) & [UnitData.Channel]==ex_ch & [UnitData.Clu]==ex_clu);
-
+if isempty(ex_Un)
+    ex_Un = 2*numel(UnitData);
+end
 
 %% Preallocate
 
@@ -178,9 +182,9 @@ Pdata.pval    = nan;
 for iUn = 1:numel(UnitData)
     
     %%% skips merged units for now
-    if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
-        continue
-    end
+%     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
+%         continue
+%     end
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
@@ -234,11 +238,12 @@ for iUn = 1:numel(UnitData)
     % sufficient number of trials without diruptive artifact
     % while the animal was drinking
     
-    if ~isfield('Info','artifact')
-        [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,[],dBSPL,LP);
+    if ~isfield(Info,'artifact')
+        [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,[],dBSPL,LP,0);
     else
-        [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP);
+        [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP,0);
     end
+    Ntrials(1) = 200; %set high so Warn stimulus doesn't interfere
     
     allStim = unique(TrialData.trID(all_TDidx));
     
@@ -480,7 +485,7 @@ for iUn = 1:numel(UnitData)
     plot([IR_Prediction IR_Prediction], mean(IR_Observations) + mean(IR_Obs_sems)*[-1 1],'Color',plotcol)
     
     % mean point
-    ip=scatter(IR_Prediction,mean(IR_Observations),100,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
+    ip=scatter(IR_Prediction,mean(IR_Observations),MarkSize,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
     if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
         ip.MarkerFaceColor = [32 129 255]./255;
     end
@@ -498,13 +503,14 @@ for iUn = 1:numel(UnitData)
         % vertical errorbars (observation error)
         plot([IR_Prediction IR_Prediction], IR_Observations(is) + IR_Obs_sems(is)*[-1 1],'Color',plotcol)
         % mean point
-        ip=scatter(IR_Prediction,IR_Observations(is),100,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
+        ip=scatter(IR_Prediction,IR_Observations(is),MarkSize,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
         if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
             ip.MarkerFaceColor = [32 129 255]./255;
         end
         if strcmp(USE_MEASURE,'FR') && pvals(is)<alfa
             ip.MarkerFaceColor = 'k';
         end
+% %         ht = text(IR_Prediction,IR_Observations(is),' ', 'tag', 'rollover');
         NIR = NIR+1;
     end %is
     
@@ -515,7 +521,7 @@ for iUn = 1:numel(UnitData)
     for is = 1:sum(allStim>6)
         
         % mean point
-        ip=scatter(UnitData(iUn).BaseFR, IR_Observations(is)-IR_Prediction, 200,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
+        ip=scatter(UnitData(iUn).BaseFR, IR_Observations(is)-IR_Prediction, MarkSize,'o','LineWidth',2,'MarkerEdgeColor',plotcol,'MarkerFaceColor','none');
         if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
             ip.MarkerFaceColor = [32 129 255]./255;
         end
@@ -528,8 +534,35 @@ for iUn = 1:numel(UnitData)
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
     
-    
-    
+    %%
+% %     
+% %     % ======================================================================= %
+% %     % Define a pointer behavior struct containing the fields 'enterFcn',
+% %     % 'exitFcn', and 'traverseFcn'. These fields should contain function
+% %     % handles or an empty matrix ([]). MATLAB will call these functions when
+% %     % the mouse pointer first moves over an object ('enterFcn'), when the mouse
+% %     % pointer moves off of an object ('exitFcn') and when the mouse pointer
+% %     % moves across and object ('traverseFcn'). MATLAB passes two arguments when
+% %     % it calls these functions: the figure handle, and the cursor position.
+% %     % I've defined the enterFcn to find the object with the 'rollover' tag (the
+% %     % text box) and change it's string value to something more informative...
+% %     pointerBehavior=struct();
+% %     pointerBehavior.enterFcn = ...
+% %         @(hf2, cpp)set(findobj(hf2, 'tag', 'rollover'), ...
+% %         'string', 'text - here''s some more info...');
+% %     % I don't care about what happens when the mouse moves across the text, so
+% %     % I'll leave the traverseFcn blank...
+% %     pointerBehavior.traverseFcn = [];
+% %     % The exitFcn is similar to the enterFcn, but it changes the string back to
+% %     % the shorter version...
+% %     pointerBehavior.exitFcn = ...
+% %         @(hf2, cpp)set(findobj(hf2, 'tag', 'rollover'), ...
+% %         'string', ' ');
+% %     % Now, I need to link the pointer behavior to the object (the text box):
+% %     iptSetPointerBehavior(ht, pointerBehavior);
+% %     % Now, I need to enable pointer management for the figure:
+% %     iptPointerManager(hf2, 'enable');
+% %     
     
 end %iUn
 
@@ -554,7 +587,7 @@ figure(hf2); hold on
 title(['Pred vs. Obs IR responses, each IR seq, N=' num2str(size(Pdata,1)) ' comparisons (' num2str(sum([Pdata.pval]<alfa)) ' sig), ' num2str(N) ' units'])
  
 % hf3
-xhist = -5:0.25:5;
+xhist = -yval:0.25:yval;
 diffhist = hist([Pdata.obsIR]-[Pdata.predIR],xhist);
 yh = 10*ceil(max(diffhist)/10);
 
@@ -565,7 +598,7 @@ fill(diffhist,xhist,'k','EdgeColor','none')
 plot([yh yh],mean([Pdata.obsIR]-[Pdata.predIR],'omitnan') + std([Pdata.obsIR]-[Pdata.predIR],'omitnan').*[-1 1],'b-','LineWidth',2)
 plot(yh,mean([Pdata.obsIR]-[Pdata.predIR],'omitnan'),'bd','MarkerSize',14,'MarkerEdgeColor','none','MarkerFaceColor','b')
 xlim([0 yh])
-ylim([-5 5])
+ylim(yval*[-1 1])
 set(gca,'ytick',[],'xtick',[])
 box off
 
@@ -584,9 +617,9 @@ savename = sprintf('PredObs_avgIR_%s',USE_MEASURE);
 print_eps_kp(hf1,fullfile(savedir,savename))
 print_svg_kp(hf1,fullfile(savedir,savename))
 
-savename = sprintf('PredObs_eachIR_%s',USE_MEASURE);
-print_eps_kp(hf2,fullfile(savedir,savename))
-print_svg_kp(hf2,fullfile(savedir,savename))
+% savename = sprintf('PredObs_eachIR_%s',USE_MEASURE);
+% print_eps_kp(hf2,fullfile(savedir,savename))
+% print_svg_kp(hf2,fullfile(savedir,savename))
 
 savename = sprintf('PredObs_DiffsBaseFR_%s',USE_MEASURE);
 print_eps_kp(hf3,fullfile(savedir,savename))
@@ -596,7 +629,5 @@ print_svg_kp(hf3,fullfile(savedir,savename))
 save(fullfile(savedir,['Pdata_' USE_MEASURE]),'Pdata','-v7.3')
 
 
-
 end
-
 
