@@ -82,7 +82,7 @@ for ii = 1:size(SESSIONS,1)
     %%%%%%%%%%%%%%
     
     
-%     try 
+    try 
         
     % Re-save TrialData
     save(fullfile(fn.processed,subject,filename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');
