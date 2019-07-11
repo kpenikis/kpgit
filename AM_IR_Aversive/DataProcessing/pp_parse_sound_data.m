@@ -9,8 +9,7 @@ function [TrialData,SpoutStream,SoundStream,RateStream,Phase0,Info] = pp_parse_s
 
 % Outstanding issues 
 %%% add behavioral data
-%%% save period dur vectors? or write a simple function to load vector
-%%% during analyses
+%%% save period dur vectors? or write a simple function to load vector during analyses
 
 
 %Types of sounds
@@ -27,15 +26,15 @@ Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
 
 
 
-%% Get Stream Data (fs = 1 kHz; 1 ms)
+%% Get Stream Data (fs = 1 kHz; 1 ms)               (now done in <<getPhase0Data>> )
 
-SpoutStream = round( resample(double(SoundData(7,:)),10000,round(Info.fs_sound*10),5) );
+% SpoutStream = round( resample(double(SoundData(7,:)),10000,round(Info.fs_sound*10),5) );
 
-% Actually save downsampled RMS 
-SoundStream_long = envelope(double(SoundData(2,:)),40,'rms');
-SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
+% Save downsampled RMS 
+% SoundStream_long = envelope(double(SoundData(2,:)),40,'rms');
+% SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
 
-RateStream = round(resample(double(SoundData(1,:)),10000,round(Info.fs_sound*10),5));
+% RateStream = round(resample(double(SoundData(1,:)),10000,round(Info.fs_sound*10),5));
 
 
 %% Trial Data

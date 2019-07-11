@@ -2,13 +2,28 @@
 close all
 
 if ~exist('SoundData','var')
+    keyboard
     SoundData = epData.streams.rVrt.data;
 end
 
-% Get RateStream (fs = 1 kHz; 1 ms)
-idxms = round( 1 : Info.fs_sound/1000 : length(SoundData(1,:)) );
-RateStream = double(SoundData(1,idxms));
+%% Get Stream Data (fs = 1 kHz; 1 ms)
 
+clear SoundStream RateStream SpoutStream
+
+%%%%%%%%%%%%%%%%%%
+checkSoundDropOut     %creates SoundStream
+%%%%%%%%%%%%%%%%%%
+
+% AM RateStream (fs = 1 kHz; 1 ms)
+RateStream  = round(resample(double(SoundData(1,:)),10000,round(Info.fs_sound*10),5));
+    % idxms = round( 1 : Info.fs_sound/1000 : length(SoundData(1,:)) );
+    % RateStream2 = double(SoundData(1,idxms));
+
+% SpoutStream
+SpoutStream = round( resample(double(SoundData(7,:)),10000,round(Info.fs_sound*10),5) );
+
+
+%% Now get Phase0 
 
 % Get Phase0 timestamps (fs = 1 kHz; 1 ms precision)
 [~,AMMIN] = findpeaks(-SoundStream./max(SoundStream),'MinPeakProminence',0.4); %ms of RMS minima

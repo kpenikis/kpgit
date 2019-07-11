@@ -1,7 +1,7 @@
 
 
 fprintf(' checking for sound drop out...\n')
- 
+
 data = double(SoundData(2,:)); 
  
 data_rms = envelope(data,round(Info.fs_sound*2),'rms');
@@ -29,6 +29,27 @@ SoundStream = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
 flag_01   = zeros(size(data));
 flag_01(flagged) = 1;
 SoundFlag = resample(flag_01,10000,round(Info.fs_sound*10),5);
+
+
+%% Flag the trials that have no sound
+
+ArtifactFlags = zeros(size(TrialData,1),1);
+
+for it = 1:size(TrialData,1)
+    if sum( ismember(TrialData.onset(it):TrialData.offset(it), find(SoundFlag)) )>0 && it>1
+        keyboard
+        ArtifactFlags(it,1) = 1;
+    end
+end
+
+%%Save the artifact flags into the Info struct
+Info.soundflag.trials = find(ArtifactFlags(:,1));
+
+
+
+
+
+
 
 
  
