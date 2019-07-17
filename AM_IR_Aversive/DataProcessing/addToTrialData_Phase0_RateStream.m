@@ -39,6 +39,7 @@ UnitInfo = q.UnitInfo;
 clear q
 
 SESSIONS = unique(UnitInfo(:,1:2));
+% ISSUE WITH Jan31-AM  -- CORRUPTED
 
 for ii = 1:size(SESSIONS,1)
     
@@ -46,15 +47,12 @@ for ii = 1:size(SESSIONS,1)
     session   = SESSIONS{ii,2}{:};
     
     % Load Info and TrialData files
-    clear Info TrialData SoundStream SpoutStream RateStream Phase0 
+    clear Info TrialData
     filename = sprintf( '%s_sess-%s_Info'      ,subject,session); load(fullfile(fn.processed,subject,filename));
     filename = sprintf( '%s_sess-%s_TrialData' ,subject,session); load(fullfile(fn.processed,subject,filename));
     
     % Change this depending on how you want to update the stim data
-    clear Phase0
-    if ~exist('RateStream','var') 
-        keyboard
-    end
+    clear SoundData SoundStream SpoutStream RateStream Phase0 
     
     % Load epData file
     clear epData
@@ -69,7 +67,8 @@ for ii = 1:size(SESSIONS,1)
         end
     end
     if ~exist('epData','var')
-        keyboard
+        fprintf('COULDN''T LOAD epData..skipping..\n')
+        continue
     elseif isfield(epData,'epData')
         epData = epData.epData;
         disp('(old file) done.')
@@ -81,11 +80,14 @@ for ii = 1:size(SESSIONS,1)
     getPhase0Data;
     %%%%%%%%%%%%%%
     
-    
     try 
         
     % Re-save TrialData
+    filename = sprintf( '%s_sess-%s_TrialData' ,subject,session); 
     save(fullfile(fn.processed,subject,filename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');
+    % Re-save Info  as well
+    filename = sprintf( '%s_sess-%s_Info',subject,session);
+    save(fullfile(fn.processed,subject,filename),'Info','-v7.3');
     
     % Re-save epData with struct format
 %     fprintf('                            saving... ')
