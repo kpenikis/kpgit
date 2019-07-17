@@ -60,7 +60,7 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = 9:numel(Clusters)    
+for iUn = 1:numel(Clusters)
     
     close all
     
@@ -98,7 +98,7 @@ for iUn = 9:numel(Clusters)
     % Get all stimuli presented with these parameters, given a
     % sufficient number of trials without diruptive artifact
     % while the animal was drinking
-    [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP);
+    [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,0);
     allStim = unique(TrialData.trID(all_TDidx))';
     
     minTrs = min(Ntrials(~isnan(Ntrials)));
@@ -117,7 +117,7 @@ for iUn = 9:numel(Clusters)
         if stid==3 || stid==6
             TDidx = all_TDidx( TrialData.trID(all_TDidx)==stid & TrialData.ITIflag(all_TDidx)==0 );
             % Find Pdc trials that follow same rate during ITI
-            TDidx = TDidx(TrialData(TDidx-1,:).trID ~= stid);
+%             TDidx = TDidx(TrialData(TDidx-1,:).trID ~= stid);
             
             TDidx_iti = all_TDidx(TrialData.trID(all_TDidx)==stid & TrialData.ITIflag(all_TDidx)==1 & TrialData.Spout(all_TDidx)>0.95);
             TDidx_iti = TDidx_iti(TrialData(TDidx_iti-1,:).trID>6);
@@ -140,9 +140,8 @@ for iUn = 9:numel(Clusters)
             TDidx = [TDidx; TDidx_iti];
         end
                 
-        kt = randperm(length(t2));
-        kt = kt(1:minTrs);
-%         kt = 1:length(t2);
+%         kt = randperm(length(t2));
+        kt = 1:min(minTrs,length(t2));
         t2     = t2(kt);
         TDidx  = TDidx(kt);
         

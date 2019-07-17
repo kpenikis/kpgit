@@ -379,7 +379,7 @@ for iUn = 1:numel(UnitData)
     end
     
     
-    %%
+    %% INDIVIDUAL UNIT MTF
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if plotMTF && iUn==ex_Un                         % INDIVIDUAL UNIT MTF
         
@@ -447,13 +447,10 @@ for iUn = 1:numel(UnitData)
     
         
     
-    
+    %% POPULATION PLOT
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     %                                                      POPULATION PLOT
     
-    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
-    % Add datapoint to plots
-    % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
     
     N = N+1;
     
@@ -615,7 +612,7 @@ end
 
 savename = sprintf('PredObs_avgIR_%s',USE_MEASURE);
 print_eps_kp(hf1,fullfile(savedir,savename))
-print_svg_kp(hf1,fullfile(savedir,savename))
+% print_svg_kp(hf1,fullfile(savedir,savename))
 
 % savename = sprintf('PredObs_eachIR_%s',USE_MEASURE);
 % print_eps_kp(hf2,fullfile(savedir,savename))
@@ -623,7 +620,7 @@ print_svg_kp(hf1,fullfile(savedir,savename))
 
 savename = sprintf('PredObs_DiffsBaseFR_%s',USE_MEASURE);
 print_eps_kp(hf3,fullfile(savedir,savename))
-print_svg_kp(hf3,fullfile(savedir,savename))
+% print_svg_kp(hf3,fullfile(savedir,savename))
 
 
 save(fullfile(savedir,['Pdata_' USE_MEASURE]),'Pdata','-v7.3')

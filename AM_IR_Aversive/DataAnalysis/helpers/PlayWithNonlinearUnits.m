@@ -47,13 +47,24 @@ ClassData(84,2).Res_L1o.dprime
 
 MPH_plot(123) % see above
 
-MPH_plot(143) % DB lower than predicted; 32Hz Pdc is facilitating
+MPH_plot(143) %  ^ DB lower than predicted; 32Hz Pdc is facilitating
 
 MPH_plot(43)  % n.s. 
 
 MPH_plot(123) % see above
 
 MPH_plot(77)  % DB lower than predicted; troughs of 4 not so low in Pdc; same unit as 73
+
+
+%----- after removing DB ch4 Mar30 -----
+% check to rmv: (v low FR)
+MPH_plot(87)  % AC lower than expected
+MPH_plot(83)  % DB lower than expected
+
+% examples?
+MPH_plot(8)   % AC lower than expected
+MPH_plot(136) % AC higher than expected
+MPH_plot(143) %  ^ DB lower than predicted; 32Hz Pdc is facilitating
 
 
 
