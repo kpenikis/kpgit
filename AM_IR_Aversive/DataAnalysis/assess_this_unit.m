@@ -82,7 +82,7 @@ for spl = dBSPL'
         % Get all stimuli presented with these parameters
         % trials without diruptive artifact while the animal was drinking
         
-        [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(channel).trials,spl,lpn);
+        [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(channel).trials,spl,lpn,1);
         if minDur~=snipDur
             keyboard
         end

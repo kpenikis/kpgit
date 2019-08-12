@@ -15,8 +15,9 @@ if nargin<7
     OnlyGoodTransitions=0;
 end
 
+
 % 
-Stream_FRsmooth = convertSpiketimesToFR(round(spiketimes),round(max(spiketimes)+100),TrialData.onset(1),TrialData.offset(1),20,20,'silence');
+[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),round(max(spiketimes)+100),TrialData.onset(1),TrialData.offset(1),20,20,'silence');
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
@@ -45,6 +46,7 @@ MPH.raster       = {magic(3)};
 MPH.x            = nan;
 MPH.y            = nan;
 MPH.FRsmooth     = {magic(3)};
+MPH.zFR          = {magic(3)};
 MPH.SPL          = 0;
 MPH.LPN          = 0;
 
@@ -222,6 +224,7 @@ for istim = allStim'
                 MPH_temp(ipd).x                    = [MPH_temp(ipd).x sp];
                 MPH_temp(ipd).y                    = [MPH_temp(ipd).y kt.*ones(size(sp))];
                 MPH_temp(ipd).FRsmooth(kt,:)       = Stream_FRsmooth(ceil(newPd_ts(ipd))+[1:ceil(1000/allPds(ipd))]-1);
+                MPH_temp(ipd).zFR(kt,:)            = Stream_zscore(ceil(newPd_ts(ipd))+[1:ceil(1000/allPds(ipd))]-1);
                 
             end %it
             
@@ -257,7 +260,7 @@ for istim = allStim'
                 MPH_temp(ipd).PrevAMrt500 ...
                 MPH_temp(ipd).PrevAMrt100 ...
                 {MPH_temp(ipd).raster} {MPH_temp(ipd).x} {MPH_temp(ipd).y}...
-                {MPH_temp(ipd).FRsmooth}  spl  lpn };
+                {MPH_temp(ipd).FRsmooth}  {MPH_temp(ipd).zFR}  spl  lpn };
             MPH = [MPH; MPH_addrow];
             
         end

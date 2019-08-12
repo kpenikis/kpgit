@@ -41,6 +41,9 @@ for ii=1:Iterations
     Nidx		=	ridx(1:NtmplSz);
 	Ntemplate	=	mean(ng_mat(Nidx,:),1);
 	
+%     figure;  plot(Gtemplate,'k')
+%     hold on; plot(Ntemplate,'r')
+    
 	Gmn			=	nan(mxGT-GtmplSz,2);
 	Nmn			=	nan(mxNT-NtmplSz,2);
 	
@@ -51,6 +54,7 @@ for ii=1:Iterations
 	%---Compare GO Trials with Templates---%
 	for j=1:mxGT-GtmplSz
 		testT	=	go_mat(gT(j),:);
+%         figure; plot(testT,'k')
 		
 		%---Compare with Templates---%
         gComp	=	pdist2(testT,Gtemplate);
@@ -67,7 +71,8 @@ for ii=1:Iterations
 	%---Compare NOGO Trials with Templates---%
 	for j=1:mxNT-NtmplSz
 		testT	=	ng_mat(nT(j),:);
-		
+% 		figure; plot(testT,'r')
+        
 		%---Compare with Templates---%
         gComp	=	pdist2(testT,Gtemplate);
         nComp	=	pdist2(testT,Ntemplate);

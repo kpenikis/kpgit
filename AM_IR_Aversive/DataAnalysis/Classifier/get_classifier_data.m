@@ -1,64 +1,61 @@
-function Res = get_classifier_data(raster,TemplateSize,METRIC,binsize)
-% output = get_classifier_data(raster,METRIC,binsize,merge_blocks)
+function Res = get_classifier_data(raster,TemplateSize)
+% output = get_classifier_data(raster,TemplateSize)
 %
 %  First organizes all unique stimuli, then steps through to get AM depth
 % detection discriminability data for each
 
 global Iterations trMin
 
-Res = struct;
-
 rng('shuffle')
 
-% Set binsize depending on decoder type
-% switch METRIC
-%     case 'FR'
-%         bin = min(cellfun(@(x) size(x,2), {raster.raster}));
-%     case 'SpV'
-%         bin = binsize;
-% end
-
-%% Get NoGo (periodic) stimulus info 
-
-NGidx = 1;
-NOGO  = raster(NGidx);
-rsNOGO  = NOGO.raster;  % Filter to start when sound begins
-
-
-%% Step through the GO (non-periodic) stimuli to compare to Periodic
-
-Gidxs  = 1+find([raster(2:end).nTrs]>=trMin*2);  %must have more than N trials
 
 % Preallocate
-dprime = nan( numel(Gidxs), 1 );
-pHit   = nan( numel(Gidxs), 1 );
-pFA    = nan( numel(Gidxs), 1 );
-nYes   = nan( 1+numel(Gidxs), 1 );
-nTrs   = nan( 1+numel(Gidxs), 1 );
 
-for ii = 1:numel(Gidxs)
+dprime = nan(size(raster,1),1);
+pHit   = nan(size(raster,1),1);
+pFA    = nan(size(raster,1),1);
+nYes   = nan(size(raster,1),2);
+nTrs   = nan(size(raster,1),2);
+
+
+for ip = 1:size(raster,1)
     
-    % Get all identical go trials of this type
-    GO     = raster(Gidxs(ii));
+    % Check that both MPs have enough trials
+    if ~all([raster(ip,:).nTrs]>=(trMin*2))
+        continue
+    end
+    
+    
+    % Get NoGo (Pdc) stimulus data
+    NOGO   = raster(ip,1);
+    rsNOGO = NOGO.raster;
+    
+    
+    % Get GO (Irr) stimulus data
+    GO     = raster(ip,2);
     rsGO   = GO.raster;
+    
     
     % Skip if no activity at all
     if sum(sum(rsGO))==0 && sum(sum(rsNOGO))==0
         continue
     end
     
+    
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     % Run classifier
-    [dprime(ii),pHit(ii),pFA(ii)] = run_classifier_Template(rsGO,rsNOGO,Iterations,TemplateSize);
+    [dprime(ip),pHit(ip),pFA(ip)] = run_classifier_Template(rsGO,rsNOGO,Iterations,TemplateSize);
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     
-    % Get data for PY matrix for this GO stim
-    [nYes(ii+1),nTrs(ii+1)] = calculate_response_data_phys(0,pHit(ii),pFA(ii),size(rsGO,1),size(rsNOGO,1));
     
-end %ii
-
-% Now get data for PY matrix for NOGO stim
-[nYes(1),nTrs(1)] = calculate_response_data_phys(1,nan,pFA,nan,size(rsNOGO,1));
+    % Get data for PY matrix for this GO stim
+    [nYes(ip,2),nTrs(ip,2)] = calculate_response_data_phys(0,pHit(ip),pFA(ip),size(rsGO,1),size(rsNOGO,1));
+    
+    % Now get data for PY matrix for NOGO stim
+    [nYes(ip,1),nTrs(ip,1)] = calculate_response_data_phys(1,nan,pFA,nan,size(rsNOGO,1));
+    
+    
+end %ip (each MP pair)
 
 
 % Corrrect inf dprime vals
@@ -79,8 +76,12 @@ end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Put data into output struct
-Res.PYdata   = [ [1 Gidxs]'  nYes  nTrs ];
-Res.dprime   = [ Gidxs' dprime];
+Res = struct;
+Res.pHpFA    = [ (1:size(raster,1))'  pHit  pFA ];
+Res.dprime   = [ (1:size(raster,1))'  dprime];
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
 end
+
+

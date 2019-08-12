@@ -600,6 +600,43 @@ set(gca,'ytick',[],'xtick',[])
 box off
 
 
+% Add plot to inspect relationship between session d' and Obs-Pred difference
+
+SESSIONS = dPrimeSessionHistogram;
+
+x_dp = [];
+y_op = [];
+y_ob = [];
+for is = 1:size(SESSIONS,1)
+    PD_idx = ismember(Pdata(:,1:2),SESSIONS(is,1:2));
+    x_dp = [x_dp; repmat(SESSIONS.dprime(is),sum(PD_idx),1)];
+    y_op = [y_op; [Pdata(PD_idx,:).obsIR]-[Pdata(PD_idx,:).predIR]];
+    y_ob = [y_ob; [Pdata(PD_idx,:).obsIR]];
+end
+
+hf4 = figure; 
+
+subplot(1,2,1); hold on
+plot(x_dp,y_ob,'ok')
+xlim([0 5])
+ylim([0 10])
+xlabel('d'' of session')
+ylabel('Observed Irr Response')
+[r,p]=corrcoef(x_dp,y_ob);
+text(0.5,9,sprintf('r=%0.2f, p=%0.2f',r(1,2),p(1,2)))
+
+subplot(1,2,2); hold on
+plot(x_dp,y_op,'ok')
+xlim([0 5])
+ylim(4.*[-1 1])
+xlabel('d'' of session')
+ylabel('Observed - Predicted Irr Response')
+[r,p]=corrcoef(x_dp,y_op);
+text(0.5,3.5,sprintf('r=%0.2f, p=%0.2f',r(1,2),p(1,2)))
+
+suptitle('Checking for effect of behavioral performance')
+
+
 %% Save figures
 
 savedir = fullfile(fn.figs,'PredObs');
@@ -622,6 +659,8 @@ savename = sprintf('PredObs_DiffsBaseFR_%s',USE_MEASURE);
 print_eps_kp(hf3,fullfile(savedir,savename))
 % print_svg_kp(hf3,fullfile(savedir,savename))
 
+savename = sprintf('PredObs_BehEffect_%s',USE_MEASURE);
+print_eps_kp(hf4,fullfile(savedir,savename))
 
 save(fullfile(savedir,['Pdata_' USE_MEASURE]),'Pdata','-v7.3')
 

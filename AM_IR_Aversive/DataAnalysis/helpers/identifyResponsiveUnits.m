@@ -8,14 +8,16 @@ function [sigUnits,UnitData] = identifyResponsiveUnits(UnitData)
 %   - Rcorr classifier performance
 %   - FR dprime formula (all stimuli compared to Silence)
 % 
-%  Called by plotUnitDistributions, and re-saved.
+%  Called at end of AssessUnits. 
+%
+%  Also called by plotUnitDistributions (obsolete), and re-saved.
 %
 %  KP, 2018-04 
 % 
 
 
 % Set thresholds
-p_bonferonni_VS  =  0.0002;
+p_bonferonni_VS  =  0.0002;  % RS p=0.001, but 5 comparisons performed
 % RC_M             =  3;
 
 sigUnits = [];

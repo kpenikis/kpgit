@@ -29,17 +29,17 @@ load(fullfile(fn.processed,subject,filename));
 % If a manual sort has already been saved, open from where left off
 % Also serves as a quick way to start over - set ch flag back to 0. 
 
-if Spikes.man_sort(channel)==1 
-    Spikes.sorted(channel).params.display.default_waveformmode = 2;
+% if Spikes.man_sort(channel)==1 
+%     Spikes.sorted(channel).params.display.default_waveformmode = 2;
+%     
+%     splitmerge_tool(  Spikes.sorted(channel)  )
     
-    splitmerge_tool(  Spikes.sorted(channel)  )
-    
-elseif Spikes.man_sort(channel)==0 
+% elseif Spikes.man_sort(channel)==0 
     Spikes.clustered(channel).params.display.default_waveformmode = 2;
     
     splitmerge_tool(  Spikes.clustered(channel)  )
     
-end
+% end
 
 
 

@@ -1,13 +1,13 @@
-function pc_plotResults
+function cl_plotResults
 %  
 %
 
 %%%%%%%%%%%%%%%%%%
-FR_cutoff = 1;
+FR_cutoff = 0;
 %%%%%%%%%%%%%%%%%%
 dp_cutoff = 0;
 %%%%%%%%%%%%%%%%%%
-alfa      = 0.05;
+alfa      = 0.05; 
 %%%%%%%%%%%%%%%%%%
 PLOT_F1   = 1;
 %%%%%%%%%%%%%%%%%%
@@ -38,7 +38,7 @@ colors = [  84  24  69;...
            255  87  51;...
            255 153   0]./255;
 % Other settings
-histbinsize = 0.025;
+histbinsize = 0.0001;
 AMrates = [2 4 8 16 32];
 
 
@@ -62,6 +62,11 @@ plot_v_Sh  = [];
 BMF_v_Sh   = [];
 sig_vals   = [];
 nsr_vals   = [];
+dp_facil   = [];
+dp_adapt   = [];
+dp_nchng   = [];
+PdcRespType = cell(size(DataSh,1),5);
+
 
 for iUn = 1:size(DataSh,1)
     
@@ -92,9 +97,30 @@ for iUn = 1:size(DataSh,1)
         else 
             nsr_vals = [nsr_vals; Data(iUn,irate).Res_L1o.dprime(:,2)];
         end
-    end
+        
+        
+        % Get Pdc response type                      [ early  late  p_val ]
+        PdcRespType{iUn,irate} = 'na';
+        if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{irate})
+            if (UnitData(iUn).DeltaNspk{irate}(3))<alfa && (UnitData(iUn).DeltaNspk{irate}(1) > UnitData(iUn).DeltaNspk{irate}(2))
+                % adapting
+                PdcRespType{iUn,irate} = 'A';
+                dp_adapt = [dp_adapt; Data(iUn,irate).Res_L1o.dprime(:,2)];
+            elseif (UnitData(iUn).DeltaNspk{irate}(3))<alfa && (UnitData(iUn).DeltaNspk{irate}(1) < UnitData(iUn).DeltaNspk{irate}(2))
+                % facilitating
+                PdcRespType{iUn,irate} = 'F';
+                dp_facil = [dp_facil; Data(iUn,irate).Res_L1o.dprime(:,2)];
+            else
+                PdcRespType{iUn,irate} = 'NC';
+                dp_nchng = [dp_nchng; Data(iUn,irate).Res_L1o.dprime(:,2)];
+            end
+        end
+        
+        
+        
+    end %irate
     
-end
+end %iUn
 
 plot_vals(plot_vals<0) = 0;
 BMF_vals(BMF_vals<0)   = 0;
@@ -102,10 +128,15 @@ plot_v_Sh(plot_v_Sh<0) = 0;
 BMF_v_Sh(BMF_v_Sh<0)   = 0;
 sig_vals(sig_vals<0)   = 0;
 nsr_vals(nsr_vals<0)   = 0;
+dp_adapt(dp_adapt<0)   = 0;
+dp_facil(dp_facil<0)   = 0;
+dp_nchng(dp_nchng<0)   = 0;
 
 
-% Plot
-subplot(1,2,1); hold on
+%---------------------------------------
+% Overall distributions of d'
+%---------------------------------------
+subplot(1,3,1); hold on
 grid on
 % plot([1 1],[0 1],'--','Color',0.5.*[1 1 1])
 % plot([2 2],[0 1],'--','Color',0.5.*[1 1 1])
@@ -124,17 +155,55 @@ xlabel('d prime')
 ylabel('Cumulative probability')
 ylim([0 1])
 xlim([0 2])
+axis square
 legend(ih,{'shuff'  sprintf('ALL (%i)',N)   sprintf('sigTC (%i)',Ns)  'nsTC'  sprintf('BMF (%i)',Nb) },'Location','southeast')
 title('d'' distribution for all MPH comparisons')
 
+% Stats
+h1 = adtest(plot_vals);
+h2 = adtest(plot_v_Sh);
+
+p_rs = ranksum(plot_vals,plot_v_Sh);
+[h_ks,p_ks] = kstest2(plot_vals,plot_v_Sh);
+
 
 %---------------------------------------
-%  HISTOGRAM OF D' VALUES BY AM RATE
+%  Distribution of d' by Pdc resp type
+%---------------------------------------
+clear ih
+
+subplot(1,3,2); hold on
+% plot([1 1],[0 1],'--','Color',0.5.*[1 1 1])
+grid on
+ih(1)=histogram(dp_nchng,0:histbinsize:4,'DisplayStyle','stairs',...
+    'EdgeColor',0.1.*[1 1 1],'LineWidth',2,'Normalization','cdf');
+ih(2)=histogram(dp_adapt,0:histbinsize:4,'DisplayStyle','stairs',...
+    'EdgeColor',0.9.*[1 1 0],'LineWidth',2,'Normalization','cdf');
+ih(3)=histogram(dp_facil,0:histbinsize:4,'DisplayStyle','stairs',...
+    'EdgeColor',0.9.*[0 1 0],'LineWidth',2,'Normalization','cdf');
+ih(4)=histogram([dp_facil; dp_adapt],0:histbinsize:4,'DisplayStyle','stairs',...
+    'EdgeColor',0.9.*[0 0 1],'LineWidth',2,'Normalization','cdf');
+
+legend(ih,{['NC (n=' num2str(length(dp_nchng)) ')'] ['Adapting (n=' num2str(length(dp_adapt)) ')'] ['Facilitating (n=' num2str(length(dp_facil)) ')'] ['A or F (n=' num2str(length(dp_adapt)+length(dp_facil)) ')']},'Location','southeast')
+xlim([0 2])
+ylim([0 1])
+xlabel('d prime')
+axis square
+title('d'' by Pdc response type')
+
+% Stats
+
+[h_ks_2,p_ks_2] = kstest2(dp_nchng(round(linspace(1,length(dp_nchng),200))),[dp_facil; dp_adapt]);
+% [h_ks_2,p_ks_2] = kstest2(dp_nchng,[dp_facil; dp_adapt]);
+
+
+%---------------------------------------
+%  Distribution of d' by AM rate
 %---------------------------------------
 clear ih
 legstr = cell(1,size(Data,2));
 
-subplot(1,2,2); hold on
+subplot(1,3,3); hold on
 % plot([1 1],[0 1],'--','Color',0.5.*[1 1 1])
 grid on
 
@@ -169,6 +238,7 @@ legend(ih,legstr,'Location','southeast')
 xlim([0 2])
 ylim([0 1])
 xlabel('d prime')
+axis square
 
 title('d'' by AM rate')
 

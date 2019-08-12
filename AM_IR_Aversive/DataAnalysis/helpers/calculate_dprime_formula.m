@@ -1,6 +1,6 @@
 function dprime_mat = calculate_dprime_formula( FRmat )
 % dprime_mat = calculate_dprime_formula( FR_mat )
-% called by AssessResponses
+% called by assess_this_unit
 % 
 % Inputs
 %   FRmat (created by format_FRmat)

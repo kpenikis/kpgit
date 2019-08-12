@@ -1,4 +1,4 @@
-function Data = ClassifyMPHcontext(USE_MEASURE)
+function Data = ClassifyMPHcontext_matched(USE_MEASURE)
 %
 %  classifyMPHcontext
 %
@@ -24,6 +24,9 @@ Iterations  =  100;
 tVarBin     =  31;
 %!!!!!!!!!!!!!!!!!!!
 SHUFFLE_SPIKES = 0;
+%!!!!!!!!!!!!!!!!!!!
+T         = 250;
+alfa      = 0.05;
 %!!!!!!!!!!!!!!!!!!!
 
 
@@ -70,38 +73,6 @@ else
     clear q
     Un1  = size(Data,1)+1;
 end
-
-%% Figure settings
-
-set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',14)
-
-scrsz = get(0,'ScreenSize');  %[left bottom width height]
-fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
-
-% Set colors
-colors = [ 0 200 150;...
-    84  24  69;...
-    120  10  41;...
-    181   0  52;...
-    255  87  51;...
-    255 153   0]./255;
-colors = [ colors; ...
-    [37  84 156]./255 ;...
-    [19 125 124]./255 ];
-
-% Make figures
-% for irate = 1:numel(AMrates)
-%     hf(irate) = figure; hold on
-%     plot([AMrates(irate) AMrates(irate)],[0 3],'Color',colors(irate+1,:),'LineWidth',2)
-%     set(gca,'xscale','log','xtick',2.^[1:5])
-%     xlim(2.^[0.8 5.2])
-%     ylim([0 2.5])
-%     xlabel('avg AM rate in previous 500 ms')
-%     ylabel('d prime')
-%     title([num2str(AMrates(irate)) ' Hz period'])
-% end
-
 
 
 %% Step through Units
@@ -168,147 +139,144 @@ for iUn = 1:numel(UnitData)
     %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
     
-    %%  3) PLOT DATA
     
-    try
-        
-    T = 250;
+    %%  3) GET MATCHED PERIODS, COLLECT DATA
     
-    for this_rate = AMrates
+    
+    for this_rate = AMrates   %(UnitData(iUn).iBMF_FR)
         
         fprintf(' %iHz',this_rate)
-        Period = 1000/this_rate;
+        
+        % Set up
+        thisMPH   = struct;
+        Period    = 1000/this_rate;
         irate     = find(AMrates==this_rate);
         
         MPH_rate  = MPH(MPH.AMrate==this_rate,:);
-        unique([MPH_rate.PrevAMrt500]);
         
-        %~~~~~~~~~~~~~~~~  PERIODIC  ~~~~~~~~~~~~~~~~
-        iPdc = find( (MPH_rate.ThisStimID==irate+1 & MPH_rate.Starttime>=T)...
-            | (MPH_rate.ThisStimID==irate+1 & MPH_rate.PrevStimID==irate+1) );
-        
-        if isempty(iPdc)
-            fprintf('   ...skipping bc no valid Pdc MPH\n')
-            continue
+        % Get Pdc response type                      [ early  late  p_val ]
+        PRT = 'na';
+        if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{this_rate==AMrates})
+            if (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) > UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
+                % adapting
+                PRT = 'A';
+            elseif (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) < UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
+                % facilitating
+                PRT = 'F';
+            else
+                PRT = 'NC';
+            end
         end
         
-        nTrs = cellfun(@(x) size(x,1),MPH_rate(iPdc,:).raster);
-        thisMPH = struct();
-        np=1;
+        PdcIRData = struct;
+        PdcData   = struct;
+        IRData    = struct;
         
-        thisMPH(1).Context      = 'Pdc'; 
-        thisMPH(1).indices      = iPdc;
-        switch USE_MEASURE
-            case 'FR'
-                thisMPH(1).raster  = vertcat(MPH_rate(iPdc,:).FRsmooth{:});
-            case 'spikes'
-                thisMPH(1).raster  = vertcat(MPH_rate(iPdc,:).raster{:});
-        end
-        thisMPH(1).Prev500msFR  = cell2mat(MPH_rate(iPdc,:).Prev500msFR')'; 
-        thisMPH(1).Prev100msFR  = cell2mat(MPH_rate(iPdc,:).Prev100msFR')'; 
-        thisMPH(1).PrevAMrt500  = sum([MPH_rate(iPdc,:).PrevAMrt500] .* nTrs) / sum(nTrs);
-        thisMPH(1).PrevAMrt100  = sum([MPH_rate(iPdc,:).PrevAMrt100] .* nTrs) / sum(nTrs);
-        thisMPH(1).nTrs         = sum(nTrs);
+        np=0;
         
         
-        %~~~~~~~~~~~~~~~~  IRREGULAR  ~~~~~~~~~~~~~~~~
+        % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        % Get instances of this period in IRREGULAR context first
         
         theseIRs = unique(MPH_rate.ThisStimID(MPH_rate.ThisStimID>6))';
         
         for thisIR = theseIRs
             
-            PPds = unique(MPH_rate.PrevPd( MPH_rate.Starttime>=T & MPH_rate.ThisStimID==thisIR ));
-            
-            for thisPP = PPds'
+            for iseq = 1:2
                 
-                iIR = find(MPH_rate.PrevPd==thisPP & MPH_rate.Starttime>T & MPH_rate.ThisStimID==thisIR)';
-                if isempty(iIR), continue, end
+                iIR = find( MPH_rate.ThisStimID==thisIR & MPH_rate.ThisStimID==thisIR & MPH_rate.SeqPos==iseq )';
+                
+                if isempty(MPH_rate(iIR,:)), continue, end
+                
+                np=np+1;
                 
                 nTrs = cellfun(@(x) size(x,1),MPH_rate(iIR,:).raster);
                 
-                np = np+1;
-                thisMPH(np).Context      = 'IR';
-                thisMPH(np).indices      = iIR;
+                thisMPH(np,2).Context      = 'IR';
+                thisMPH(np,2).indices      = iIR;
                 
                 switch USE_MEASURE
                     case 'FR'
-                        thisMPH(np).raster  = vertcat(MPH_rate(iIR,:).FRsmooth{:});
+                        thisMPH(np,2).raster  = vertcat(MPH_rate(iIR,:).FRsmooth{:});
                     case 'spikes'
-                        thisMPH(np).raster  = vertcat(MPH_rate(iIR,:).raster{:});
+                        thisMPH(np,2).raster  = vertcat(MPH_rate(iIR,:).raster{:});
                 end
                 
-                thisMPH(np).Prev500msFR  = cell2mat(MPH_rate(iIR,:).Prev500msFR')';
-                thisMPH(np).Prev100msFR  = cell2mat(MPH_rate(iIR,:).Prev100msFR')';
-                thisMPH(np).PrevAMrt500  = sum([MPH_rate(iIR,:).PrevAMrt500] .* nTrs) / sum(nTrs);
-                thisMPH(np).PrevAMrt100  = sum([MPH_rate(iIR,:).PrevAMrt100] .* nTrs) / sum(nTrs);
-                thisMPH(np).nTrs         = sum(nTrs);
+                thisMPH(np,2).Prev500msFR  = cell2mat(MPH_rate(iIR,:).Prev500msFR')';
+                thisMPH(np,2).Prev100msFR  = cell2mat(MPH_rate(iIR,:).Prev100msFR')';
+                thisMPH(np,2).PrevAMrt500  = sum([MPH_rate(iIR,:).PrevAMrt500] .* nTrs) / sum(nTrs);
+                thisMPH(np,2).PrevAMrt100  = sum([MPH_rate(iIR,:).PrevAMrt100] .* nTrs) / sum(nTrs);
+                thisMPH(np,2).nTrs         = sum(nTrs);
                 
-            end %PPds
-        end %thisIR
-        
-        
-        %~~~~~~~~~~~~~~~~  Post-Transition  ~~~~~~~~~~~~~~~~
-        
-        iTrans = find(MPH_rate.ThisStimID==irate+1 & MPH_rate.Starttime<T/2 & MPH_rate.PrevStimID~=irate+1 )';
-        PStIDs = [MPH_rate(iTrans,:).PrevStimID]';
-        
-        for ips = unique(PStIDs)
+            end %iseq
             
-            np=np+1;
-            iTr = iTrans(PStIDs==ips);
+        end %IRstim -- IRREGULAR first
+        
+        
+        
+        % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        % Now get matching PERIODIC context data
+        
+        % Get Pdc starttimes, but SKIP if too close to trial transition
+        PdcMPs = MPH_rate(MPH_rate.ThisStimID<7,:);
+        pdcstarttimes = unique(PdcMPs.Starttime)';
+        pdcstarttimes(pdcstarttimes<T) = nan;
+        
+        
+        % Now get a matching Pdc MP for each Irr one
+        
+        for ip = 1:size(thisMPH,1)
             
-            nTrs                     = cellfun(@(x) size(x,1),MPH_rate(iTr,:).raster);
+            % Find matching period by closest starttime
+            starttime = mode(MPH_rate(thisMPH(ip,2).indices,:).Starttime);
             
-            thisMPH(np).Context      = 'Trans';
-            thisMPH(np).indices      = iTr;
+            strtdiffs = abs(starttime - pdcstarttimes);
+            [STdiff,ipd] = min(strtdiffs);
+            if STdiff>1000
+                aaa=234;
+            end
+            
+            iPdc = find((MPH_rate.ThisStimID<7 & MPH_rate.Starttime==pdcstarttimes(ipd)))';
+            
+            nTrs = cellfun(@(x) size(x,1),MPH_rate(iPdc,:).raster);
+            
+            thisMPH(ip,1).Context      = 'Pdc';
+            thisMPH(ip,1).indices      = iPdc;
             switch USE_MEASURE
                 case 'FR'
-                    thisMPH(np).raster  = vertcat(MPH_rate(iTr,:).FRsmooth{:});
+                    thisMPH(ip,1).raster  = vertcat(MPH_rate(iPdc,:).FRsmooth{:});
                 case 'spikes'
-                    thisMPH(np).raster  = vertcat(MPH_rate(iTr,:).raster{:});
+                    thisMPH(ip,1).raster  = vertcat(MPH_rate(iPdc,:).raster{:});
             end
-            thisMPH(np).Prev500msFR  = cell2mat(MPH_rate(iTr,:).Prev500msFR')';
-            thisMPH(np).Prev100msFR  = cell2mat(MPH_rate(iTr,:).Prev100msFR')';
-            thisMPH(np).PrevAMrt500  = sum([MPH_rate(iTr,:).PrevAMrt500] .* nTrs) / sum(nTrs);
-            thisMPH(np).PrevAMrt100  = sum([MPH_rate(iTr,:).PrevAMrt100] .* nTrs) / sum(nTrs);
-            thisMPH(np).nTrs         = sum(nTrs);
+            thisMPH(ip,1).Prev500msFR  = cell2mat(MPH_rate(iPdc,:).Prev500msFR')';
+            thisMPH(ip,1).Prev100msFR  = cell2mat(MPH_rate(iPdc,:).Prev100msFR')';
+            thisMPH(ip,1).PrevAMrt500  = sum([MPH_rate(iPdc,:).PrevAMrt500] .* nTrs) / sum(nTrs);
+            thisMPH(ip,1).PrevAMrt100  = sum([MPH_rate(iPdc,:).PrevAMrt100] .* nTrs) / sum(nTrs);
+            thisMPH(ip,1).nTrs         = sum(nTrs);
             
-        end %PStIDs
+        end %ip
         
         
-        % Run classifiers and save data for later
+        %% Run classifiers and save data for later
+        
         Data(iUn,irate).AMrate   = this_rate;
         Data(iUn,irate).data     = thisMPH;
         fprintf('   running classifier: leave one tr out\n')
         Data(iUn,irate).Res_L1o  = get_classifier_data( thisMPH, -1 );
-%         fprintf('   running classifier: 10 trial templates\n')
+        %         fprintf('   running classifier: 10 trial templates\n')
         Data(iUn,irate).Res_t10  = []; %get_classifier_data( thisMPH, 10 );
         
         fprintf(' \n')
         
-        % Add to plot
-%         these_idx       = Data(iUn,irate).Res_t10.dprime(:,1);
-%         x_plot          = [Data(iUn,irate).data(these_idx).PrevAMrt500];
-%         [x_plot,x_idx]  = sort(x_plot);
-%         
-%         figure(hf(irate));
-%         plot(x_plot, Data(iUn,irate).Res_t10.dprime(x_idx,2)',...
-%             '-ok')
-%
-%         if any([Data(iUn,irate).Res_t10.dprime(:,2)]>1)
-%             aaaa=234;
-%         end
         
     end  %this_rate
     
     
-    % Save Data to tmp folder
+    %% Save Data to tmp folder
+    
     save(fullfile(savedir,'tmp',savename),'Data','-v7.3')
     fprintf('\n')
     
-    catch
-        keyboard
-    end
     
 end %iUn
 

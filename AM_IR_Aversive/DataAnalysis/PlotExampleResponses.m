@@ -15,7 +15,7 @@ TTP = 20;
 %%%%%%%%%%%%%%%%%%%%
 minTrs = 10;
 %%%%%%%%%%%%%%%%%%%%
-USE_MEASURE = 'FR';
+% USE_MEASURE = 'FR';
 %%%%%%%%%%%%%%%%%%%%
 AMrates = [2 4 8 16 32];
 %%%%%%%%%%%%%%%%%%%%
@@ -61,6 +61,7 @@ rng('shuffle')
 scrsz = get(0,'ScreenSize');   %[left bottom width height]
 tallrect   = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 tcsquare   = [1 scrsz(4) scrsz(3)/3 scrsz(4)/2];
+widescreen = [1 scrsz(4) scrsz(3) scrsz(4)/2];
 
 figwidthscales = [1.5 1 1 1 1 1 1.937 1.937 1];
 Info.stim_ID_key{9} = 'Silence';
@@ -84,17 +85,18 @@ colors = [ colors; ...
 
 %%
 
-Stimuli   = 1:9;
+Stimuli   = [9 1:8];
 FRtrials  = cell(1,numel(Stimuli));
 FR_allSt  = nan(1,numel(Stimuli));
 std_allSt = nan(1,numel(Stimuli));
+FF_allSt  = nan(1,numel(Stimuli));
 
 AvgEnv = nan(numel(Stimuli),2000);
 PSTH   = nan(numel(Stimuli),2000);
 
 for ist = Stimuli
     
-    stid = Stimuli(ist);
+    stid = ist;
     
     %%
     % Set up figure
@@ -167,10 +169,11 @@ for ist = Stimuli
         SilPd = [TrialData.onset(1) TrialData.offset(1)];
         Duration = 1000;
         
-        t2 = TrialData.onset(1) : Duration : (TrialData.offset(1)-mod(diff(SilPd),1000)-1000);
+        t2 = TrialData.onset(1) : Duration : (TrialData.offset(1)-mod(diff(SilPd),Duration)-Duration);
         TDidx = 1:length(t2);
         Ntrials(ist) = length(t2);
         
+        TTP = min(min(Ntrials(Ntrials>0),40));
     end
     
 %     kt     = randperm(Ntrials(ist),min(Ntrials));
@@ -224,6 +227,9 @@ for ist = Stimuli
     % FR and std
     FR_allSt(ist)  = mean(FR);
     std_allSt(ist) = std(FR);
+    
+    % FF
+    FF_allSt(ist)  = var(FR)/mean(FR);
     
     
     %% Add to plots
@@ -289,26 +295,25 @@ end %ist
 % save(fullfile(savedir,savename),'AvgEnv','PSTH','Info','-v7.3')
 
 
-
-
-
 [IR_Prediction_sim, IR_Pred_std_sim, pvals] = predictIRresponse_simulation(FRtrials);
 
 
-%% Plot FR tuning curve
 
-xvals = [1:5 allStim(allStim>6)+2]; 
-switch USE_MEASURE
-    case 'FR'
-        y_vals = FR_allSt;
-        y_errs = std_allSt;
-    case 'FF'
-        y_vals = FF';
-        y_errs = zeros(length(FF),2);
-end
+%% Tuning curves 
 
 htc=figure;
-set(gcf,'Position',tcsquare)
+set(gcf,'Position',widescreen)
+hold on
+
+xvals = [1:5 allStim(allStim>6)+2]; 
+
+
+% - - - - - - - - - - - - - -   FR   - - - - - - - - - - - - - -
+
+y_vals = FR_allSt;
+y_errs = std_allSt;
+
+subplot(1,3,1);
 hold on
 
 % Plot baseline FR
@@ -351,7 +356,62 @@ xtickangle(45)
 xlim([-1+min(xvals) max(xvals)+1])
 keyboard
 ylim([0 16])
-ylabel(sprintf('%s',USE_MEASURE))
+ylabel('FR')
+keyboard
+
+
+% - - - - - - - - - - - - - -   VS   - - - - - - - - - - - - - -
+
+subplot(1,3,2);
+hold on
+
+% Plot periodic stimuli
+plot(1:5,UnitData(iUn).VSdata_spk(1,2:6),'-ok','MarkerSize',20,'LineWidth',2)
+plot(find((UnitData(iUn).VSdata_spk(3,2:6)<0.001)),UnitData(iUn).VSdata_spk(1,1+find(UnitData(iUn).VSdata_spk(3,2:6)<0.001)),'.k','MarkerSize',55,'LineWidth',2)
+
+% Finish formatting
+set(gca,'XTick',sort([xvals 7]),...
+    'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
+    'TickLabelInterpreter','none')
+xtickangle(45)
+
+xlim([-1+min(xvals) max(xvals)+1])
+ylim([0 1])
+ylabel('VS')
+
+
+
+% - - - - - - - - - - - - - -   FF   - - - - - - - - - - - - - -
+
+subplot(1,3,3);
+hold on
+
+plot([0 max(xvals)+1],[FF_allSt(9) FF_allSt(9)],'--k','LineWidth',3)
+
+% Plot periodic stimuli
+plot(1:5,FF_allSt(2:6),'k','LineWidth',2)
+for ir = 1:5
+    plot(xvals(ir),FF_allSt(ir+1), 'o','MarkerSize',20,...
+        'MarkerFaceColor','k','MarkerEdgeColor','none')
+end
+
+% Plot IR observed
+for ir = 1:sum(xvals>5)
+    plot(xvals(5+ir),FF_allSt(xvals(5+ir)-2),'o','MarkerSize',20,...
+        'MarkerFaceColor',colors(xvals(5+ir)-2,:),'MarkerEdgeColor','none')
+end
+
+% Finish formatting
+set(gca,'XTick',sort([xvals 7]),...
+    'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
+    'TickLabelInterpreter','none')
+xtickangle(45)
+
+xlim([-1+min(xvals) max(xvals)+1])
+% keyboard
+ylim([0 10])
+ylabel('FF')
+keyboard
 
 
 %% Save figures
@@ -364,13 +424,12 @@ for ist = Stimuli
     
     savename = sprintf('%s_%s_%i',Info.stim_ID_key{ist},SESSION,CluID);
     print_eps_kp(hf(ist),fullfile(savedir,savename))
-%     set(hf(ist),'PaperOrientation','landscape')
-%     print(hf(ist),fullfile(savedir,savename),'-dpdf','-bestfit')
+    
 end
 
 
 % Save MTF figure
-savename = sprintf('Tuning_%s_%s_%i',USE_MEASURE,SESSION,CluID);
+savename = sprintf('TuningCurves_%s_%i',SESSION,CluID);
 print_eps_kp(htc,fullfile(savedir,savename))
 
 

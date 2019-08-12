@@ -1,12 +1,15 @@
 function MPH_matchedComparison(USE_MEASURE)
+%  MPH_matchedComparison
 %
-%  MPHanalyses( [subject, session, channel, clu] )
-%   All inputs are optional. Any variables not specified will be cycled
-%   through.
+%   Gets all MPHs. Finds the closest matching Pdc period for each Irr
+%   period. Also finds a different Pdc period to compare to this one. 
+%   Option to plot MPH.
 %
-% KP, 2018-04, 2019-03
+% KP, 2018-04, 2019-07
+% 
 
 
+% disp('Baseline-subtracted')
 
 
 global fn AMrates rateVec_AC rateVec_DB trMin RateStream
@@ -20,7 +23,12 @@ AMrates = [2 4 8 16 32];
 %!!!!!!!!!!!!!!!!!
 colorswitch = 'PdcType'; 'AMrate'; 
 %!!!!!!!!!!!!!!!!!
+PlotMPH = 0;
+%!!!!!!!!!!!!!!!!!
 
+if nargin<1
+    USE_MEASURE = 'FR';
+end
 
 %% Load Unit data files
 
@@ -43,9 +51,7 @@ rateVec_DB = q.buffer;
 ContextStr = {'Periodic' 'IR (AC)' 'IR (DB)'};
 SeqPosStr = {'Early' 'Late'};
 
-if nargin<1
-    USE_MEASURE = 'FR';
-end
+
 switch USE_MEASURE
     case 'FR'
         units = 'Hz';
@@ -71,28 +77,84 @@ set(0,'DefaultTextInterpreter','none')
 set(0,'DefaultAxesFontSize',14)
 
 scrsz = get(0,'ScreenSize');  %[left bottom width height]
-widescreen = [1 scrsz(4) scrsz(3) scrsz(4)/2];
+fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
 
 hf = figure;
-set(hf,'Position',widescreen,'NextPlot','add')
+set(hf,'Position',fullscreen,'NextPlot','add')
 
-hs(1)=subplot(1,3,1);
+hs(1)=subplot(6,4,[1 5 9]);
 hold on
 plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
 axis square
 title('Pdc-IR')
 
-hs(2)=subplot(1,3,2);
+% hs(2)=subplot(2,3,2);
+hs(2)=subplot(6,4,[2 6 10]);
 hold on
 plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
 axis square
 title('Pdc-Pdc')
 
-hs(3)=subplot(1,3,3);
+% hs(3)=subplot(2,3,3);
+hs(3)=subplot(6,4,[3 7 11]);
 hold on
 plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
 axis square
 title('IR-IR')
+
+% hs(4)=subplot(2,3,4);
+hs(4)=subplot(6,4,[13 17 21]);
+hold on
+plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('Pdc-IR')
+
+% hs(5)=subplot(2,3,5);
+hs(5)=subplot(6,4,[14 18 22]);
+hold on
+plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('Pdc-Pdc')
+
+% hs(6)=subplot(2,3,6);
+hs(6)=subplot(6,4,[15 19 23]);
+hold on
+plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('IR-IR')
+
+
+% DIFFERENCE HISTOGRAMS
+
+hs(7)=subplot(6,4,8);
+hold on
+xlim(sqrt(60^2 + 60^2)/2*[-1 1])
+set(gca,'Color','none','xtick',[],'ytick',[])
+title('Pdc-IR')
+
+hs(8)=subplot(6,4,16);
+hold on
+xlim(sqrt(60^2 + 60^2)/2*[-1 1])
+set(gca,'Color','none','xtick',[],'ytick',[])
+title('Pdc-Pdc')
+
+hs(9)=subplot(6,4,24);
+hold on
+xlim(sqrt(60^2 + 60^2)/2*[-1 1])
+set(gca,'Color','none','xtick',[],'ytick',[])
+title('IR-IR')
+
+
+savedir = fullfile(fn.figs,'MPHmatched');
+if ~exist(savedir,'dir')
+    mkdir(savedir)
+end
 
 
 % Set colors
@@ -106,8 +168,7 @@ colors = [ colors; ...
     [37  84 156]./255 ;...
     [19 125 124]./255 ];
 
-% yvals = [5 10 20 30 50 75 100];
-yvals = 2.^[0:10];
+PlotMarkerSize = 15;
 
 
 %% Preallocate
@@ -119,11 +180,6 @@ PD_PdcPdc=[];
 
 
 for iUn = 1:numel(UnitData)
-        
-    %%% skips merged units for now
-    if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
-        continue
-    end
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
@@ -142,8 +198,8 @@ for iUn = 1:numel(UnitData)
         clear TrialData Info RateStream
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
-    end
-    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || ( ~exist('Spikes','var') || ~exist('Clusters','var') )
+%     end
+%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || ( ~exist('Spikes','var') || ~exist('Clusters','var') )
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
     end
@@ -164,10 +220,11 @@ for iUn = 1:numel(UnitData)
     end
     
     
-    fprintf(' analyzing ch %i clu %i\n',channel,clu)
+    if isempty(UnitData(iUn).iBMF_FR)
+        continue
+    end
     
-    % Set ymaxval
-    yin = find( ( max(yvals, 2+3*max(nanmean(UnitData(iUn).FR_raw_tr,1)) ) - yvals )==0 );
+    fprintf(' analyzing ch %i clu %i\n',channel,clu)
     
     
     
@@ -182,9 +239,9 @@ for iUn = 1:numel(UnitData)
     
     
     
-    %%  3) PLOT DATA
+    %%  3) GET MATCHED PERIODS, COLLECT DATA
     
-    for this_rate = AMrates(1:4)
+    for this_rate = AMrates %(UnitData(iUn).iBMF_FR)
         
         % Set up
         Period    = 1000/this_rate;
@@ -207,27 +264,6 @@ for iUn = 1:numel(UnitData)
                 PRT = 'NC';
             end
         end
-        
-        % Set plot colors
-        plotcol = 'k';
-        switch colorswitch
-            case 'AMrate'
-                plotcol = colors(find(this_rate==AMrates)+1,:);
-            case 'PdcType'  %                       [ early  late  p_val ]
-                switch PRT
-                    case 'na'
-                        plotcol = 0.7*[1 1 1];
-                    case 'NC'
-                        plotcol = 'k';
-                    case 'A'
-                        plotcol = [1 0.647 0];
-                    case 'F'
-                        plotcol = [0 0.6 0];
-                end
-            case 'none'
-                plotcol = 'k';
-        end
-        
         
         % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         % Get instances of this period in IRREGULAR context first
@@ -279,7 +315,7 @@ for iUn = 1:numel(UnitData)
                 PdcIRData(idx,1).stimID    = IRstim;
                 PdcIRData(idx,1).seqPos    = iseq;
                 PdcIRData(idx,1).starttime = mode(subMPH(subMPH.SeqPos==iseq,:).Starttime);
-                PdcIRData(idx,1).FR        = mean(FR,'omitnan');
+                PdcIRData(idx,1).FR        = mean(FR,'omitnan');% - UnitData(iUn).BaseFR;
                 PdcIRData(idx,1).SEM       = mean(SEM,'omitnan');
                 PdcIRData(idx,1).FF        = mean(FF,'omitnan');
                 PdcIRData(idx,1).TrV       = mean(TrV,'omitnan');
@@ -291,20 +327,25 @@ for iUn = 1:numel(UnitData)
                 %           PLOT IR
                 %================================
                 
-%                 histMP = [];
-%                 histbin = floor(size(raster,2)/30);
-%                 histMP = binspikecounts(mean(raster,1),histbin)/histbin*1000;
-%                 
-%                 
-%                 subplot(hsp(iseq,IRstim-6)); hold on
-%                 %                             title(sprintf('%s\n%i ms, %i tr',ContextStr{IRstim-5},PdData(idx,1).starttime, size(raster,1) ))
-%                 titstrIR{iseq,IRstim-6} = sprintf('%s: %i ms, %i tr',ContextStr{IRstim-5},PdData(idx,1).starttime, size(raster,1) );
-%                 
-%                 bar(linspace(1,size(raster,2),length(histMP)),histMP,...
-%                     'FaceColor',colors(ir+1,:),'EdgeColor','none','BarWidth',1)
-%                 
-%                 hold off
-%                 
+                if PlotMPH && idx==2
+                    hfmph=figure; hold on
+                    
+                    histMP = [];
+                    histbin = floor(size(raster,2)/30);
+                    histMP = binspikecounts(mean(raster,1),histbin)/histbin*1000;
+                    
+                    subplot(1,3,1); 
+                    bar(linspace(1,size(raster,2),length(histMP)),histMP,...
+                        'FaceColor','k','EdgeColor','none','BarWidth',1)
+                    axis square
+                    set(gca,'xtick',[],'ytick',[],'Color','none')
+                    box on
+                    xlim([0 size(raster,2)])
+                    ylim([0 40])
+                    title('IR')
+                    xlabel(sprintf('%i ms',PdcIRData(idx,1).starttime))
+                    
+                end
                 
             end %iseq
             
@@ -374,34 +415,68 @@ for iUn = 1:numel(UnitData)
             PdcIRData(idx,2).stimID    = find(AMrates==this_rate)+1;
             PdcIRData(idx,2).seqPos    = iseq;
             PdcIRData(idx,2).starttime = mode(subMPH(subMPH.Starttime==pdcstarttimes(ipd),:).Starttime);
-            PdcIRData(idx,2).FR        = mean(FR,'omitnan');
+            PdcIRData(idx,2).FR        = mean(FR,'omitnan');% - UnitData(iUn).BaseFR;
             PdcIRData(idx,2).SEM       = mean(SEM,'omitnan');
             PdcIRData(idx,2).FF        = mean(FF,'omitnan');
             PdcIRData(idx,2).TrV       = mean(TrV,'omitnan');
             PdcIRData(idx,2).VS        = mean(VS,'omitnan');
             
             
+            %================================
+            %           PLOT Pdc
+            %================================
+            if PlotMPH && idx==2
+                
+                histMP = [];
+                histbin = floor(size(raster,2)/30);
+                histMP = binspikecounts(mean(raster,1),histbin)/histbin*1000;
+                
+                subplot(1,3,2);
+                bar(linspace(1,size(raster,2),length(histMP)),histMP,...
+                    'FaceColor','k','EdgeColor','none','BarWidth',1)
+                axis square
+                xlim([0 size(raster,2)])
+                ylim([0 40])
+                set(gca,'xtick',[],'ytick',[],'Color','none')
+                box on
+                title('Pdc 1')
+                xlabel(sprintf('%i ms',PdcIRData(idx,2).starttime))
+                
+            end
+            
+            
             %---------------------------------------
             %  Also get MPH for Pdc-Pdc comparison
             %---------------------------------------
             
-            keyboard
-            % fix issue of drawing empty periods 
-            
-            % Randomly select another period (what to do about 2 Hz?)
+            % 2 Hz: always compare to first period, but only those preceded by 4 Hz
             if this_rate==2
                 subsubMPH = subMPH(subMPH.Starttime==0,:);
                 subsubMPH = subsubMPH(subsubMPH.PrevStimID==3,:);
+            
+            % 4 Hz: allow first period to be chosen, when preceded by 4 Hz
             elseif this_rate==4
-                ipd2s = 1:numel(pdcstarttimes);
-                ipd2s(ipd2s==ipd) = [];
-                ipd2 = ipd2s(randperm(numel(ipd2s),1));
-                if ipd2==1
-                    subsubMPH = subMPH(subMPH.Starttime==0,:);
-                    subsubMPH = subsubMPH(subsubMPH.PrevStimID==3,:);
-                else
-                    subsubMPH = subMPH(subMPH.Starttime==pdcstarttimes(ipd2),:);
+                nt=0; int=0;
+                while nt<trMin
+                    int=int+1;
+                    ipd2s = 1:numel(pdcstarttimes);
+                    ipd2s(ipd2s==ipd) = [];
+                    ipd2 = ipd2s(randperm(numel(ipd2s),1));
+                    if ipd2==1
+                        subsubMPH = subMPH(subMPH.Starttime==0,:);
+                        subsubMPH = subsubMPH(subsubMPH.PrevStimID==3,:);
+                    else
+                        subsubMPH = subMPH(subMPH.Starttime==pdcstarttimes(ipd2),:);
+                    end
+                    nt = sum(cellfun(@(x) size(x,1),subsubMPH.raster));
+                    if int>10
+                        warning('issue finding an appropriate MPH to compare')
+                        keyboard
+                        break
+                    end
                 end
+                
+            % 8,16,32 Hz: only choose from periods after the first 250 ms
             else
                 ipd2s = 1:numel(pdcstarttimes);
                 ipd2s(ipd2s==ipd) = [];
@@ -410,7 +485,7 @@ for iUn = 1:numel(UnitData)
                 subsubMPH = subMPH(subMPH.Starttime==pdcstarttimes(ipd2),:);
             end
             
-            if isempty(subsubMPH) || sum(cellfun(@(x) size(x,1),subsubMPH.raster))<10
+            if isempty(subsubMPH) || isempty(subMPH)
                 keyboard
             end
             
@@ -448,72 +523,40 @@ for iUn = 1:numel(UnitData)
             PdcData(idx,1).stimID    = find(AMrates==this_rate)+1;
             PdcData(idx,1).seqPos    = iseq;
             PdcData(idx,1).starttime = mode(subsubMPH.Starttime);
-            PdcData(idx,1).FR        = mean(FR,'omitnan');
+            PdcData(idx,1).FR        = mean(FR,'omitnan');% - UnitData(iUn).BaseFR;
             PdcData(idx,1).SEM       = mean(SEM,'omitnan');
             PdcData(idx,1).FF        = mean(FF,'omitnan');
             PdcData(idx,1).TrV       = mean(TrV,'omitnan');
             PdcData(idx,1).VS        = mean(VS,'omitnan');
             
             
-            
-            %% PLOT Pdc MPH 
             %================================
-            %           PLOT Pdc
+            %          PLOT Pdc 2
             %================================
-            
-%             histMP = [];
-%             histMP = binspikecounts(mean(raster,1),histbin)/histbin*1000;
-%             
-%             %                         subplot(hsp(iseq,1)); hold on
-%             subplot(hsp(iseq,PdData(iIRpd,1).stimID-6));
-%             hold on
-%             
-%             %                         bar(linspace(1,size(raster,2),length(histMP)),histMP,...
-%             %                             'FaceColor','none','EdgeColor',0*[1 1 1],'BarWidth',1,'LineWidth',1)
-%             
-%             xx = linspace(1,size(raster,2),length(histMP));
-%             xx = reshape(mode(diff(xx))/2+[xx;xx],1,2*length(xx));
-%             if ~isempty(histMP)
-%                 yy = reshape([histMP;histMP],1,2*length(histMP));
-%                 yy(1) = []; yy(1) = 0; yy(end+1) = 0;
-%             else
-%                 yy = zeros(size(xx));
-%             end
-%             
-%             plot(xx,yy,'-','Color',0.7*[1 1 1],'LineWidth',1.5)
-%             
-%             title(sprintf('%s\n%s: %i ms, %i tr',titstrIR{iseq,PdData(iIRpd,1).stimID-6},ContextStr{1},PdData(idx,2).starttime, size(raster,1) ))
-%             
-%             hold off
+            if PlotMPH && idx==2
+                
+                histMP = [];
+                histbin = floor(size(raster,2)/30);
+                histMP = binspikecounts(mean(raster,1),histbin)/histbin*1000;
+                
+                subplot(1,3,3);
+                bar(linspace(1,size(raster,2),length(histMP)),histMP,...
+                    'FaceColor','k','EdgeColor','none','BarWidth',1)
+                axis square
+                xlim([0 size(raster,2)])
+                ylim([0 40])
+                set(gca,'xtick',[],'ytick',[],'Color','none')
+                box on
+                title('Pdc 2')
+                xlabel(sprintf('%i ms',PdcData(idx,1).starttime))
+                
+                keyboard
+                % Finish and save MPH plot
+                print_eps_kp(gcf,fullfile(savedir,'MPHplots_iUn84_4hz_7_2'));
+                
+            end
             
         end %iIRpd
-        
-        
-        %% Finish and save MPH plot
-        
-%         if isfield(ThisResp,'iBMF_FR') && isfield(ThisResp,'iBMF_VS')
-%             suptitle( sprintf('%i Hz   |   %s %s %i %i   |   BMF-fr: %i Hz, BMF-vs: %i Hz\n ',this_rate,subject,session,channel,clu , AMrates(ThisResp.iBMF_FR), AMrates(ThisResp.iBMF_VS) ) )
-%         elseif   isfield(ThisResp,'iBMF_FR')  &&  ~isfield(ThisResp,'iBMF_VS')
-%             suptitle( sprintf('%i Hz   |   %s %s %i %i   |   BMF-fr: %i Hz, ns Sync\n ',this_rate,subject,session,channel,clu , AMrates(ThisResp.iBMF_FR) ) )
-%         elseif  ~isfield(ThisResp,'iBMF_FR')  &&   isfield(ThisResp,'iBMF_VS')
-%             suptitle( sprintf('%i Hz   |   %s %s %i %i   |   ns FR resp, BMF-vs: %i Hz\n ',this_rate,subject,session,channel,clu , AMrates(ThisResp.iBMF_VS) ) )
-%         elseif  ~isfield(ThisResp,'iBMF_FR')  &&  ~isfield(ThisResp,'iBMF_VS')
-%             suptitle( sprintf('%i Hz   |   %s %s %i %i   |   ns FR resp, ns Sync\n ',this_rate,subject,session,channel,clu ) )
-%         end
-%         
-%         savedir = fullfile(fn.processed,'MPHplots','floor');
-%         if SUonly==1
-%             savedir = [savedir '/SU'];
-%         end
-%         if ~exist(savedir,'dir')
-%             mkdir([savedir '/svg']);
-%             mkdir([savedir '/eps']);
-%         end
-%         
-%         savename = sprintf('MPH%iHz_%s_%s_ch%i_%i',this_rate,subject,session,channel,clu);
-%         
-%         print_eps_kp(hfe(ir),fullfile([savedir '/eps'],savename))
-%         print_svg_kp(hfe(ir),fullfile([savedir '/svg'],savename))
         
         
         
@@ -524,31 +567,36 @@ for iUn = 1:numel(UnitData)
         
         for idx = 1:size(PdcIRData,1)
             
-            if ~any(isnan([PdcIRData(idx,:).FR])) || ~isempty([PdcIRData(idx,:).FR])
+            if ~any(isnan([PdcIRData(idx,:).FR])) && ~isempty([PdcIRData(idx,:).FR])
                 
                 PdcRespType{end+1,1} =  PRT ;
                 
                 %---------
                 % Pdc-Pdc
-                subplot(hs(2)); hold on
-                plot(PdcIRData(idx,2).(USE_MEASURE), PdcData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color','k' )
+%                 subplot(hs(2)); hold on
+%                 plot(PdcIRData(idx,2).(USE_MEASURE), PdcData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color','k' )
                 
                 PD_PdcPdc  = [ PD_PdcPdc; PdcIRData(idx,2).(USE_MEASURE) PdcData(idx,1).(USE_MEASURE) ];
                 
                 %---------
                 % IR-IR
-                if idx<size(PdcIRData,1)
-                    subplot(hs(3)); hold on
-                    plot(PdcIRData(idx+1,1).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color',plotcol )
+                if idx<size(PdcIRData,1) && ~isempty(PdcIRData(idx+1,1).(USE_MEASURE))
+%                     subplot(hs(3)); hold on
+%                     plot(PdcIRData(idx+1,1).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color','k' )
                     
                     PD_IRIR  = [ PD_IRIR; PdcIRData(idx+1,1).(USE_MEASURE) PdcIRData(idx,1).(USE_MEASURE) ];
+                elseif idx==size(PdcIRData,1) && size(PdcIRData,1)>2 && ~isempty(PdcIRData(1,1).(USE_MEASURE))
+%                     subplot(hs(3)); hold on
+%                     plot(PdcIRData(1,1).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color','k' )
+                    
+                    PD_IRIR  = [ PD_IRIR; PdcIRData(1,1).(USE_MEASURE) PdcIRData(idx,1).(USE_MEASURE) ];
                 end
-
+                
                 
                 %---------
                 % Pdc-IR
-                subplot(hs(1)); hold on
-                plot(PdcIRData(idx,2).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color',plotcol )
+%                 subplot(hs(1)); hold on
+%                 plot(PdcIRData(idx,2).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color',plotcol )
                 
                 PD_PdcIR  = [ PD_PdcIR; PdcIRData(idx,2).(USE_MEASURE) PdcIRData(idx,1).(USE_MEASURE) ];
                 
@@ -560,9 +608,90 @@ for iUn = 1:numel(UnitData)
     
 end %iUn
 
-inan = isnan(PD_PdcIR(:,1).*PD_PdcIR(:,2));
-PD_PdcIR(inan,:)  = [];
-PdcRespType(inan) = [];
+%% 
+
+% Save data
+save(fullfile(savedir,['matchedMPH_' USE_MEASURE ]),'PD_PdcIR','PD_PdcPdc','PD_IRIR','PdcRespType','-v7.3')
+
+% Load already saved data
+% load(fullfile(savedir,'matchedMPH_FR'))
+
+
+
+%% Plot datapoints
+
+figure(hf); hold on
+
+%-----------------------
+% Pdc-IR
+subplot(hs(1)); hold on
+% plot(PD_PdcIR(:,1), PD_PdcIR(:,2),'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor','k','MarkerEdgeColor','none')
+plot(PD_PdcIR(strcmp(PdcRespType,'na'),1), PD_PdcIR(strcmp(PdcRespType,'na'),2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.4*[1 1 0.9],'MarkerEdgeColor','none');
+plot(PD_PdcIR(strcmp(PdcRespType,'NC'),1), PD_PdcIR(strcmp(PdcRespType,'NC'),2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
+plot(PD_PdcIR(strcmp(PdcRespType,'A'),1),  PD_PdcIR(strcmp(PdcRespType,'A'),2),  'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[1 0.647 0],'MarkerEdgeColor','none');
+plot(PD_PdcIR(strcmp(PdcRespType,'F'),1),  PD_PdcIR(strcmp(PdcRespType,'F'),2),  'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[0 0.6 0],'MarkerEdgeColor','none');
+
+%--Diff hist
+subplot(hs(7)); hold on
+histogram(PD_PdcIR(:,1)-PD_PdcIR(:,2),'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
+histogram(PD_PdcPdc(:,1)-PD_PdcPdc(:,2),'Normalization','pdf','FaceColor','none','EdgeColor','c','FaceAlpha',1,'DisplayStyle','stairs','LineWidth',2);
+plot([0 0],[0 0.3],'Color',[0.7 0.7 0.7])
+ylim([0 0.3])
+
+%--2d hist plot
+subplot(hs(4)); hold on
+ihst(1)=histogram2(PD_PdcIR(:,1),PD_PdcIR(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
+cmocean('-gray')
+% clims = get(gca,'CLim');
+% set(gca,'CLim',clims+[-clims(2)*0.1 0])
+set(gca,'CLim',[-10 100])
+
+
+%-----------------------
+% Pdc-Pdc
+subplot(hs(2)); hold on
+plot(PD_PdcPdc(:,1), PD_PdcPdc(:,2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
+
+%--Diff hist
+subplot(hs(8)); hold on
+histogram(PD_PdcPdc(:,1)-PD_PdcPdc(:,2),'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
+histogram(PD_PdcIR(:,1)-PD_PdcIR(:,2),'Normalization','pdf','FaceColor','none','EdgeColor','r','FaceAlpha',1,'DisplayStyle','stairs','LineWidth',2);
+plot([0 0],[0 0.3],'Color',[0.7 0.7 0.7])
+ylim([0 0.3])
+
+%--2d hist plot
+subplot(hs(5)); hold on
+ihst(2)=histogram2(PD_PdcPdc(:,1),PD_PdcPdc(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
+cmocean('-gray')
+set(gca,'CLim',[-10 100])
+% set(gca,'CLim',clims+[-clims(2)*0.1 0])
+
+
+%-----------------------
+% IR-IR
+subplot(hs(3)); hold on
+plot(PD_IRIR(:,1), PD_IRIR(:,2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
+
+%--Diff hist
+subplot(hs(9)); hold on
+histogram(PD_IRIR(:,1)-PD_IRIR(:,2),'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
+plot([0 0],[0 0.3],'Color',[0.7 0.7 0.7])
+ylim([0 0.3])
+
+%--2d hist plot
+subplot(hs(6)); hold on
+ihst(3)=histogram2(PD_IRIR(:,1),PD_IRIR(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
+cmocean('-gray')
+set(gca,'CLim',[-10 100])
+
+
+
+%%
+
+% inan = isnan(PD_PdcIR(:,1).*PD_PdcIR(:,2));
+% PD_PdcIR(inan,:)  = [];
+% PdcRespType(inan) = [];
+
 
 % Stats                      [ Pdc  IR ]
 [rc,pc] = corrcoef(PD_PdcIR(:,1), PD_PdcIR(:,2));
@@ -572,27 +701,73 @@ pwrs    = ranksum(PD_PdcIR(:,1),  PD_PdcIR(:,2));
 [~,pt2] = ttest2(PD_PdcIR(:,1),   PD_PdcIR(:,2));
 
 
-if pc(1,2)<0.0000000001
-    title(sprintf('%s: Pdc vs IR   |   wsr p=%0.2f, r=%0.2f p<<0.0001',USE_MEASURE,pwsr,rc(1,2)))
+subplot(hs(1)); hold on
+stattext = sprintf('WSR p=%0.2f',pwsr);
+text(axmax/4*3,axmax/15,stattext)
+% if pc(1,2)<0.0000000001
+%     title(sprintf('%s: Pdc vs IR   |   wsr p=%0.2f, r=%0.2f p<<0.0001',USE_MEASURE,pwsr,rc(1,2)))
+% else
+%     title(sprintf('%s: Pdc vs IR   |   wsr p=%0.2f, r=%0.2f p=%0.4e',USE_MEASURE,pwsr,rc(1,2),pc(1,2)))
+% end
+
+
+% Stats                      [ Pdc  Pdc ]
+[rc,pc] = corrcoef(PD_PdcPdc(:,1), PD_PdcPdc(:,2));
+pwsr    = signrank(PD_PdcPdc(:,1), PD_PdcPdc(:,2));
+
+subplot(hs(2)); hold on
+stattext = sprintf('WSR p=%0.2f',pwsr);
+text(axmax/4*3,axmax/15,stattext)
+% if pc(1,2)<0.0000000001
+%     title(sprintf('%s: Pdc vs Pdc   |   wsr p=%0.2f, r=%0.2f p<<0.0001',USE_MEASURE,pwsr,rc(1,2)))
+% else
+%     title(sprintf('%s: Pdc vs Pdc   |   wsr p=%0.2f, r=%0.2f p=%0.4e',USE_MEASURE,pwsr,rc(1,2),pc(1,2)))
+% end
+
+
+% Stats                       [ IR  IR ]
+[rc,pc] = corrcoef(PD_IRIR(:,1), PD_IRIR(:,2));
+pwsr    = signrank(PD_IRIR(:,1), PD_IRIR(:,2));
+
+subplot(hs(3)); hold on
+stattext = sprintf('WSR p=%0.2f',pwsr);
+text(axmax/4*3,axmax/15,stattext)
+% if pc(1,2)<0.0000000001
+%     title(sprintf('%s: IR vs IR   |   wsr p=%0.2f, r=%0.2f p<<0.0001',USE_MEASURE,pwsr,rc(1,2)))
+% else
+%     title(sprintf('%s: IR vs IR   |   wsr p=%0.2f, r=%0.2f p=%0.4e',USE_MEASURE,pwsr,rc(1,2),pc(1,2))) 
+% end
+
+
+
+% DIFFERENCES
+
+PdcDiffs  = PD_PdcPdc(:,1)-PD_PdcPdc(:,2);
+PdIRDiffs = PD_PdcIR(:,1)-PD_PdcIR(:,2);
+
+p_rs=ranksum(PdcDiffs,PdIRDiffs);
+
+h_l(1) = lillietest(PdcDiffs);
+h_l(2) = lillietest(PdIRDiffs);
+if any(h_l==0)
+    [~,p_f] = deal(nan);
 else
-    title(sprintf('%s: Pdc vs IR   |   wsr p=%0.2f, r=%0.2f p=%0.4e',USE_MEASURE,pwsr,rc(1,2),pc(1,2)))
+    [~,p_f] = vartest2(PdcDiffs,PdIRDiffs);
+    var_PdcPdc = var(PdcDiffs);
+    var_PdcIR  = var(PdIRDiffs);
 end
 
+subplot(hs(8)); hold on
+stattext = sprintf('ranksum p=%0.2f \nF-test p=%0.2e',p_rs,p_f);
+text(axmax/3,400,stattext)
 
 
-keyboard
+%% SAVE FIG AND DATA
 
 % Save figure
-savedir = fullfile(fn.figs,'MPHmatched');
-if ~exist(savedir,'dir')
-    mkdir(savedir)
-end
-print_eps_kp(gcf,fullfile(savedir,['matchedMPH_' USE_MEASURE]));
+print_eps_kp(hf,fullfile(savedir,['matchedMPH_' USE_MEASURE ]));
 
-% Save data
-save(fullfile(savedir,['matchedMPH_' USE_MEASURE]),'PD_PdcIR','PD_PdcPdc','PD_IRIR','-v7.3')
-
-
+keyboard
 end %function
 
 
