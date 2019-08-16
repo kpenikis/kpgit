@@ -8,18 +8,16 @@ function MPH_matchedComparison(USE_MEASURE)
 % KP, 2018-04, 2019-07
 % 
 
+% for adapting or facilitating cells, plot abs(Obs-Pred) as a function of 
+% Pdc MP start time
+
 
 % disp('Baseline-subtracted')
 
+global fn AMrates trMin RateStream
 
-global fn AMrates rateVec_AC rateVec_DB trMin RateStream
-
-%!!!!!!!!!!!!!!!!!
-trMin   =  10;
 %!!!!!!!!!!!!!!!!!
 tVarBin = 31;
-%!!!!!!!!!!!!!!!!!
-AMrates = [2 4 8 16 32];
 %!!!!!!!!!!!!!!!!!
 colorswitch = 'PdcType'; 'AMrate'; 
 %!!!!!!!!!!!!!!!!!
@@ -42,16 +40,6 @@ clear q
 spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
-% Load IR stimulus rate vectors
-q = load(fullfile(fn.stim,'rateVec_AC'));
-rateVec_AC = q.buffer;
-q = load(fullfile(fn.stim,'rateVec_DB'));
-rateVec_DB = q.buffer;
-
-ContextStr = {'Periodic' 'IR (AC)' 'IR (DB)'};
-SeqPosStr = {'Early' 'Late'};
-
-
 switch USE_MEASURE
     case 'FR'
         units = 'Hz';
@@ -69,6 +57,7 @@ switch USE_MEASURE
         axmax = 4;
 end
 
+histbinedges = linspace(-sqrt(60^2 + 60^2)/2,sqrt(60^2 + 60^2)/2,40);
 
 
 %% Figure settings
@@ -79,83 +68,10 @@ set(0,'DefaultAxesFontSize',14)
 scrsz = get(0,'ScreenSize');  %[left bottom width height]
 fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
 
-hf = figure;
-set(hf,'Position',fullscreen,'NextPlot','add')
-
-hs(1)=subplot(6,4,[1 5 9]);
-hold on
-plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
-set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
-axis square
-title('Pdc-IR')
-
-% hs(2)=subplot(2,3,2);
-hs(2)=subplot(6,4,[2 6 10]);
-hold on
-plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
-set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
-axis square
-title('Pdc-Pdc')
-
-% hs(3)=subplot(2,3,3);
-hs(3)=subplot(6,4,[3 7 11]);
-hold on
-plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
-set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
-axis square
-title('IR-IR')
-
-% hs(4)=subplot(2,3,4);
-hs(4)=subplot(6,4,[13 17 21]);
-hold on
-plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
-set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
-axis square
-title('Pdc-IR')
-
-% hs(5)=subplot(2,3,5);
-hs(5)=subplot(6,4,[14 18 22]);
-hold on
-plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
-set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
-axis square
-title('Pdc-Pdc')
-
-% hs(6)=subplot(2,3,6);
-hs(6)=subplot(6,4,[15 19 23]);
-hold on
-plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
-set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
-axis square
-title('IR-IR')
-
-
-% DIFFERENCE HISTOGRAMS
-
-hs(7)=subplot(6,4,8);
-hold on
-xlim(sqrt(60^2 + 60^2)/2*[-1 1])
-set(gca,'Color','none','xtick',[],'ytick',[])
-title('Pdc-IR')
-
-hs(8)=subplot(6,4,16);
-hold on
-xlim(sqrt(60^2 + 60^2)/2*[-1 1])
-set(gca,'Color','none','xtick',[],'ytick',[])
-title('Pdc-Pdc')
-
-hs(9)=subplot(6,4,24);
-hold on
-xlim(sqrt(60^2 + 60^2)/2*[-1 1])
-set(gca,'Color','none','xtick',[],'ytick',[])
-title('IR-IR')
-
-
 savedir = fullfile(fn.figs,'MPHmatched');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
-
 
 % Set colors
 colors = [ 250 250 250;...
@@ -173,10 +89,14 @@ PlotMarkerSize = 15;
 
 %% Preallocate
 
-PdcRespType={};
 PD_PdcIR=[];
 PD_IRIR=[];
 PD_PdcPdc=[];
+
+PdcRespType={};
+PdcStartTime=[];
+MPrate=[];
+PRT = cell(numel(UnitData),5);
 
 
 for iUn = 1:numel(UnitData)
@@ -252,16 +172,16 @@ for iUn = 1:numel(UnitData)
         alfa      = 0.05;
         
         % Get Pdc response type                      [ early  late  p_val ]
-        PRT = 'na';
+        PRT{iUn,this_rate==AMrates} = 'n';
         if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{this_rate==AMrates})
             if (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) > UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
                 % adapting
-                PRT = 'A';
+                PRT{iUn,this_rate==AMrates} = 'A';
             elseif (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) < UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
                 % facilitating
-                PRT = 'F';
+                PRT{iUn,this_rate==AMrates} = 'F';
             else
-                PRT = 'NC';
+                PRT{iUn,this_rate==AMrates} = 'S';
             end
         end
         
@@ -560,7 +480,10 @@ for iUn = 1:numel(UnitData)
         
         
         
-        %% Compare matched periods
+        
+        %  =========================================================
+        %% ==============   Compare matched periods   ==============
+        %  =========================================================
         
 %         thesePds = find([PdcIRData(:,1).seqPos]==2);
         thesePds = unique([PdcIRData(:,1).seqPos]);
@@ -569,7 +492,9 @@ for iUn = 1:numel(UnitData)
             
             if ~any(isnan([PdcIRData(idx,:).FR])) && ~isempty([PdcIRData(idx,:).FR])
                 
-                PdcRespType{end+1,1} =  PRT ;
+                PdcRespType{end+1,1} =  PRT{iUn,this_rate==AMrates} ;
+                PdcStartTime(end+1)  =  PdcIRData(idx,2).starttime ;
+                MPrate(end+1)        =  find(this_rate==AMrates) ;
                 
                 %---------
                 % Pdc-Pdc
@@ -611,35 +536,128 @@ end %iUn
 %% 
 
 % Save data
-save(fullfile(savedir,['matchedMPH_' USE_MEASURE ]),'PD_PdcIR','PD_PdcPdc','PD_IRIR','PdcRespType','-v7.3')
+save(fullfile(savedir,['matchedMPH_' USE_MEASURE '_no32' ]),'PD_PdcIR','PD_PdcPdc','PD_IRIR','PdcRespType','PdcStartTime','MPrate','-v7.3')
+
 
 % Load already saved data
 % load(fullfile(savedir,'matchedMPH_FR'))
 
 
+%%
 
-%% Plot datapoints
+% Filter data by AM rate
 
-figure(hf); hold on
+% load(fullfile(savedir,'matchedMPH_FR'))
+% 
+% irate = 5;
+% 
+% PD_PdcIR     = PD_PdcIR(MPrate==irate,:);
+% PD_PdcPdc    = PD_PdcPdc(MPrate==irate,:);
+% % PD_IRIR      = PD_IRIR(MPrate==irate,:);
+% PdcRespType  = PdcRespType(MPrate==irate);
+% PdcStartTime = PdcStartTime(MPrate==irate);
+% 
+% figure; 
+% plot(diff(PD_PdcPdc),diff(PD_PdcIR),'ko')
+
+
+%% MAIN PLOTS
+
+%::::::::::::::::::
+%     SET UP
+%::::::::::::::::::
+hf = figure;
+set(hf,'Position',fullscreen,'NextPlot','add')
+
+hs(1)=subplot(6,4,[1 5 9]);
+hold on
+plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('Pdc-IR')
+
+% Pdc-Pdc
+hs(2)=subplot(6,4,[2 6 10]);
+hold on
+plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('Pdc-Pdc')
+
+% Irr-Irr  
+hs(3)=subplot(6,4,[3 7 11]);
+hold on
+plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('IR-IR')
+
+% Pdc-IR density plot
+hs(4)=subplot(6,4,[13 17 21]);
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('Pdc-IR')
+
+% Pdc-Pdc density plot
+hs(5)=subplot(6,4,[14 18 22]);
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('Pdc-Pdc')
+
+% IR-IR density plot   OR   starttimeXdiff 
+hs(6)=subplot(6,4,[15 19 23]);
+set(gca,'Color','none','tickdir','out','ticklength',[0.025 0.025])
+axis square
+title('IR-IR')
+
+
+% DIFFERENCE HISTOGRAMS
+
+hs(7)=subplot(6,4,[4 8]);
+hold on
+xlim(sqrt(60^2 + 60^2)/2*[-1 1])
+set(gca,'Color','none','xtick',[],'ytick',[])
+title('Pdc-IR')
+
+hs(8)=subplot(6,4,[12 16]);
+hold on
+xlim(sqrt(60^2 + 60^2)/2*[-1 1])
+set(gca,'Color','none','xtick',[],'ytick',[])
+title('Pdc-Pdc')
+
+% diff histogram by 
+hs(9)=subplot(6,4,[20 24]);
+hold on
+xlim(sqrt(60^2 + 60^2)/2*[-1 1])
+set(gca,'Color','none','xtick',[],'ytick',[])
+title('IR-IR')
+
+suptitle([num2str(AMrates(irate)) ' Hz'])
+
+
+%% :::::::::::::::::
+%     PLOT DATA  
+%  :::::::::::::::::
 
 %-----------------------
 % Pdc-IR
 subplot(hs(1)); hold on
 % plot(PD_PdcIR(:,1), PD_PdcIR(:,2),'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor','k','MarkerEdgeColor','none')
-plot(PD_PdcIR(strcmp(PdcRespType,'na'),1), PD_PdcIR(strcmp(PdcRespType,'na'),2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.4*[1 1 0.9],'MarkerEdgeColor','none');
-plot(PD_PdcIR(strcmp(PdcRespType,'NC'),1), PD_PdcIR(strcmp(PdcRespType,'NC'),2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
-plot(PD_PdcIR(strcmp(PdcRespType,'A'),1),  PD_PdcIR(strcmp(PdcRespType,'A'),2),  'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[1 0.647 0],'MarkerEdgeColor','none');
-plot(PD_PdcIR(strcmp(PdcRespType,'F'),1),  PD_PdcIR(strcmp(PdcRespType,'F'),2),  'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[0 0.6 0],'MarkerEdgeColor','none');
+plot(PD_PdcIR(strcmp(PdcRespType,'n'),1), PD_PdcIR(strcmp(PdcRespType,'n'),2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.4*[1 1 0.9],'MarkerEdgeColor','none');
+plot(PD_PdcIR(strcmp(PdcRespType,'S'),1), PD_PdcIR(strcmp(PdcRespType,'S'),2),  'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
+plot(PD_PdcIR(strcmp(PdcRespType,'A'),1), PD_PdcIR(strcmp(PdcRespType,'A'),2),  'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[1 0.647 0],'MarkerEdgeColor','none');
+plot(PD_PdcIR(strcmp(PdcRespType,'F'),1), PD_PdcIR(strcmp(PdcRespType,'F'),2),  'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[0 0.6 0],'MarkerEdgeColor','none');
 
 %--Diff hist
 subplot(hs(7)); hold on
-histogram(PD_PdcIR(:,1)-PD_PdcIR(:,2),'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
-histogram(PD_PdcPdc(:,1)-PD_PdcPdc(:,2),'Normalization','pdf','FaceColor','none','EdgeColor','c','FaceAlpha',1,'DisplayStyle','stairs','LineWidth',2);
+histogram(PD_PdcIR(:,1)-PD_PdcIR(:,2),histbinedges,'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
+histogram(PD_PdcPdc(:,1)-PD_PdcPdc(:,2),histbinedges,'Normalization','pdf','FaceColor','none','EdgeColor','c','FaceAlpha',1,'DisplayStyle','stairs','LineWidth',2);
 plot([0 0],[0 0.3],'Color',[0.7 0.7 0.7])
 ylim([0 0.3])
 
 %--2d hist plot
 subplot(hs(4)); hold on
+plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
 ihst(1)=histogram2(PD_PdcIR(:,1),PD_PdcIR(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
 cmocean('-gray')
 % clims = get(gca,'CLim');
@@ -654,16 +672,17 @@ plot(PD_PdcPdc(:,1), PD_PdcPdc(:,2), 'o','MarkerSize',PlotMarkerSize,'MarkerFace
 
 %--Diff hist
 subplot(hs(8)); hold on
-histogram(PD_PdcPdc(:,1)-PD_PdcPdc(:,2),'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
-histogram(PD_PdcIR(:,1)-PD_PdcIR(:,2),'Normalization','pdf','FaceColor','none','EdgeColor','r','FaceAlpha',1,'DisplayStyle','stairs','LineWidth',2);
+histogram(PD_PdcPdc(:,1)-PD_PdcPdc(:,2),histbinedges,'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
+histogram(PD_PdcIR(:,1)-PD_PdcIR(:,2),histbinedges,'Normalization','pdf','FaceColor','none','EdgeColor','r','FaceAlpha',1,'DisplayStyle','stairs','LineWidth',2);
 plot([0 0],[0 0.3],'Color',[0.7 0.7 0.7])
 ylim([0 0.3])
 
 %--2d hist plot
-subplot(hs(5)); hold on
-ihst(2)=histogram2(PD_PdcPdc(:,1),PD_PdcPdc(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
-cmocean('-gray')
-set(gca,'CLim',[-10 100])
+% subplot(hs(5)); hold on
+% plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+% ihst(2)=histogram2(PD_PdcPdc(:,1),PD_PdcPdc(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
+% cmocean('-gray')
+% set(gca,'CLim',[-10 100])
 % set(gca,'CLim',clims+[-clims(2)*0.1 0])
 
 
@@ -672,26 +691,66 @@ set(gca,'CLim',[-10 100])
 subplot(hs(3)); hold on
 plot(PD_IRIR(:,1), PD_IRIR(:,2), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
 
-%--Diff hist
+% %--Diff hist
+% subplot(hs(9)); hold on
+% histogram(PD_IRIR(:,1)-PD_IRIR(:,2),histbinedges,'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
+% plot([0 0],[0 0.3],'Color',[0.7 0.7 0.7])
+% ylim([0 0.3])
+% 
+% %--2d hist plot
+% subplot(hs(6)); hold on
+% plot([axmin axmax],[axmin axmax],'Color',[0.7 0.7 0.7])
+% ihst(3)=histogram2(PD_IRIR(:,1),PD_IRIR(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
+% cmocean('-gray')
+% set(gca,'CLim',[-10 100])
+
+
+%-------------------------------------------
+% REPLACE density plots with:
+% Difference as a function of start time 
+%-------------------------------------------
+
+Sdiffs = PD_PdcIR(strcmp(PdcRespType,'S'),1) - PD_PdcIR(strcmp(PdcRespType,'S'),2);
+Fdiffs = PD_PdcIR(strcmp(PdcRespType,'F'),1) - PD_PdcIR(strcmp(PdcRespType,'F'),2);
+Adiffs = PD_PdcIR(strcmp(PdcRespType,'A'),1) - PD_PdcIR(strcmp(PdcRespType,'A'),2);
+ndiffs = PD_PdcIR(strcmp(PdcRespType,'n'),1) - PD_PdcIR(strcmp(PdcRespType,'n'),2);
+
+subplot(hs(5)); hold on
+plot([0 1000],[0 0],'Color',[0.7 0.7 0.7])
+plot(PdcStartTime(strcmp(PdcRespType,'S')), Sdiffs, 'o','MarkerSize',PlotMarkerSize/2,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
+plot(PdcStartTime(strcmp(PdcRespType,'F')), Fdiffs, 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[0 0.6 0],'MarkerEdgeColor','none');
+plot(PdcStartTime(strcmp(PdcRespType,'A')), Adiffs, 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[1 0.647 0],'MarkerEdgeColor','none');
+xlim([0 1000])
+ylim(40*[-1 1])
+title('start time X diff')
+
+subplot(hs(6)); hold on
+plot([0 1000],[0 0],'Color',[0.7 0.7 0.7])
+plot(PdcStartTime(strcmp(PdcRespType,'S')), Sdiffs / (PD_PdcIR(strcmp(PdcRespType,'S'),1) + PD_PdcIR(strcmp(PdcRespType,'S'),2)), 'o','MarkerSize',PlotMarkerSize/2,'MarkerFaceColor',0.01*[1 0.9 0.9],'MarkerEdgeColor','none');
+plot(PdcStartTime(strcmp(PdcRespType,'F')), Fdiffs / (PD_PdcIR(strcmp(PdcRespType,'F'),1) + PD_PdcIR(strcmp(PdcRespType,'F'),2)), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[0 0.6 0],'MarkerEdgeColor','none');
+plot(PdcStartTime(strcmp(PdcRespType,'A')), Adiffs / (PD_PdcIR(strcmp(PdcRespType,'A'),1) + PD_PdcIR(strcmp(PdcRespType,'A'),2)), 'o','MarkerSize',PlotMarkerSize,'MarkerFaceColor',[1 0.647 0],'MarkerEdgeColor','none');
+xlim([0 1000])
+ylim(0.8*[-1 1])
+title('start time X norm diff')
+
 subplot(hs(9)); hold on
-histogram(PD_IRIR(:,1)-PD_IRIR(:,2),'Normalization','pdf','FaceColor','k','EdgeColor','none','FaceAlpha',1);
+histogram(Sdiffs, histbinedges, 'Normalization','pdf','FaceColor',0.01*[1 0.9 0.9],'EdgeColor','none','FaceAlpha',1); 
+histogram(Fdiffs, histbinedges, 'Normalization','pdf','FaceColor', [0 0.6 0],'EdgeColor','none','FaceAlpha',1); 
+histogram(Adiffs, histbinedges, 'Normalization','pdf','FaceColor', [1 0.647 0],'EdgeColor','none','FaceAlpha',1);
 plot([0 0],[0 0.3],'Color',[0.7 0.7 0.7])
 ylim([0 0.3])
-
-%--2d hist plot
-subplot(hs(6)); hold on
-ihst(3)=histogram2(PD_IRIR(:,1),PD_IRIR(:,2),PlotMarkerSize,'DisplayStyle','tile','ShowEmptyBins','off','EdgeColor','none');
-cmocean('-gray')
-set(gca,'CLim',[-10 100])
+xlim(sqrt(60^2 + 60^2)/2*[-1 1])
+title('Diffs by Pdc resp type')
 
 
 
-%%
+%% :::::::::::::::::
+%     STATISTICS  
+%  :::::::::::::::::
 
 % inan = isnan(PD_PdcIR(:,1).*PD_PdcIR(:,2));
 % PD_PdcIR(inan,:)  = [];
 % PdcRespType(inan) = [];
-
 
 % Stats                      [ Pdc  IR ]
 [rc,pc] = corrcoef(PD_PdcIR(:,1), PD_PdcIR(:,2));
@@ -739,33 +798,82 @@ text(axmax/4*3,axmax/15,stattext)
 % end
 
 
-
+%~~~~~~~~~~~~~~
 % DIFFERENCES
+%~~~~~~~~~~~~~~
+
+% Pdc-Irr vs Pdc-Pdc
 
 PdcDiffs  = PD_PdcPdc(:,1)-PD_PdcPdc(:,2);
 PdIRDiffs = PD_PdcIR(:,1)-PD_PdcIR(:,2);
 
-p_rs=ranksum(PdcDiffs,PdIRDiffs);
-
-h_l(1) = lillietest(PdcDiffs);
+% Normality test
+clear h_l
+h_l(1) = lillietest(PdcDiffs);  % h=1 means distr NOT normal
 h_l(2) = lillietest(PdIRDiffs);
-if any(h_l==0)
-    [~,p_f] = deal(nan);
-else
-    [~,p_f] = vartest2(PdcDiffs,PdIRDiffs);
+if any(h_l==1)% non-parametric
+    p_rs       = ranksum(PdcDiffs,PdIRDiffs);
+    p_var      = vartestn([PdcDiffs PdIRDiffs],'TestType','BrownForsythe','display','off');
+    stattext   = sprintf('ranksum p=%0.2f \nBrownForsythe p=%0.2e',p_rs,p_var);
+else          % parametric
+    [~,p_t]    = ttest2(PdcDiffs,PdIRDiffs);
+    p_var      = vartestn([PdcDiffs PdIRDiffs],'TestType','Bartlett','display','off');
+    [~,p_var]  = vartest2(PdcDiffs, PdIRDiffs);
+    stattext   = sprintf('ttest p=%0.2f \nF test p=%0.2e',p_t,p_var);
     var_PdcPdc = var(PdcDiffs);
     var_PdcIR  = var(PdIRDiffs);
 end
 
 subplot(hs(8)); hold on
-stattext = sprintf('ranksum p=%0.2f \nF-test p=%0.2e',p_rs,p_f);
-text(axmax/3,400,stattext)
+text(-40,0.28,stattext)
+
+
+% Pdc-Irr by Pdc response type
+
+[C,IA,IC]=unique(PdcRespType,'stable');
+
+% Normality test
+clear h_l
+h_l(1) = lillietest(Sdiffs);   % h=1 means distr NOT normal
+h_l(2) = lillietest(Fdiffs);
+h_l(3) = lillietest(Adiffs);
+h_l(4) = lillietest(ndiffs);
+
+if any(h_l==1) % non-parametric
+    [p_grp,tbl,stats] = kruskalwallis(PdIRDiffs,IC);
+    grpstatstr = sprintf('kw test p=%0.2e',p_grp);
+else           % parametric
+    [p_grp,tbl,stats] = anovan(PdIRDiffs,IC);
+    grpstatstr = sprintf('anova p=%0.2e',p_grp);
+end
+% multcompare(stats)
+%     [h_tf,p_tf]=ttest2(Sdiffs(round(linspace(1,length(Sdiffs),numel(Fdiffs)))),Fdiffs);
+%     [h_ta,p_ta]=ttest2(Sdiffs(round(linspace(1,length(Sdiffs),numel(Adiffs)))),Adiffs);
+
+if h_l(3)==1
+    avgA = median(Adiffs);
+else
+    avgA = mean(Adiffs);
+end
+
+figure(hf); hold on
+subplot(hs(9)); hold on
+text(-40,0.28,grpstatstr)
+plot(avgA,0,'^k')
+
+
+% Difference correlation with Pdc start time
+
+[corr_A,pc_A] = corr(PdcStartTime(strcmp(PdcRespType,'A'))', Adiffs);
+
+subplot(hs(5)); hold on
+text(25,35,sprintf('A: r=%0.2f, p=%0.2f',corr_A,pc_A))
 
 
 %% SAVE FIG AND DATA
 
 % Save figure
-print_eps_kp(hf,fullfile(savedir,['matchedMPH_' USE_MEASURE ]));
+print_eps_kp(hf,fullfile(savedir,['matchedMPH_' USE_MEASURE '_' num2str(AMrates(irate)) 'hz' ]));
 
 keyboard
 end %function

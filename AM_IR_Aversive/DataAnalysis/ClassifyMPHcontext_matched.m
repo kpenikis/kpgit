@@ -8,7 +8,7 @@ function Data = ClassifyMPHcontext_matched(USE_MEASURE)
 %
 
 
-global fn AMrates rateVec_AC rateVec_DB trMin Iterations
+global fn AMrates trMin Iterations
 
 %!!!!!!!!!!!!!!!!!!!
 if nargin<1
@@ -17,13 +17,11 @@ end
 %!!!!!!!!!!!!!!!!!!!
 RERUN       =   1;
 %!!!!!!!!!!!!!!!!!!!
-trMin       =  10;
-%!!!!!!!!!!!!!!!!!!!
-Iterations  =  1000;
+Iterations  =  100;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     =  31;
 %!!!!!!!!!!!!!!!!!!!
-SHUFFLE_SPIKES = 1;
+SHUFFLE_SPIKES = 0;
 %!!!!!!!!!!!!!!!!!!!
 T         = 250;
 alfa      = 0.05;
@@ -41,14 +39,6 @@ clear q
 %-------
 spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
-
-% Load IR stimulus rate vectors
-q = load(fullfile(fn.stim,'rateVec_AC'));
-rateVec_AC = q.buffer;
-q = load(fullfile(fn.stim,'rateVec_DB'));
-rateVec_DB = q.buffer;
-
-AMrates = [2 4 8 16 32];
 
 
 %% Preallocate
@@ -68,7 +58,7 @@ if RERUN
     Data = struct;
     Un1  = 1;
 else
-    q = load(fullfile(savedir,'tmp',savename));
+    q = load(fullfile(savedir,savename));
     Data = q.Data;
     clear q
     Un1  = size(Data,1)+1;

@@ -1,6 +1,6 @@
 function [IR_Prediction_sim,IR_Pred_std_sim,pvals] = predictIRresponse_simulation(FRtrials)
 
-global AMrates minTrs
+global AMrates trMin
 rng('shuffle')
 Iterations = 1000;
 
@@ -14,7 +14,7 @@ end
 % Simulate IR trials for within unit statistics
 ntrs = cellfun(@length,FRtrials);
 nt = min([ntrs(ntrs>0) 20]);
-if nt<minTrs, keyboard, end
+if nt<trMin, keyboard, end
 
 Sim_mean = nan(Iterations,1);
 Sim_std  = nan(Iterations,1);

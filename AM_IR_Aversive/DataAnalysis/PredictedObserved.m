@@ -16,14 +16,12 @@ keyboard
 
 
 close all
-global fn AMrates rateVec_AC rateVec_DB minTrs
+global fn AMrates trMin
 
 %!!!!!!!!!!!!!!!!!
 exclOnset   = 0; 
 %!!!!!!!!!!!!!!!!!
 plotMTF     = 1;
-%!!!!!!!!!!!!!!!!!
-minTrs      = 10;
 %!!!!!!!!!!!!!!!!!
 colorswitch = 'subject'; 'iBMF_FR'; 'iBMF_VS'; 
 %!!!!!!!!!!!!!!!!!
@@ -42,14 +40,6 @@ clear q
 %-------
 spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
-
-% Load IR stimulus rate vectors
-q = load(fullfile(fn.stim,'rateVec_AC'));
-rateVec_AC = q.buffer;
-q = load(fullfile(fn.stim,'rateVec_DB'));
-rateVec_DB = q.buffer;
-
-AMrates = [2 4 8 16 32];
 
 
 if nargin<1
@@ -247,15 +237,15 @@ for iUn = 1:numel(UnitData)
     
     allStim = unique(TrialData.trID(all_TDidx));
     
-    if any(Ntrials(2:6) < minTrs)
+    if any(Ntrials(2:6) < trMin)
         continue
     end
     
-    if sum(Ntrials < minTrs)==1
-        all_TDidx(TrialData.trID(all_TDidx)==allStim(Ntrials<minTrs))  = [];
-        allStim(Ntrials<minTrs)  = [];
-        Ntrials(Ntrials<minTrs) = [];
-    elseif  sum(Ntrials < minTrs)>1
+    if sum(Ntrials < trMin)==1
+        all_TDidx(TrialData.trID(all_TDidx)==allStim(Ntrials<trMin))  = [];
+        allStim(Ntrials<trMin)  = [];
+        Ntrials(Ntrials<trMin) = [];
+    elseif  sum(Ntrials < trMin)>1
         keyboard
     end
     

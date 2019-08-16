@@ -8,17 +8,13 @@ function [FR_allSt,std_allSt] = PlotExampleResponses(SUBJECT,SESSION, CluID, max
 %  KP, 2019-01, updated 2019-02
 %
 
-global AMrates minTrs
 
 %%%%%%%%%%%%%%%%%%%%
 TTP = 20;
 %%%%%%%%%%%%%%%%%%%%
-minTrs = 10;
-%%%%%%%%%%%%%%%%%%%%
 % USE_MEASURE = 'FR';
 %%%%%%%%%%%%%%%%%%%%
-AMrates = [2 4 8 16 32];
-%%%%%%%%%%%%%%%%%%%%
+
 
 %% Load files
 

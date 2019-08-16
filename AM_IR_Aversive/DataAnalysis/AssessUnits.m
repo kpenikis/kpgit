@@ -20,15 +20,13 @@ SAVENAME = 'Units';
 
 
 close all
-global fn 
+global fn AMrates
 
 fn = set_paths_directories('','',1);
 
 rng('shuffle')
 %!!!!!!!!!!!!!!!!!
 FRcutoff =  0.01;%Hz 
-%!!!!!!!!!!!!!!!!!
-minTrs   =  10;
 %!!!!!!!!!!!!!!!!!
 
 

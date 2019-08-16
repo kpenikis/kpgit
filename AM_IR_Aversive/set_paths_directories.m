@@ -2,6 +2,10 @@ function fn = set_paths_directories(subject,session,UMS_flag)
 
 
 % global SortingFlag
+global trMin AMrates rateVec_AC rateVec_DB
+
+trMin   = 10;
+AMrates = [2 4 8 16 32];
 
 % Add Processing and Analysis folders to path
 % cd /Users/kpenikis/Documents/kpgit/AM_IR_Aversive
@@ -67,5 +71,11 @@ if nargin==2
     fn.sessdata    = fullfile(fn.processed,subject,session);
     fn.rasterplots = fullfile(fn.processed,subject,'^rasters',session);
 end
+
+% Load IR stimulus rate vectors
+q = load(fullfile(fn.stim,'rateVec_AC'));
+rateVec_AC = q.buffer;
+q = load(fullfile(fn.stim,'rateVec_DB'));
+rateVec_DB = q.buffer;
 
 end

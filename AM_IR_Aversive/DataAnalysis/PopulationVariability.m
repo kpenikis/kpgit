@@ -22,10 +22,9 @@ function PopulationVariability
 % []plot mean phase per trial 
 %    (analogous illustration to FR range, but shows variance of temporal coding across trials)
 
-global AMrates trMin rateVec_AC rateVec_DB
+global AMrates 
 
 alfaVS = 0.001;
-trMin  = 5;
 trMax  = 40;
         
 % Load Unit data files
@@ -37,15 +36,6 @@ clear q
 %-------
 spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
-
-% Load IR stimulus rate vectors
-q = load(fullfile(fn.stim,'rateVec_AC'));
-rateVec_AC = q.buffer;
-q = load(fullfile(fn.stim,'rateVec_DB'));
-rateVec_DB = q.buffer;
-clear q
-
-AMrates = [2 4 8 16 32];
 
 
 %%

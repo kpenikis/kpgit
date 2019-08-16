@@ -3,8 +3,10 @@ function PdcRespRepetition
 % KP, 2019-04
 %
 
+global trMin
+
 close all
-minNtr = 10;
+
 alfa   = 0.01;
 
 %% Load Unit data files
@@ -200,7 +202,7 @@ for iUn = 1:numel(UnitData)
         
         %% ~~~~~~~~~~~~  MEASURE RESPONSES  ~~~~~~~~~~~~
         
-        these_pds = find(cellfun(@(x) size(x,1),Rastermats)>minNtr)'; %lower?
+        these_pds = find(cellfun(@(x) size(x,1),Rastermats)>trMin)'; %lower?
         
         % -> -> -> -> -> -> ->
         if numel(these_pds)<irate

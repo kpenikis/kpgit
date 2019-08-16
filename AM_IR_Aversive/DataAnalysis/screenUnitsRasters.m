@@ -20,16 +20,6 @@ filename = sprintf( '%s_sess-%s_TrialData',SUBJECT,SESSION); load(fullfile(fn.pr
 filename = sprintf( '%s_sess-%s_Spikes'   ,SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 
 
-% Load IR stimulus rate vectors
-q = load(fullfile(fn.stim,'rateVec_AC'));
-rateVec_AC = q.buffer;
-q = load(fullfile(fn.stim,'rateVec_DB'));
-rateVec_DB = q.buffer;
-
-AMrates = [2 4 8 16 32];
-
-
-
 %% Prepare figures
 
 set(0,'DefaultTextInterpreter','none')

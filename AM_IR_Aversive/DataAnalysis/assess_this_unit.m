@@ -6,8 +6,6 @@
 % if numel(dBSPL)>1 || numel(LP)>1
 %     keyboard    %if WWWlf_395 DA: dBSPL = 75;
 % end
-AMrates = [2 4 8 16 32];
-
 
 
 %% Label response type

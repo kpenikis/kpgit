@@ -2,6 +2,8 @@ function cl_plotResults
 %  
 %
 
+global AMrates
+
 %%%%%%%%%%%%%%%%%%
 FR_cutoff = 0;
 %%%%%%%%%%%%%%%%%%
@@ -39,7 +41,6 @@ colors = [  84  24  69;...
            255 153   0]./255;
 % Other settings
 histbinsize = 0.0001;
-AMrates = [2 4 8 16 32];
 
 
 if PLOT_F1
@@ -66,6 +67,7 @@ dp_facil   = [];
 dp_adapt   = [];
 dp_nchng   = [];
 PdcRespType = cell(size(DataSh,1),5);
+post_BMF   = [];
 
 
 for iUn = 1:size(DataSh,1)
@@ -76,7 +78,7 @@ for iUn = 1:size(DataSh,1)
         
         if isempty(Data(iUn,irate).data)
             continue
-        elseif mean(mean(Data(iUn,irate).data(1).raster,2))<FR_cutoff
+        elseif mean(mean(Data(iUn,irate).data(1,1).raster,2))<FR_cutoff
             continue
         end
         
@@ -98,9 +100,16 @@ for iUn = 1:size(DataSh,1)
             nsr_vals = [nsr_vals; Data(iUn,irate).Res_L1o.dprime(:,2)];
         end
         
+        if  ~isempty(UnitData(iUn).iBMF_FR) 
+            
+            data_idx = abs([Data(iUn,irate).data(:,2).PrevAMrt100] - AMrates(UnitData(iUn).iBMF_FR) * ones(size([Data(iUn,irate).data(:,2).PrevAMrt100]))) < 0.5;
+            
+            post_BMF = [post_BMF; Data(iUn,irate).Res_L1o.dprime(data_idx,2)];
+            
+        end
         
         % Get Pdc response type                      [ early  late  p_val ]
-        PdcRespType{iUn,irate} = 'na';
+        
         if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{irate})
             if (UnitData(iUn).DeltaNspk{irate}(3))<alfa && (UnitData(iUn).DeltaNspk{irate}(1) > UnitData(iUn).DeltaNspk{irate}(2))
                 % adapting
@@ -114,6 +123,10 @@ for iUn = 1:size(DataSh,1)
                 PdcRespType{iUn,irate} = 'NC';
                 dp_nchng = [dp_nchng; Data(iUn,irate).Res_L1o.dprime(:,2)];
             end
+        else
+            keyboard
+            PdcRespType{iUn,irate} = 'na';
+            dp_nchng = [dp_nchng; Data(iUn,irate).Res_L1o.dprime(:,2)];
         end
         
         
@@ -131,6 +144,7 @@ nsr_vals(nsr_vals<0)   = 0;
 dp_adapt(dp_adapt<0)   = 0;
 dp_facil(dp_facil<0)   = 0;
 dp_nchng(dp_nchng<0)   = 0;
+post_BMF(post_BMF<0)   = 0;
 
 
 %---------------------------------------
@@ -151,12 +165,14 @@ ih(4)=histogram(nsr_vals,0:histbinsize:4,'DisplayStyle','stairs',...
     'EdgeColor','c','LineWidth',2,'Normalization','cdf');
 ih(5)=histogram(BMF_vals,0:histbinsize:4,'DisplayStyle','stairs',...
     'EdgeColor',[181   0  52]./255,'LineWidth',2,'Normalization','cdf');
+ih(6)=histogram(post_BMF,0:histbinsize:4,'DisplayStyle','stairs',...
+    'EdgeColor',[240   140  0]./255,'LineWidth',2,'Normalization','cdf');
 xlabel('d prime')
 ylabel('Cumulative probability')
 ylim([0 1])
 xlim([0 2])
 axis square
-legend(ih,{'shuff'  sprintf('ALL (%i)',N)   sprintf('sigTC (%i)',Ns)  'nsTC'  sprintf('BMF (%i)',Nb) },'Location','southeast')
+legend(ih,{'shuff'  sprintf('ALL (%i)',N)   sprintf('sigTC (%i)',Ns)  'nsTC'  sprintf('BMF (%i)',Nb) sprintf('post-BMF (%i)',length(post_BMF)) },'Location','southeast')
 title('d'' distribution for all MPH comparisons')
 
 % Stats
@@ -221,7 +237,7 @@ for irate = 1:size(Data,2)
         
         dps = Data(iUn,irate).Res_L1o.dprime(:,2)';
         dps(isnan(dps)) = [];
-        dps(dps<0) = 0;
+%         dps(dps<0) = 0;
         
         dp_plot  = [dp_plot dps];
         N        = N+size(Data(iUn,irate).Res_L1o.dprime,1); %length(dps);
@@ -283,7 +299,7 @@ for iUn = 1:size(Data,1)
         
         dBMF      = irate - UnitData(iUn).iBMF_FR;
         dp_plot  =  Data(iUn,irate).Res_L1o.dprime(:,2);
-        dp_plot(dp_plot<0) = 0;
+%         dp_plot(dp_plot<0) = 0;
         plot_vals = [plot_vals; dBMF.*ones(size(dp_plot)) dp_plot];
     end
     

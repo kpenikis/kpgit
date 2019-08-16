@@ -1,7 +1,6 @@
 function PopulationTuning
 % 
 
-
 % [ ] proportion units significantly above silence baseline 
 % [ ] distribution of BMF-VS
 % [ ] cdf to pdf, don?t plot z-score
@@ -11,8 +10,6 @@ function PopulationTuning
 % [ ] median CorrScore as a function of stimulus (last 750 ms)
 % [ ] mean percentage ?miss? trials as a function of stimulus (last 750 ms)
 
-
-% add subplot of zScore FRs, cdf/histograms for each stimulus
 
 alfaVS = 0.001;
 alfaFR = 0.05;
@@ -57,6 +54,8 @@ FFmeans  = nan(numel(UnitData),numel(AMrates)+1);
 
 zFRs     = nan(numel(UnitData),7);
 dFRs     = nan(numel(UnitData),7);
+
+PdcRespType = cell(numel(UnitData),5);
 
 for iUn = 1:numel(UnitData)
     
@@ -107,6 +106,22 @@ for iUn = 1:numel(UnitData)
     FRmins(iUn,:) = min(FRtrials(:,2:end),[],1); %min(UnitData(iUn).FR_raw_tr(:,2:6))
     FRmaxs(iUn,:) = max(FRtrials(:,2:end),[],1); %max(UnitData(iUn).FR_raw_tr(:,2:6))
     
+    
+    % Get Pdc response type                      [ early  late  p_val ]
+    for irate = 1:5
+        PdcRespType{iUn,irate} = 'n';
+        if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{irate})
+            if (UnitData(iUn).DeltaNspk{irate}(3))<alfaFR && (UnitData(iUn).DeltaNspk{irate}(1) > UnitData(iUn).DeltaNspk{irate}(2))
+                % adapting
+                PdcRespType{iUn,irate} = 'A';
+            elseif (UnitData(iUn).DeltaNspk{irate}(3))<alfaFR && (UnitData(iUn).DeltaNspk{irate}(1) < UnitData(iUn).DeltaNspk{irate}(2))
+                % facilitating
+                PdcRespType{iUn,irate} = 'F';
+            else
+                PdcRespType{iUn,irate} = 'S';
+            end
+        end
+    end
 end %iUn
 
 
@@ -256,6 +271,33 @@ ylabel('Probability')
 legend(ih,Info.stim_ID_key(2:end),'FontSize',9,'Location','northeast')
 legend('boxoff')
 grid on
+
+
+p_F  = nan(1,5);
+p_A  = nan(1,5);
+p_NC = nan(1,5);
+p_ns = nan(1,5);
+for irate = 1:5
+    p_F(irate)  = sum(strcmp(PdcRespType(:,irate),'F')) / size(PdcRespType,1);
+    p_A(irate)  = sum(strcmp(PdcRespType(:,irate),'A')) / size(PdcRespType,1);
+    p_NC(irate) = sum(strcmp(PdcRespType(:,irate),'S')) / size(PdcRespType,1);
+    p_ns(irate) = sum(strcmp(PdcRespType(:,irate),'n')) / size(PdcRespType,1);
+end
+
+subplot(3,4,1);
+plot(p_F,'g-','LineWidth',3)
+hold on
+plot(p_A,'r-','LineWidth',3)
+% plot(p_NC,'k-','LineWidth',3)
+% plot(p_ns,'-','Color',0.5*[1 1 1],'LineWidth',3)
+
+axis square
+ylim([0 0.15])
+xlim([0 6])
+set(gca,'xtick',1:5,'xticklabel',AMrates,'Color','none')
+ylabel('Proportion of cells')
+legend({'F' 'A'},'Location','northwest')
+
 
 
 

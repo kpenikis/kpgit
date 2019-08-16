@@ -57,6 +57,10 @@ for iUn = 1:numel(UnitData)
         thisMPH = mean(vertcat(MPH(MPH.ThisStimID==stid,:).zFR{:}),1);
         zFR_vec(iUn,1:size(thisRaster,2),stid-1) = thisMPH;
         
+        if max(zFR_vec(iUn,1:size(thisRaster,2),stid-1)) < 0.5
+            continue
+        end
+        
         pkheight=[]; pklatency=[]; pkwidth=[];
         [pkheight,pklatency,pkwidth]= findpeaks(zFR_vec(iUn,1:size(thisRaster,2),stid-1),'MinPeakHeight',0.5,'MinPeakProminence',0.5,'WidthReference','halfprom');
         
@@ -67,12 +71,12 @@ for iUn = 1:numel(UnitData)
             
             pkStats(iUn,:,stid-1) = [max(pkheight) mean(excPeak) max(excPeak)-min(excPeak)];
             
-            figure(4); clf;
-            plot(thisMPH,'k')
-            hold on
-            plot([min(excPeak) max(excPeak)],[threshold threshold],'g')
-            plot(mean(excPeak),max(pkheight),'*g')
-            pause(2)
+%             figure(4); clf;
+%             plot(thisMPH,'k')
+%             hold on
+%             plot([min(excPeak) max(excPeak)],[threshold threshold],'g')
+%             plot(mean(excPeak),max(pkheight),'*g')
+%             pause(2)
         end
         
     end %only significant sync
@@ -107,26 +111,27 @@ for ir = 1:5
     
     subplot(2,3,ir)
     hold on
+    title([num2str(AMrates(ir)) ' Hz'])
     
     for iUn = 1:numel(UnitData)
         
-        if pkStats(iUn,1,ir) > 1
-            scatter(pkStats(iUn,2,ir),pkStats(iUn,3,ir),80,max(Data(iUn,ir).Res_L1o.dprime(:,2)),'LineWidth',2)
-        end
+%         if pkStats(iUn,1,ir) > 1
+            scatter( pkStats(iUn,2,ir), pkStats(iUn,3,ir), 80, max(Data(iUn,ir).Res_L1o.dprime(:,2)), 'LineWidth',2 )
+%         end
         
     end
-    xlabel('latency')
-    ylabel('width')
+    xlabel('MPH peak latency')
+    ylabel('MPH peak width')
     xlim([0 ceil(1000/AMrates(ir))])
     ylim([0 ceil(1000/AMrates(ir))])
     cmocean('phase')
-    set(gca,'clim',[0 6])
+    set(gca,'clim',[0 2])
     axis square
 end
 subplot(2,3,6)
 colorbar
 cmocean('phase')
-set(gca,'clim',[0 6])
+set(gca,'clim',[0 2])
 
 
 % latency vs width of MPH peak, colored by d', only dps > X
@@ -138,23 +143,27 @@ for ir = 1:5
     
     subplot(2,3,ir)
     hold on
+    title([num2str(AMrates(ir)) ' Hz'])
     
     for iUn = 1:numel(UnitData)
         
-        if ~isempty(Data(iUn,ir).Res_L1o) && any(Data(iUn,ir).Res_L1o.dprime(:,2)>0.5)
-%             plot(pkStats(iUn,1,ir),max(Data(iUn,ir).Res_L1o.dprime(:,2)),'*b')
-            scatter(pkStats(iUn,2,ir),pkStats(iUn,3,ir),80,max(Data(iUn,ir).Res_L1o.dprime(:,2)),'LineWidth',2)
+%         if ~isempty(Data(iUn,ir).Res_L1o) && any(Data(iUn,ir).Res_L1o.dprime(:,2)>0.5)
+%             scatter(pkStats(iUn,2,ir),pkStats(iUn,3,ir),80,max(Data(iUn,ir).Res_L1o.dprime(:,2)),'LineWidth',2)
+%         end
+        if pkStats(iUn,1,ir) > 1
+            plot(pkStats(iUn,3,ir), max(Data(iUn,ir).Res_L1o.dprime(:,2)), '*k')
         end
         
     end
-    xlabel('latency')
+    xlabel('MPH peak width')
     xlim([0 ceil(1000/AMrates(ir))])
-    ylabel('width')
-    ylim([0 ceil(1000/AMrates(ir))])
-%     ylabel('d''')
-%     ylim([0 5])
-    cmocean('phase')
-    set(gca,'clim',[0 6])
+    ylabel('best d''')
+    ylim([0 2])
+%     ylabel('width')
+%     ylim([0 ceil(1000/AMrates(ir))])
+%     cmocean('phase')
+%     set(gca,'clim',[0 6])
+    axis square
 end
 
 subplot(2,3,6)

@@ -8,10 +8,8 @@ function MPH_plot(thisUn)
 %
 
 
-global fn AMrates rateVec_AC rateVec_DB trMin RateStream
+global fn AMrates RateStream
 
-%!!!!!!!!!!!!!!!!!
-trMin   =  10;
 %!!!!!!!!!!!!!!!!!
 tVarBin = 31;
 %!!!!!!!!!!!!!!!!!
@@ -38,14 +36,6 @@ spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 q = load(fullfile(fn.processed,'MPHclassifier','ClassData.mat'));
 ClassData = q.Data;
 clear q
-
-% Load IR stimulus rate vectors
-q = load(fullfile(fn.stim,'rateVec_AC'));
-rateVec_AC = q.buffer;
-q = load(fullfile(fn.stim,'rateVec_DB'));
-rateVec_DB = q.buffer;
-
-AMrates = [2 4 8 16 32];
 
 
 USE_MEASURE = 'FR';
