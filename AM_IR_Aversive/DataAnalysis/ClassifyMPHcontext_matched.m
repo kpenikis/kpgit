@@ -19,11 +19,11 @@ RERUN       =   1;
 %!!!!!!!!!!!!!!!!!!!
 trMin       =  10;
 %!!!!!!!!!!!!!!!!!!!
-Iterations  =  100;
+Iterations  =  1000;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     =  31;
 %!!!!!!!!!!!!!!!!!!!
-SHUFFLE_SPIKES = 0;
+SHUFFLE_SPIKES = 1;
 %!!!!!!!!!!!!!!!!!!!
 T         = 250;
 alfa      = 0.05;
@@ -68,7 +68,7 @@ if RERUN
     Data = struct;
     Un1  = 1;
 else
-    q = load(fullfile(savedir,savename));
+    q = load(fullfile(savedir,'tmp',savename));
     Data = q.Data;
     clear q
     Un1  = size(Data,1)+1;
@@ -77,7 +77,7 @@ end
 
 %% Step through Units
 
-for iUn = 1:numel(UnitData)
+for iUn = Un1:numel(UnitData)
     
 %     if UnitData(iUn).kw_p>0.05
 %         continue
@@ -154,23 +154,19 @@ for iUn = 1:numel(UnitData)
         
         MPH_rate  = MPH(MPH.AMrate==this_rate,:);
         
-        % Get Pdc response type                      [ early  late  p_val ]
-        PRT = 'na';
-        if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{this_rate==AMrates})
-            if (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) > UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
-                % adapting
-                PRT = 'A';
-            elseif (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) < UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
-                % facilitating
-                PRT = 'F';
-            else
-                PRT = 'NC';
-            end
-        end
-        
-        PdcIRData = struct;
-        PdcData   = struct;
-        IRData    = struct;
+%         % Get Pdc response type                      [ early  late  p_val ]
+%         PRT = 'na';
+%         if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{this_rate==AMrates})
+%             if (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) > UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
+%                 % adapting
+%                 PRT = 'A';
+%             elseif (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) < UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
+%                 % facilitating
+%                 PRT = 'F';
+%             else
+%                 PRT = 'NC';
+%             end
+%         end
         
         np=0;
         
@@ -238,22 +234,33 @@ for iUn = 1:numel(UnitData)
             
             iPdc = find((MPH_rate.ThisStimID<7 & MPH_rate.Starttime==pdcstarttimes(ipd)))';
             
-            nTrs = cellfun(@(x) size(x,1),MPH_rate(iPdc,:).raster);
-            
-            thisMPH(ip,1).Context      = 'Pdc';
-            thisMPH(ip,1).indices      = iPdc;
-            switch USE_MEASURE
-                case 'FR'
-                    thisMPH(ip,1).raster  = vertcat(MPH_rate(iPdc,:).FRsmooth{:});
-                case 'spikes'
-                    thisMPH(ip,1).raster  = vertcat(MPH_rate(iPdc,:).raster{:});
+            if isempty(iPdc)
+                thisMPH(ip,1).Context      = 'Pdc';
+                thisMPH(ip,1).indices      = iPdc;
+                thisMPH(ip,1).raster       = [];
+                thisMPH(ip,1).Prev500msFR  = [];
+                thisMPH(ip,1).Prev100msFR  = [];
+                thisMPH(ip,1).PrevAMrt500  = [];
+                thisMPH(ip,1).PrevAMrt100  = [];
+                thisMPH(ip,1).nTrs         = 0;
+                
+            else
+                nTrs = cellfun(@(x) size(x,1),MPH_rate(iPdc,:).raster);
+                
+                thisMPH(ip,1).Context      = 'Pdc';
+                thisMPH(ip,1).indices      = iPdc;
+                switch USE_MEASURE
+                    case 'FR'
+                        thisMPH(ip,1).raster  = vertcat(MPH_rate(iPdc,:).FRsmooth{:});
+                    case 'spikes'
+                        thisMPH(ip,1).raster  = vertcat(MPH_rate(iPdc,:).raster{:});
+                end
+                thisMPH(ip,1).Prev500msFR  = cell2mat(MPH_rate(iPdc,:).Prev500msFR')';
+                thisMPH(ip,1).Prev100msFR  = cell2mat(MPH_rate(iPdc,:).Prev100msFR')';
+                thisMPH(ip,1).PrevAMrt500  = sum([MPH_rate(iPdc,:).PrevAMrt500] .* nTrs) / sum(nTrs);
+                thisMPH(ip,1).PrevAMrt100  = sum([MPH_rate(iPdc,:).PrevAMrt100] .* nTrs) / sum(nTrs);
+                thisMPH(ip,1).nTrs         = sum(nTrs);
             end
-            thisMPH(ip,1).Prev500msFR  = cell2mat(MPH_rate(iPdc,:).Prev500msFR')';
-            thisMPH(ip,1).Prev100msFR  = cell2mat(MPH_rate(iPdc,:).Prev100msFR')';
-            thisMPH(ip,1).PrevAMrt500  = sum([MPH_rate(iPdc,:).PrevAMrt500] .* nTrs) / sum(nTrs);
-            thisMPH(ip,1).PrevAMrt100  = sum([MPH_rate(iPdc,:).PrevAMrt100] .* nTrs) / sum(nTrs);
-            thisMPH(ip,1).nTrs         = sum(nTrs);
-            
         end %ip
         
         

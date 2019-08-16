@@ -1,4 +1,4 @@
-function Res = get_classifier_data(raster,TemplateSize)
+function Res = get_classifier_data(Data,TemplateSize)
 % output = get_classifier_data(raster,TemplateSize)
 %
 %  First organizes all unique stimuli, then steps through to get AM depth
@@ -11,28 +11,28 @@ rng('shuffle')
 
 % Preallocate
 
-dprime = nan(size(raster,1),1);
-pHit   = nan(size(raster,1),1);
-pFA    = nan(size(raster,1),1);
-nYes   = nan(size(raster,1),2);
-nTrs   = nan(size(raster,1),2);
+dprime = nan(size(Data,1),1);
+pHit   = nan(size(Data,1),1);
+pFA    = nan(size(Data,1),1);
+nYes   = nan(size(Data,1),2);
+nTrs   = nan(size(Data,1),2);
 
 
-for ip = 1:size(raster,1)
+for ip = 1:size(Data,1)
     
     % Check that both MPs have enough trials
-    if ~all([raster(ip,:).nTrs]>=(trMin*2))
+    if ~all([Data(ip,:).nTrs]>=(trMin*2))
         continue
     end
     
     
     % Get NoGo (Pdc) stimulus data
-    NOGO   = raster(ip,1);
+    NOGO   = Data(ip,1);
     rsNOGO = NOGO.raster;
     
     
     % Get GO (Irr) stimulus data
-    GO     = raster(ip,2);
+    GO     = Data(ip,2);
     rsGO   = GO.raster;
     
     
@@ -77,8 +77,8 @@ end
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Put data into output struct
 Res = struct;
-Res.pHpFA    = [ (1:size(raster,1))'  pHit  pFA ];
-Res.dprime   = [ (1:size(raster,1))'  dprime];
+Res.pHpFA    = [ (1:size(Data,1))'  pHit  pFA ];
+Res.dprime   = [ (1:size(Data,1))'  dprime];
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
