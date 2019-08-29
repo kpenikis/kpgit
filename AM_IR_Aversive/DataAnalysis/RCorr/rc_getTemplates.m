@@ -1,5 +1,6 @@
 function [T,ntUsed] = rc_getTemplates(StreamSpikes,GW,AllStimStarttimes,minDur,ntUsed,mspad)
 
+global exclOnset
 
 % Choose one template trial for each block
 %  T{1,ib} = conv spiketimes
@@ -35,18 +36,15 @@ for is=1:numel(AllStimStarttimes)
     % Get trial times
     bkStart_ms = Starttimes(nt);
     bkStop_ms = bkStart_ms+minDur-1;
+    if exclOnset
+        bkStart_ms = bkStart_ms+150;
+    end
     
     % Get spiketimes during the selected trial, adjusted to start time 0
     sp01=[]; 
     sp01 = StreamSpikes((bkStart_ms-mspad):(bkStop_ms+mspad));
-    try
-%     sp=[]; 
-%     sp = spiketimes( spiketimes>=(bkStart_ms(nt)-mspad) & spiketimes<(bkStop_ms(nt)+mspad) ) - bkStart_ms(nt) + 1 + mspad;
-%     
-%     % Convert from spiketimes to binary vector
-%     sp01 = zeros(1,bkStop_ms(nt)-bkStart_ms(nt)+2*mspad);
-%     sp01(sp) = 1;
     
+    try
     % Convolve with Gaussian window
     sp_conv = conv(sp01,GW,'full');
     

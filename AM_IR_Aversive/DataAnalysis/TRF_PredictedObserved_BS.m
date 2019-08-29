@@ -9,19 +9,21 @@ function TRF_PredictedObserved_BS
 
 % close all
 
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 smth_win    = 10;
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Irr         = [6 7];
 Pdc         = [1 2 3 4 5]; 
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 TLAGS       = round(logspace(log10(20),log10(500),10));
 % TLAGS       = [];
 d_tlag      = 100;
 TLAGS       = sort([TLAGS d_tlag]);
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 exclOnset   = 0; 
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+PlotEx = 0;
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 %% Load Unit data files
@@ -45,10 +47,11 @@ if ~exist(savedir,'dir')
 end
 
 set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',12)
+set(0,'DefaultAxesFontSize',18)
 
-scrsz = get(0,'ScreenSize');
+scrsz = get(0,'ScreenSize');   %[left bottom width height]
 fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
+twothirds   = [1 scrsz(4) scrsz(3)/3*2 scrsz(4)];
 
 % Set colors
 subjcolors = cmocean('phase',1+numel(unique({UnitData.Subject})));
@@ -86,6 +89,7 @@ Cmax_Irr =[];
 Cmax_ALL =[];
 Imax_ALL =[];
 STRF_corr=[];
+
 
 for iUn = 1:numel(UnitData)
     
@@ -246,9 +250,15 @@ for iUn = 1:numel(UnitData)
     
     
 
+
     %%  ------  STRF analysis  ------ 
     
-    nBS = 100;
+    if PlotEx
+        hfex=figure;
+        set(hfex,'Position',fullscreen,'NextPlot','add')
+    end
+    
+    nBS = 200;
     
     STRF_Pdc      = nan(numel(TLAGS),max(TLAGS),nBS);
     STRF_Irr      = nan(numel(TLAGS),max(TLAGS),nBS);
@@ -315,12 +325,14 @@ for iUn = 1:numel(UnitData)
         
         % For each tlag, calculate STRF, predict response, and compare to observed
         
+%         t100idx = find(TLAGS==100);
         for it = 1:numel(TLAGS)
             
             tlag  = TLAGS(it);
             
             %......................................
             % Estimate STRF from PERIODIC stimuli
+            
             %......................................
             pred_response=[]; rP_norm=[]; rO_norm=[];
             STRF_Pdc(it,1:tlag,iBS) = sub_revCOR_AM(psth_Pdc1,stim_Pdc1,tlag);
@@ -334,6 +346,7 @@ for iUn = 1:numel(UnitData)
             
             %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             % Predict response to IRREGULAR stimuli
+            
             %......................................
             % From Pdc STRF
             %.......................................
@@ -347,9 +360,19 @@ for iUn = 1:numel(UnitData)
             % Correlation between predicted and observed responses
             coinc_Pdc_Irr(it,iBS) = max( xcorr( rP_norm, rO_norm, 0) );
             
+            if PlotEx
+                figure(hfex); clf
+                hs(1)=subplot(2,1,1);
+                hold on
+                plot(rO_norm,'k-')
+                plot(rP_norm,'r-','LineWidth',2)
+                xlim([0 length(rO_norm)])
+                title(sprintf('Pdc training, coinc=%0.3f',coinc_Pdc_Irr(it,iBS)))
+            end
+            
             
             %.......................................
-            % From Pdc STRF
+            % From Irr STRF
             %.......................................
             pred_response=[]; rP_norm=[]; rO_norm=[];
             pred_response = max(conv(stim_Irr2,STRF_Irr(it,1:tlag,iBS),'full') ,0);
@@ -361,6 +384,16 @@ for iUn = 1:numel(UnitData)
             % Correlation between predicted and observed responses
             coinc_Irr_Irr(it,iBS) = xcorr( rP_norm, rO_norm, 0);
             
+            if PlotEx
+                hs(2)=subplot(2,1,2);
+                hold on
+                plot(rO_norm,'k-')
+                plot(rP_norm,'b-','LineWidth',2)
+                xlim([0 length(rO_norm)])
+                title(sprintf('Irr training, coinc=%0.3f',coinc_Irr_Irr(it,iBS)))
+                
+                print_eps_kp(hfex,fullfile(savedir,['ExamplePredObs_iUn' num2str(iUn)]))
+            end
             
         end %tlags
     end %iBS

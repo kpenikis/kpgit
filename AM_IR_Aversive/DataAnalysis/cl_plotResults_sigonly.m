@@ -1,8 +1,8 @@
-function cl_plotResults
+function cl_plotResults_sigonly
 %  
 %
 
-global AMrates
+global AMrates 
 
 %%%%%%%%%%%%%%%%%%
 FR_cutoff = 0;
@@ -11,7 +11,7 @@ dp_cutoff = -inf;
 %%%%%%%%%%%%%%%%%%
 alfa      = 0.05; 
 %%%%%%%%%%%%%%%%%%
-PLOT_F1   = 0;
+PLOT_F1   = 1;
 %%%%%%%%%%%%%%%%%%
 
 % Load Unit files
@@ -22,9 +22,13 @@ UnitInfo = q.UnitInfo;     clear q
 [sigUnits,UnitData] = identifyResponsiveUnits(UnitData);
 
 % Load classifier results
-load(fullfile(fn.processed,'MPHclassifier','ClassData'));
+q=load(fullfile(fn.processed,'MPHclassifier','ClassData'));
+Data = q.Data;             clear q
 q=load(fullfile(fn.processed,'MPHclassifier','ClassData_shuff'));
 DataSh = q.Data;           clear q
+
+% Load significant dps mat
+load(fullfile(fn.processed,'MPHclassifier','sig_dps'));
 
 % Figure settings
 set(0,'DefaultTextInterpreter','none')
@@ -70,39 +74,43 @@ dp_narrow  = [];
 
 for iUn = 1:size(DataSh,1)
     
+    if ~ismember(iUn,sig_dps(:,1))
+        continue
+    end
+    
     this_BMF = UnitData(iUn).iBMF_FR;
     
     for irate = 1:size(Data,2)
         
-        if isempty(Data(iUn,irate).data)
-            continue
-        elseif mean(mean(Data(iUn,irate).data(1,1).raster,2))<FR_cutoff
+        if ~ismember(irate,sig_dps(sig_dps(:,1)==iUn,2))
             continue
         end
         
-        N = N + size(Data(iUn,irate).Res_L1o.dprime,1);
+        idx = sig_dps( sig_dps(:,1)==iUn & sig_dps(:,2)==irate,3)';
         
-        plot_vals = [plot_vals; Data(iUn,irate).Res_L1o.dprime(:,2)];
-        plot_v_Sh = [plot_v_Sh; DataSh(iUn,irate).Res_L1o.dprime(:,2)];
+        N = N + size(Data(iUn,irate).Res_L1o.dprime(idx,:),1);
+        
+        plot_vals = [plot_vals; Data(iUn,irate).Res_L1o.dprime(idx,2)];
+        plot_v_Sh = [plot_v_Sh; DataSh(iUn,irate).Res_L1o.dprime(idx,2)];
         
         if UnitData(iUn).iBMF_FR == irate
-            BMF_vals = [BMF_vals; Data(iUn,irate).Res_L1o.dprime(:,2)];
-            BMF_v_Sh = [BMF_v_Sh; DataSh(iUn,irate).Res_L1o.dprime(:,2)];
-            Nb = Nb + size(Data(iUn,irate).Res_L1o.dprime,1);
+            BMF_vals = [BMF_vals; Data(iUn,irate).Res_L1o.dprime(idx,2)];
+            BMF_v_Sh = [BMF_v_Sh; DataSh(iUn,irate).Res_L1o.dprime(idx,2)];
+            Nb = Nb + size(Data(iUn,irate).Res_L1o.dprime(idx,:),1);
         end
         
         if UnitData(iUn).kw_p<alfa && UnitData(iUn).wx_p<alfa
-            sig_vals = [sig_vals; Data(iUn,irate).Res_L1o.dprime(:,2)];
-            Ns = Ns + size(Data(iUn,irate).Res_L1o.dprime,1);
+            sig_vals = [sig_vals; Data(iUn,irate).Res_L1o.dprime(idx,2)];
+            Ns = Ns + size(Data(iUn,irate).Res_L1o.dprime(idx,:),1);
         else 
-            nsr_vals = [nsr_vals; Data(iUn,irate).Res_L1o.dprime(:,2)];
+            nsr_vals = [nsr_vals; Data(iUn,irate).Res_L1o.dprime(idx,2)];
         end
         
         if  ~isempty(UnitData(iUn).iBMF_FR) 
             
-            data_idx = abs([Data(iUn,irate).data(:,2).PrevAMrt100] - AMrates(UnitData(iUn).iBMF_FR) * ones(size([Data(iUn,irate).data(:,2).PrevAMrt100]))) < 0.5;
+            data_idx = abs([Data(iUn,irate).data(idx,2).PrevAMrt100] - AMrates(UnitData(iUn).iBMF_FR) * ones(size([Data(iUn,irate).data(idx,2).PrevAMrt100]))) < 0.5;
             
-            post_BMF = [post_BMF; Data(iUn,irate).Res_L1o.dprime(data_idx,2)];
+            post_BMF = [post_BMF; Data(iUn,irate).Res_L1o.dprime(idx(data_idx),2)];
             
         end
         
@@ -112,11 +120,11 @@ for iUn = 1:size(DataSh,1)
         if UnitInfo(iUn,:).TroughPeak > 0.5
             % Broad
             CellType{end+1} = 'B';
-            dp_broad  = [dp_broad; Data(iUn,irate).Res_L1o.dprime(:,2)];
+            dp_broad  = [dp_broad; Data(iUn,irate).Res_L1o.dprime(idx,2)];
         else
             % Narrow
             CellType{end+1} = 'N';
-            dp_narrow = [dp_narrow; Data(iUn,irate).Res_L1o.dprime(:,2)];
+            dp_narrow = [dp_narrow; Data(iUn,irate).Res_L1o.dprime(idx,2)];
         end
         
         
@@ -126,18 +134,18 @@ for iUn = 1:size(DataSh,1)
             if (UnitData(iUn).DeltaNspk{irate}(3))<alfa && (UnitData(iUn).DeltaNspk{irate}(1) > UnitData(iUn).DeltaNspk{irate}(2))
                 % adapting
                 PdcRespType{iUn,irate} = 'A';
-                dp_adapt = [dp_adapt; Data(iUn,irate).Res_L1o.dprime(:,2)];
+                dp_adapt = [dp_adapt; Data(iUn,irate).Res_L1o.dprime(idx,2)];
             elseif (UnitData(iUn).DeltaNspk{irate}(3))<alfa && (UnitData(iUn).DeltaNspk{irate}(1) < UnitData(iUn).DeltaNspk{irate}(2))
                 % facilitating
                 PdcRespType{iUn,irate} = 'F';
-                dp_facil = [dp_facil; Data(iUn,irate).Res_L1o.dprime(:,2)];
+                dp_facil = [dp_facil; Data(iUn,irate).Res_L1o.dprime(idx,2)];
             else
                 PdcRespType{iUn,irate} = 'S';
-                dp_nchng = [dp_nchng; Data(iUn,irate).Res_L1o.dprime(:,2)];
+                dp_nchng = [dp_nchng; Data(iUn,irate).Res_L1o.dprime(idx,2)];
             end
         else
             PdcRespType{iUn,irate} = 'n';
-            dp_nchng = [dp_nchng; Data(iUn,irate).Res_L1o.dprime(:,2)];
+            dp_nchng = [dp_nchng; Data(iUn,irate).Res_L1o.dprime(idx,2)];
         end
         
         
@@ -251,30 +259,12 @@ subplot(1,4,4); hold on
 % plot([1 1],[0 1],'--','Color',0.5.*[1 1 1])
 grid on
 
-for irate = 1:size(Data,2)
+for irate = 1:5
     
-    dp_plot = [];
-    N = 0;
-    
-    for iUn = 1:size(Data,1)
-        if isempty(Data(iUn,irate).data)
-            continue
-        elseif mean(mean(Data(iUn,irate).data(1).raster,2))<FR_cutoff
-            continue
-        end
-        
-        dps = Data(iUn,irate).Res_L1o.dprime(:,2)';
-        dps(isnan(dps)) = [];
-%         dps(dps<0) = 0;
-        
-        dp_plot  = [dp_plot dps];
-        N        = N+size(Data(iUn,irate).Res_L1o.dprime,1); %length(dps);
-    end
-    
-    ih(irate)=histogram(dp_plot,-4:histbinsize:4,'DisplayStyle','stairs',...
+    ih(irate)=histogram(sig_dps(sig_dps(:,2)==irate,4),-4:histbinsize:4,'DisplayStyle','stairs',...
         'EdgeColor',colors(irate,:),'LineWidth',2,'Normalization','cdf');
     
-    legstr{irate} = sprintf('%i Hz (%i)',AMrates(irate),N);
+    legstr{irate} = sprintf('%i Hz (%i)',AMrates(irate),numel(sig_dps(sig_dps(:,2)==irate,4)));
 
 end
 
@@ -290,7 +280,7 @@ suptitle(sprintf('MPH Context Classifier Results\nN=%i units',size(Data,1)))
 
 
 %% Save 
-print_eps_kp(hf1,fullfile(fn.figs,'MPHclass','dprimeDistributions'))
+print_eps_kp(hf1,fullfile(fn.figs,'MPHclass','dprimeDistributions_sigonly'))
 
  
 end %plot F1
@@ -298,7 +288,12 @@ end %plot F1
 
 
 
+
+
+
+
 %%  FIGURE 2: CORRELATIONS
+
 
 hf2=figure;
 set(hf2,'Position',fullscreen,'NextPlot','add')
@@ -313,6 +308,9 @@ clear ih
 
 for iUn = 1:size(Data,1)
     
+    if ~ismember(iUn,sig_dps(:,1))
+        continue
+    end
     if isempty(UnitData(iUn).iBMF_FR)
         continue
     end
@@ -321,6 +319,12 @@ for iUn = 1:size(Data,1)
     
     for irate = 1:size(Data,2)
         
+        if ~ismember(irate,sig_dps(sig_dps(:,1)==iUn,2))
+            continue
+        end
+        
+        idx = sig_dps( sig_dps(:,1)==iUn & sig_dps(:,2)==irate,3)';
+        
         if isempty(Data(iUn,irate).data)
             continue
         elseif mean(mean(Data(iUn,irate).data(1).raster,2))<FR_cutoff
@@ -328,7 +332,7 @@ for iUn = 1:size(Data,1)
         end
         
         dBMF      = irate - UnitData(iUn).iBMF_FR;
-        dp_plot  =  Data(iUn,irate).Res_L1o.dprime(:,2);
+        dp_plot  =  Data(iUn,irate).Res_L1o.dprime(idx,2);
 %         dp_plot(dp_plot<0) = 0;
         plot_vals = [plot_vals; dBMF.*ones(size(dp_plot)) dp_plot];
     end
@@ -385,24 +389,32 @@ clear ih
 
 for iUn = 1:size(Data,1)
     
-%     if isempty(UnitData(iUn).iBMF_FR)
-%         continue
-%     end
+    if ~ismember(iUn,sig_dps(:,1))
+        continue
+    end
     
     FR_pdc  = nan(1,size(Data,2));
     FF_pdc  = nan(1,size(Data,2));
     CS_pdc  = nan(1,size(Data,2));
     MAD_pdc = nan(1,size(Data,2));
     
-    for irate = 1:4
+    for irate = 1:5
+        
+        if ~ismember(irate,sig_dps(sig_dps(:,1)==iUn,2))
+            continue
+        end
+        
         if isempty(Data(iUn,irate).data)
             continue
         elseif mean(mean(Data(iUn,irate).data(1).raster,2))<FR_cutoff
             continue
         end
         
+        idx = sig_dps( sig_dps(:,1)==iUn & sig_dps(:,2)==irate,3)';
+        
+        
         % d prime
-        dp_plot  =  Data(iUn,irate).Res_L1o.dprime(:,2);
+        dp_plot  =  Data(iUn,irate).Res_L1o.dprime(idx,2);
         dp_plot(dp_plot<dp_cutoff) = [];
         dp_plot(isnan(dp_plot))    = [];
         if isempty(dp_plot)
@@ -459,7 +471,7 @@ for iUn = 1:size(Data,1)
     
     Nb = Nb+1;
     
-    dp_plot  =  Data(iUn,ir).Res_L1o.dprime(:,2);
+    dp_plot  =  Data(iUn,ir).Res_L1o.dprime(idx,2);
     dp_plot(dp_plot<dp_cutoff) = [];
     plotvals_FF_best = [plotvals_FF_best; FF_pdc(ir).*ones(sum(~isnan(dp_plot)),1) dp_plot(~isnan(dp_plot))];
     
@@ -551,9 +563,9 @@ ylabel('dprime')
 
 %% Finish and save
 
-suptitle(sprintf('What underlies classifier results?\nN=%i units, FR cutoff %i, excluding 32 Hz MPH',size(Data,1),FR_cutoff))
+suptitle(sprintf('What underlies classifier results?\nN=%i units',size(Data,1)))
 
-print_eps_kp(gcf,fullfile(fn.figs,'MPHclass','dprimeRelationships'))
+print_eps_kp(gcf,fullfile(fn.figs,'MPHclass','dprimeRelationships_sigonly'))
 
 
 keyboard

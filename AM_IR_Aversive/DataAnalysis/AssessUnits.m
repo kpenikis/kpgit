@@ -20,7 +20,7 @@ SAVENAME = 'Units';
 
 
 close all
-global fn AMrates
+global fn AMrates trMin
 
 fn = set_paths_directories('','',1);
 

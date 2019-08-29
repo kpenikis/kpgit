@@ -50,7 +50,7 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = 1:numel(Clusters)
+for iUn = numel(Clusters)
     
     close all
     
@@ -228,21 +228,26 @@ for iUn = 1:numel(Clusters)
     %% Plot unit summary
     
     hfClu = figure;
-    set(gcf,'Position',largerect.* [1 1 1.5 0.5])
+    set(gcf,'Position',fullscreen.*[1 1 1 0.3])
     hold on
-    subplot(1,3,1);
+    subplot(1,5,1);
     plot(thisClu.maxChTemp,'k','LineWidth',3)
     set(gca,'xlim',[1 length(thisClu.maxChTemp)],'xtick',[],'Color','none')
     title(sprintf('%i events | %0.1f Hz',length(spiketimes),meanFR ))
-    subplot(1,3,2);
+    subplot(1,5,2);
     histogram([-diff(spiketimes) diff(spiketimes)],[-200:200],'EdgeColor','none','FaceColor','k','FaceAlpha',1);
     set(gca,'xlim',[-200 200],'Color','none')
     title(sprintf('%0.1f%% violation rate', 100*sum(diff(spiketimes)<3)/length(spiketimes) ))
-    subplot(1,3,3);
+    subplot(1,5,3);
     try
     histogram([thisClu.Amplitudes],50,'FaceColor','k','EdgeColor','none')
     end
     title('Distribution of amplitudes')
+    subplot(1,5,[4 5]);
+    plot(spiketimes,[thisClu.Amplitudes],'.k')
+    xlim([0 TrialData.offset(end)])
+    title('Amplitudes across session')
+    xlabel('Time in session')
     
     suptitle(sprintf('Shank %i  |  maxCh: %i  |  cluID: %i',thisClu.shank,maxChan,thisClu.clusterID ))
     

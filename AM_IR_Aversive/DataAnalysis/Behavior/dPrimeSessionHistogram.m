@@ -15,6 +15,11 @@ for ii = 1:size(SESSIONS,1)
     subject   = SESSIONS{ii,1}{:};
     session   = SESSIONS{ii,2}{:};
     
+    if strcmp(subject,'WWWlf_253395') && strcmp(session,'MA')
+        dPrimes(ii) = nan;
+        continue
+    end
+    
     % Load Info and TrialData files
     clear Info TrialData
     filename = sprintf( '%s_sess-%s_Info'      ,subject,session); load(fullfile(fn.processed,subject,filename));
@@ -62,6 +67,13 @@ for ii = 1:size(SESSIONS,1)
     zFA = norminv([FARate]);
     
     dPrimes(ii) = zHit-zFA;
+    
+    
+    if dPrimes(ii) < 1.5
+        keyboard
+        % if find another session with low d', load Info, make all trials
+        % artifact, save Info, add to top of loop to skip
+    end
     
     
 end

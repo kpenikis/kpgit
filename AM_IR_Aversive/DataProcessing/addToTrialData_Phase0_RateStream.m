@@ -38,7 +38,7 @@ q = load(fullfile(fn.processed,'Units'));
 UnitInfo = q.UnitInfo;
 clear q
 
-SESSIONS = unique(UnitInfo(:,1:2));
+SESSIONS = unique(UnitInfo([112 158:end],1:2));
 % ISSUE WITH Jan31-AM  -- CORRUPTED
 
 for ii = 1:size(SESSIONS,1)

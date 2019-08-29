@@ -6,7 +6,7 @@ end
 
 if YESpleasePRINT
     set(figure(fig_handle),'PaperPositionMode','auto');
-    print(figure(fig_handle),'-painters','-loose','-depsc', savelocation)
+    print(figure(fig_handle),'-depsc','-loose','-painters', savelocation)
 end
 
 end

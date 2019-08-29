@@ -42,16 +42,15 @@ for ii = 1:Iterations
     for iir = 7:numel(FRtrials)
         if isempty(FRtrials{iir}), continue, end
         
-        [~,p_tt(ii,iir-6)] = ttest2(FR_sim,FRtrials{iir}(1:nt));
-        p_rs(ii,iir-6)    = ranksum(FR_sim,FRtrials{iir}(1:nt));
+        these_trs = randperm(ntrs(iir),nt);
         
-%         q025 = prctile(FR_sim,2.5);
-%         q975 = prctile(FR_sim,97.5);
-%         if mean(FRtrials{iir}(1:nt))<q025 || mean(FRtrials{iir}(1:nt))>q975
-%             
-%         end
+        [~,p_tt(ii,iir-6)] = ttest2(FR_sim,FRtrials{iir}(these_trs(1:nt)));
+        p_rs(ii,iir-6)     = ranksum(FR_sim,FRtrials{iir}(these_trs(1:nt)));
+        
     end
-
+    
+    % Maybe add statistics for merged Irr observed responses
+    
 end
 
 IR_Prediction_sim = mean(Sim_mean);

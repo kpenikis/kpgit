@@ -5,7 +5,7 @@ function MPH_matchedComparison(USE_MEASURE)
 %   period. Also finds a different Pdc period to compare to this one. 
 %   Option to plot MPH.
 %
-% KP, 2018-04, 2019-07
+% KP, 2018-04, 2019-08
 % 
 
 % for adapting or facilitating cells, plot abs(Obs-Pred) as a function of 
@@ -57,34 +57,37 @@ switch USE_MEASURE
         axmax = 4;
 end
 
-histbinedges = linspace(-sqrt(60^2 + 60^2)/2,sqrt(60^2 + 60^2)/2,40);
-
-
-%% Figure settings
-
-set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',14)
-
-scrsz = get(0,'ScreenSize');  %[left bottom width height]
-fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
 
 savedir = fullfile(fn.figs,'MPHmatched');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-% Set colors
-colors = [ 250 250 250;...
-    84  24  69;...
-    120  10  41;...
-    181   0  52;...
-    255  87  51;...
-    255 153   0]./255;
-colors = [ colors; ...
-    [37  84 156]./255 ;...
-    [19 125 124]./255 ];
+savename = ['matchedMPH_' USE_MEASURE ];
 
-PlotMarkerSize = 15;
+
+%% Figure settings
+
+% set(0,'DefaultTextInterpreter','none')
+% set(0,'DefaultAxesFontSize',14)
+% 
+% scrsz = get(0,'ScreenSize');  %[left bottom width height]
+% fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
+% 
+% % Set colors
+% colors = [ 250 250 250;...
+%     84  24  69;...
+%     120  10  41;...
+%     181   0  52;...
+%     255  87  51;...
+%     255 153   0]./255;
+% colors = [ colors; ...
+%     [37  84 156]./255 ;...
+%     [19 125 124]./255 ];
+% 
+% PlotMarkerSize = 15;
+% 
+% histbinedges = linspace(-sqrt(60^2 + 60^2)/2,sqrt(60^2 + 60^2)/2,40);
 
 
 %% Preallocate
@@ -97,6 +100,7 @@ PdcRespType={};
 PdcStartTime=[];
 MPrate=[];
 PRT = cell(numel(UnitData),5);
+CellType={};
 
 
 for iUn = 1:numel(UnitData)
@@ -495,6 +499,12 @@ for iUn = 1:numel(UnitData)
                 PdcRespType{end+1,1} =  PRT{iUn,this_rate==AMrates} ;
                 PdcStartTime(end+1)  =  PdcIRData(idx,2).starttime ;
                 MPrate(end+1)        =  find(this_rate==AMrates) ;
+                if UnitInfo(iUn,:).TroughPeak<0.5
+                    CellType{end+1,1} = 'N';
+                else
+                    CellType{end+1,1} = 'B';
+                end
+
                 
                 %---------
                 % Pdc-Pdc
@@ -502,6 +512,13 @@ for iUn = 1:numel(UnitData)
 %                 plot(PdcIRData(idx,2).(USE_MEASURE), PdcData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color','k' )
                 
                 PD_PdcPdc  = [ PD_PdcPdc; PdcIRData(idx,2).(USE_MEASURE) PdcData(idx,1).(USE_MEASURE) ];
+                
+                %---------
+                % Pdc-IR
+%                 subplot(hs(1)); hold on
+%                 plot(PdcIRData(idx,2).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color',plotcol )
+                
+                PD_PdcIR  = [ PD_PdcIR; PdcIRData(idx,2).(USE_MEASURE) PdcIRData(idx,1).(USE_MEASURE) ];
                 
                 %---------
                 % IR-IR
@@ -515,18 +532,9 @@ for iUn = 1:numel(UnitData)
 %                     plot(PdcIRData(1,1).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color','k' )
                     
                     PD_IRIR  = [ PD_IRIR; PdcIRData(1,1).(USE_MEASURE) PdcIRData(idx,1).(USE_MEASURE) ];
-                end
-                
-                
-                %---------
-                % Pdc-IR
-%                 subplot(hs(1)); hold on
-%                 plot(PdcIRData(idx,2).(USE_MEASURE), PdcIRData(idx,1).(USE_MEASURE), 'o','MarkerSize',15,'Color',plotcol )
-                
-                PD_PdcIR  = [ PD_PdcIR; PdcIRData(idx,2).(USE_MEASURE) PdcIRData(idx,1).(USE_MEASURE) ];
-                
-            end
-        end
+                end %IR-IR
+            end %if ~empty
+        end  %each Irr MPH
         
         
     end  %this_rate
@@ -536,8 +544,9 @@ end %iUn
 %% 
 
 % Save data
-save(fullfile(savedir,['matchedMPH_' USE_MEASURE '_no32' ]),'PD_PdcIR','PD_PdcPdc','PD_IRIR','PdcRespType','PdcStartTime','MPrate','-v7.3')
+save(fullfile(savedir,savename),'PD_PdcIR','PD_PdcPdc','PD_IRIR','PdcRespType','PdcStartTime','MPrate','CellType','-v7.3')
 
+return
 
 % Load already saved data
 % load(fullfile(savedir,'matchedMPH_FR'))

@@ -88,11 +88,11 @@ for spl = dBSPL'
         allStim = unique(TrialData.trID(all_TDidx));
         
         % Remove stimuli with too few trials
-        if sum(Ntrials < minTrs)==1
-            all_TDidx(TrialData.trID(all_TDidx)==allStim(Ntrials<minTrs))  = [];
-            allStim(Ntrials<minTrs)  = [];
-            Ntrials(Ntrials<minTrs) = [];
-        elseif  sum(Ntrials < minTrs)>1 %if more than one stim has few trials
+        if sum(Ntrials < trMin)==1
+            all_TDidx(TrialData.trID(all_TDidx)==allStim(Ntrials<trMin))  = [];
+            allStim(Ntrials<trMin)  = [];
+            Ntrials(Ntrials<trMin) = [];
+        elseif  sum(Ntrials < trMin)>1 %if more than one stim has few trials
             continue
         end
         
@@ -230,7 +230,7 @@ for spl = dBSPL'
         %  (only periodic right now)
         AMDATA_spk = Spks_per_tr(:,:,~all(isnan(Spks_per_tr),1)); %2:6
         AMDATA_spk = AMDATA_spk(sum(isnan(AMDATA_spk),3)==0,:,:);
-        if size(AMDATA_spk,1)<minTrs, keyboard, end
+        if size(AMDATA_spk,1)<trMin, keyboard, end
         
         FRmat = format_FRmat(SilDATA_spk,AMDATA_spk);
         dprime_mat = calculate_dprime_formula(FRmat);

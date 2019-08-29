@@ -11,9 +11,6 @@ function PredictedObserved(USE_MEASURE)
 %
 
 
-keyboard
-% color according to Facilitating or Adapting
-
 
 close all
 global fn AMrates trMin
@@ -43,7 +40,7 @@ spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 
 
 if nargin<1
-    USE_MEASURE =  'FF'; 'FR'; 'TrV';
+    USE_MEASURE =  'FR'; 'FF'; 'TrV';
 end
 
 switch USE_MEASURE
@@ -74,7 +71,7 @@ yval=10;
 set(0,'DefaultTextInterpreter','none')
 set(0,'DefaultAxesFontSize',12)
 
-scrsz = get(0,'ScreenSize');
+scrsz = get(0,'ScreenSize');    %[left bottom width height]
 vsmallsq = [1 scrsz(4)/4 scrsz(3)/4 scrsz(4)/4];
 smallsq  = [1 scrsz(4)/3 scrsz(3)/3 scrsz(4)/3];
 
@@ -171,11 +168,6 @@ Pdata.pval    = nan;
 
 for iUn = 1:numel(UnitData)
     
-    %%% skips merged units for now
-%     if numel(UnitInfo(iUn,:).Session{:})==4  %strncmp(UnitInfo.RespType{iUn},'merged',6)
-%         continue
-%     end
-    
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
     shank       = UnitData(iUn).Shank;
@@ -229,9 +221,13 @@ for iUn = 1:numel(UnitData)
     % while the animal was drinking
     
     if ~isfield(Info,'artifact')
+        keyboard
         [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,[],dBSPL,LP,0);
     else
         [all_TDidx,Ntrials,~] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP,0);
+    end
+    if length(Ntrials)==1
+        continue
     end
     Ntrials(1) = 200; %set high so Warn stimulus doesn't interfere
     
@@ -476,7 +472,7 @@ for iUn = 1:numel(UnitData)
     if strcmp(subject,ex_subj) && strcmp(session,ex_sess) && channel==ex_ch && clu==ex_clu
         ip.MarkerFaceColor = [32 129 255]./255;
     end
-    if strcmp(USE_MEASURE,'FR') && any(pvals)<alfa
+    if strcmp(USE_MEASURE,'FR') && all(pvals)<alfa
         ip.MarkerFaceColor = 'k';
     end
     

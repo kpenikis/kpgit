@@ -17,15 +17,17 @@ function [blockAssignment,maxR] = rc_calcR(T,S)
 % KP, adapted from code by MLC.
 
 
+global stids
+
 %Preallocate matrix
-Rmat = zeros(size(T,2),2);
+Rmat = nan(size(T,2),2);
 
 for j = 1:size(T,2)
     
     % R is simply the inner dot product of S and T, divided by the
     %product of their vector norms
     if isempty(T{1,j})
-        R = 0;
+        R = nan;
     else
         R = (S*T{1,j}')/(norm(S)*norm(T{1,j}));
     end
@@ -58,8 +60,9 @@ if ~isnan(maxR)
 %If the max R is a NaN
 elseif isnan(maxR)
     
-    %Make a random assignment
-    maxRindex= randi(size(Rmat,1),1);
+    %Make a random assignment (dont allow to choose empty stim)
+    maxRindex = randi(length(stids),1);
+    maxRindex = stids(maxRindex);
     
 end
 
