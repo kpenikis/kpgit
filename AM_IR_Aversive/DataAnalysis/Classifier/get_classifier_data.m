@@ -71,7 +71,7 @@ for inf_idx = find(dprime==Inf)'
         pFA(inf_idx) = 0.99;
     end
     corrected_dp = calculate_dprime(pHit(inf_idx),pFA(inf_idx));
-    dprime(inf_idx) = abs(corrected_dp);
+    dprime(inf_idx) = corrected_dp;
 end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -80,7 +80,6 @@ Res = struct;
 Res.pHpFA    = [ (1:size(Data,1))'  pHit  pFA ];
 Res.dprime   = [ (1:size(Data,1))'  dprime];
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 
 end
 

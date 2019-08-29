@@ -11,6 +11,12 @@ function [dp,pHit,pFA] = run_classifier_Template(go_mat,ng_mat,Iterations,Templa
 mxGT		=	size(go_mat,1);
 mxNT		=	size(ng_mat,1);
 
+% % % FAKE data
+% % sp = randi(size(ng_mat,2),[1 floor(size(ng_mat,2)/10)]);
+% % go_mat = zeros(size(go_mat));
+% % go_mat(:,sp) = 1;
+% % ng_mat = zeros(size(ng_mat));
+% % ng_mat(:,sp) = 1;
 
 if nargin<4
     GtmplSz      =   10;
@@ -93,8 +99,21 @@ p			=	nanmean(MN,1);
 pp			=	nanmean(NN,1);
 pHit		=	p(1);
 pFA			=	pp(1);
+
+% Correct 1s and 0s
+if pHit==1
+    pHit = 0.99;
+elseif pHit==0
+    pHit = 0.01;
+end
+if pFA==0
+    pFA = 0.01;
+elseif pFA==1
+    pFA = 0.99;
+end
+
 dp			=	calculate_dprime(pHit,pFA);
-dp			=	abs(dp);
+% dp			=	abs(dp);
 
 % If dp=nan and neither raster has 0 spikes; may need more iterations?
 % if isnan(dp) && ~any(sum(sum(ng_mat))==0 || sum(sum(go_mat))==0)

@@ -1,4 +1,4 @@
-function Data = ClassifyMPHcontext_matched(USE_MEASURE)
+function Data = ClassifyMPHcontext_matched(USE_MEASURE,SHUFFLE_SPIKES,ii)
 %
 %  classifyMPHcontext
 %
@@ -17,11 +17,11 @@ end
 %!!!!!!!!!!!!!!!!!!!
 RERUN       =   1;
 %!!!!!!!!!!!!!!!!!!!
-Iterations  =  100;
+Iterations  =  1000;
 %!!!!!!!!!!!!!!!!!!!
 tVarBin     =  31;
 %!!!!!!!!!!!!!!!!!!!
-SHUFFLE_SPIKES = 0;
+% SHUFFLE_SPIKES = 1;
 %!!!!!!!!!!!!!!!!!!!
 T         = 250;
 alfa      = 0.05;
@@ -49,7 +49,7 @@ if ~exist(savedir,'dir')
 end
 
 if SHUFFLE_SPIKES
-    savename = 'ClassData_shuff';
+    savename = ['ClassData_shuff_' num2str(ii)];
 else
     savename = 'ClassData';
 end
@@ -67,7 +67,7 @@ end
 
 %% Step through Units
 
-for iUn = Un1:numel(UnitData)
+for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
     
 %     if UnitData(iUn).kw_p>0.05
 %         continue
@@ -85,16 +85,16 @@ for iUn = Un1:numel(UnitData)
     
     
     % Load data files
-    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1 || ~exist('TrialData','var')
+%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) )) || iUn==1 || ~exist('TrialData','var')
         fprintf('Loading %s sess %s...\n',subject,session)
         clear TrialData Info RateStream SoundStream SpoutStream RateStream
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
-    end
-    if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || ~exist('TrialData','var')
+%     end
+%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || ~exist('TrialData','var')
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
-    end
+%     end
     
     if ~exist('RateStream','var')
         keyboard
