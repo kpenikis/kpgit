@@ -1,12 +1,12 @@
 function [theseTDidx,Ntrials,minDur,allStim] = get_clean_trials(TrialData,artifact_trs,spl,lpn,IncludeITI)
-% [theseTDidx,Ntrials,minDur,allStim] = get_clean_trials(TrialData,artifact_trs,spl,lpn)
+% [theseTDidx,Ntrials,minDur,allStim] = get_clean_trials(TrialData,artifact_trs,spl,lpn,IncludeITI)
 %    shortcut to get some stimulus info from this session
 %
 %  Updated 2019-07, option to exclude ITI trials.
 % 
 
 if nargin<5
-    error
+    error('not enough arguments')
 end
 
 % Find trials that match the current spound parameters (spl, lpn)

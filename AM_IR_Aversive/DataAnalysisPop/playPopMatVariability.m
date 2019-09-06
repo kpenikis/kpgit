@@ -40,7 +40,7 @@ figure; hold off
 
 for ii = 16:-1:12
     
-    FullSpikeMatrix = zeros(2,length(SoundStream));
+    FullSpikeMatrix = zeros(2,length(Stream_FRsmooth));
     N=0;
     for iUn = ii:numel(UnitData)
         

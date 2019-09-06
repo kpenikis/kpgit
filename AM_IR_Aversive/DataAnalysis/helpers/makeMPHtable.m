@@ -22,7 +22,7 @@ end
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
-all_TDidx = get_clean_trials(TrialData,artifact_trs,spl,lpn,1);
+all_TDidx = get_clean_trials(TrialData,artifact_trs,spl,lpn,0);
 allStim = unique(TrialData.trID(all_TDidx));
 
 
@@ -101,13 +101,13 @@ for istim = allStim'
     
     
     % Add trials from ITI blocks
-    if istim==3 || istim==6
-        iti_TDidx = st_TDidx_ALL( TrialData.ITIflag(st_TDidx_ALL) == 1 );
-        skip_it = TrialData.trID(iti_TDidx-1)<6; %only use ITI trials that followed IR trials (thus, skip those after Warns)
-        iti_TDidx(skip_it) = [];
-        st_TDidx = [st_TDidx; iti_TDidx];
-        pst_TDidx = [pst_TDidx; iti_TDidx-1];
-    end
+%     if istim==3 || istim==6
+%         iti_TDidx = st_TDidx_ALL( TrialData.ITIflag(st_TDidx_ALL) == 1 );
+%         skip_it = TrialData.trID(iti_TDidx-1)<6; %only use ITI trials that followed IR trials (thus, skip those after Warns)
+%         iti_TDidx(skip_it) = [];
+%         st_TDidx = [st_TDidx; iti_TDidx];
+%         pst_TDidx = [pst_TDidx; iti_TDidx-1];
+%     end
     
     
     % Skip transitions with too few trials

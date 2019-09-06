@@ -1,30 +1,20 @@
-function Data = ClassifyMPHcontext_matched(USE_MEASURE,SHUFFLE_SPIKES,ii)
+function Data = add_fields_MPdata(USE_MEASURE,SHUFFLE_SPIKES,ii)
 %
-%  classifyMPHcontext
+%  adding fields to original Data struct of output of MP context
+%  classifier: IR stim id, iseq
 %
-%
-%
-%  KP, 2019-04
+%  KP, 2019-09
 %
 
 
-global fn AMrates trMin Iterations
+global fn AMrates 
 
 %!!!!!!!!!!!!!!!!!!!
 if nargin<1
     USE_MEASURE = 'FR'; 'spikes';
 end
 %!!!!!!!!!!!!!!!!!!!
-RERUN       =   0;
-%!!!!!!!!!!!!!!!!!!!
-Iterations  =  1000;
-%!!!!!!!!!!!!!!!!!!!
-tVarBin     =  31;
-%!!!!!!!!!!!!!!!!!!!
-SHUFFLE_SPIKES = 0;
-%!!!!!!!!!!!!!!!!!!!
 T         = 250;
-alfa      = 0.05;
 %!!!!!!!!!!!!!!!!!!!
 
 
@@ -48,30 +38,18 @@ if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-if SHUFFLE_SPIKES
-    savename = ['ClassData_shuff_' num2str(ii)];
-else
-    savename = 'ClassData';
-end
+savename = 'ClassData';
 
-if RERUN
-    Data = struct;
-    Un1  = 1;
-else
-    q = load(fullfile(savedir,savename));
-    Data = q.Data;
-    clear q
-    Un1  = size(Data,1)+1;
-end
+q = load(fullfile(savedir,savename));
+DataO = q.Data;
+clear q
+
+savename = 'ClassData_New';
 
 
 %% Step through Units
 
-for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
-    
-%     if UnitData(iUn).kw_p>0.05
-%         continue
-%     end
+for iUn = 1:size(Data,1) 
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
@@ -90,8 +68,6 @@ for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
         clear TrialData Info RateStream SoundStream SpoutStream RateStream
         filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
         filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
-%     end
-%     if (iUn>1 && ~( strcmp(subject,UnitData(iUn-1).Subject) && strcmp(session,UnitData(iUn-1).Session) && channel==UnitData(iUn-1).Channel ) )  || iUn==1 || ~exist('TrialData','var')
         clear Clusters Spikes
         filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.processed,subject,filename));
     end
@@ -116,11 +92,6 @@ for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
     fprintf(' analyzing ch %i clu %i\n',channel,clu)
     
     
-    %%
-    if SHUFFLE_SPIKES
-        spiketimes = sort(randi( length(SpoutStream), size(spiketimes) ));
-    end
-    
     
     %% Get MPH data
     
@@ -143,20 +114,6 @@ for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
         irate     = find(AMrates==this_rate);
         
         MPH_rate  = MPH(MPH.AMrate==this_rate,:);
-        
-%         % Get Pdc response type                      [ early  late  p_val ]
-%         PRT = 'na';
-%         if ~isempty(UnitData(iUn).DeltaNspk) && ~isempty(UnitData(iUn).DeltaNspk{this_rate==AMrates})
-%             if (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) > UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
-%                 % adapting
-%                 PRT = 'A';
-%             elseif (UnitData(iUn).DeltaNspk{this_rate==AMrates}(3))<alfa && (UnitData(iUn).DeltaNspk{this_rate==AMrates}(1) < UnitData(iUn).DeltaNspk{this_rate==AMrates}(2))
-%                 % facilitating
-%                 PRT = 'F';
-%             else
-%                 PRT = 'NC';
-%             end
-%         end
         
         np=0;
         
@@ -206,14 +163,14 @@ for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
         % Now get matching PERIODIC context data
         
         if isfield(thisMPH,'Context')
-
+            
         % Get Pdc starttimes, but SKIP if too close to trial transition
         PdcMPs = MPH_rate(MPH_rate.ThisStimID<7,:);
         pdcstarttimes = unique(PdcMPs.Starttime)';
         pdcstarttimes(pdcstarttimes<T) = nan;
         
         
-        % Now get a matching Pdc MP for each Irr one
+        % Find a matching Pdc MP for each Irr one
         
         for ip = 1:size(thisMPH,1)
             
@@ -261,17 +218,19 @@ for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
                 thisMPH(ip,1).nTrs         = sum(nTrs);
             end
         end %ip
+        
+        
         end %skip if no IR MPs
         
         
         %% Run classifiers and save data for later
         
-        Data(iUn,irate).AMrate   = this_rate;
+        Data(iUn,irate).AMrate   = DataO(iUn,irate).AMrate;
         Data(iUn,irate).data     = thisMPH;
 %         fprintf('   running classifier: leave one tr out\n')
-%         Data(iUn,irate).Res_L1o  = get_classifier_data( thisMPH, -1 );
+        Data(iUn,irate).Res_L1o  = DataO(iUn,irate).Res_L1o;
         %         fprintf('   running classifier: 10 trial templates\n')
-%         Data(iUn,irate).Res_t10  = []; %get_classifier_data( thisMPH, 10 );
+        Data(iUn,irate).Res_t10  = DataO(iUn,irate).Res_t10; %get_classifier_data( thisMPH, 10 );
         
         fprintf(' \n')
         
@@ -293,18 +252,10 @@ save(fullfile(savedir,savename),'Data','-v7.3')
 return
 
 
-hfcc = figure;
-plot([0 1]',[0 1]','-k')
-hold on
-for irate = 1:5
-    plot(Data(iUn,irate).Res_L1o.dprime(:,2),Data(iUn,irate).Res_t10.dprime(:,2),'ok','LineWidth',2)
-end
-axis square
-
-print_eps_kp(hfcc,fullfile(fn.figs,'MPHclass','CompareClassifiers'))
-
 
 end %function
+
+
 
 
 

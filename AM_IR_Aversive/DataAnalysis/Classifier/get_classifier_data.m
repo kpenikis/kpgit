@@ -1,8 +1,17 @@
 function Res = get_classifier_data(Data,TemplateSize)
-% output = get_classifier_data(raster,TemplateSize)
+% Res = get_classifier_data(Data_struct,TemplateSize)
 %
 %  First organizes all unique stimuli, then steps through to get AM depth
-% detection discriminability data for each
+%  detection discriminability data for each.
+%
+%  TemplateSize
+%    Leave one out: -1 
+%    N trials:       N >= 1
+%    prop. trials:   0 < p < 1
+%
+%  Select a random set of trials on each iteration. 
+% 
+
 
 global Iterations trMin
 
@@ -10,7 +19,6 @@ rng('shuffle')
 
 
 % Preallocate
-
 dprime = nan(size(Data,1),1);
 pHit   = nan(size(Data,1),1);
 pFA    = nan(size(Data,1),1);

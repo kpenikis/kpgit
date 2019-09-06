@@ -11,6 +11,10 @@ function [dp,pHit,pFA] = run_classifier_Template(go_mat,ng_mat,Iterations,Templa
 mxGT		=	size(go_mat,1);
 mxNT		=	size(ng_mat,1);
 
+% Set tr limit
+limT = min(mxGT,mxNT);
+
+
 % % % FAKE data
 % % sp = randi(size(ng_mat,2),[1 floor(size(ng_mat,2)/10)]);
 % % go_mat = zeros(size(go_mat));
@@ -21,44 +25,48 @@ mxNT		=	size(ng_mat,1);
 if nargin<4
     GtmplSz      =   10;
     NtmplSz      =   10;
-elseif TemplateSize<=1 && TemplateSize>0
-    GtmplSz      =   ceil(mxGT * TemplateSize);
-    NtmplSz      =   ceil(mxNT * TemplateSize);
-elseif TemplateSize>5
+    keyboard
+elseif TemplateSize<1 && TemplateSize>0
+    GtmplSz      =   ceil(limT * TemplateSize);
+    NtmplSz      =   ceil(limT * TemplateSize);
+    keyboard
+elseif TemplateSize>=1
     GtmplSz      =   TemplateSize;
     NtmplSz      =   TemplateSize;
+    keyboard
 elseif TemplateSize<0
-    GtmplSz      =   mxGT-1;
-    NtmplSz      =   mxNT-1;
+    GtmplSz      =   limT-1;
+    NtmplSz      =   limT-1;
 else
     warning('detected strange input')
     keyboard
 end
 
+
 for ii=1:Iterations
 	
 	%---Get GO Template---%
     ridx        =   randperm(mxGT);
-    Gidx        =   ridx(1:GtmplSz);
+    Gidx        =   ridx(1:GtmplSz); 
     Gtemplate	=   mean(go_mat(Gidx,:),1);
     	
 	%---NOGO Template---%
     ridx        =   randperm(mxNT);
-    Nidx		=	ridx(1:NtmplSz);
+    Nidx		=	ridx(1:NtmplSz); 
 	Ntemplate	=	mean(ng_mat(Nidx,:),1);
 	
 %     figure;  plot(Gtemplate,'k')
 %     hold on; plot(Ntemplate,'r')
     
-	Gmn			=	nan(mxGT-GtmplSz,2);
-	Nmn			=	nan(mxNT-NtmplSz,2);
+	Gmn			=	nan(limT-GtmplSz,2);
+	Nmn			=	nan(limT-NtmplSz,2);
 	
 	%---Don't grab GO template spike train vector---%
-    gT          =   1:mxGT;
+    gT          =   randperm(mxGT); %1:mxGT;
     gT          =   gT(~ismember(gT,Gidx));
     
 	%---Compare GO Trials with Templates---%
-	for j=1:mxGT-GtmplSz
+	for j=1:limT-GtmplSz
 		testT	=	go_mat(gT(j),:);
 %         figure; plot(testT,'k')
 		
@@ -71,11 +79,11 @@ for ii=1:Iterations
 	Prob		=	nansum(Gmn,1)/size(Gmn,1);
 	
 	%---Don't grab NOGO template spike train---%
-    nT          =   1:mxNT;
+    nT          =   randperm(mxNT); %1:mxNT;
     nT          =   nT(~ismember(nT,Nidx));
     
 	%---Compare NOGO Trials with Templates---%
-	for j=1:mxNT-NtmplSz
+	for j=1:limT-NtmplSz
 		testT	=	ng_mat(nT(j),:);
 % 		figure; plot(testT,'r')
         
