@@ -1,5 +1,6 @@
 
 % Load data files
+try
 if (iUn>1 && ~( strcmp(UnitData(iUn).Subject,UnitData(iUn-1).Subject) && strcmp(UnitData(iUn).Session,UnitData(iUn-1).Session) )) || iUn==1
     fprintf('Loading %s sess %s...\n',UnitData(iUn).Subject,UnitData(iUn).Session)
     clear TrialData Clusters Spikes Info
@@ -15,7 +16,9 @@ elseif exist('Clusters','var')                            % >>> KS <<<
     iClu = find([Clusters.maxChannel] == UnitData(iUn).Channel & [Clusters.clusterID] == UnitData(iUn).Clu);
     spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 - spkshift)');
 end
-
+catch
+    keyboard
+end
 
 Duration = 750;
 Stimuli   = [9 2:6];

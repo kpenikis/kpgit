@@ -4,11 +4,8 @@ function allRastersSession(SUBJECT,SESSION)
 %    Plots a raster and psth for each stimulus, for all SU from the session.
 %    Uses Clusters struct, not UnitData table. 
 %
-%  KP, 2019-01, updated 2019-06
+%  KP, 2019-01, updated 2019-09
 %
-
-keyboard
-% add TTP limit
 
 
 %% Load files
@@ -39,7 +36,7 @@ close all
 
 set(0,'DefaultTextInterpreter','none')
 set(0,'DefaultAxesFontSize',16)
-rasterdotsize  = 10;
+rasterdotsize  = 6;
 psthlinewidth  = 4;
 rng('shuffle')
 
@@ -128,6 +125,8 @@ for ist = Stimuli
             continue
         end
         
+        ttp = min(Ntrials(Ntrials>0));
+        
         
         %% Collect trial indices and timestamps
         
@@ -169,7 +168,8 @@ for ist = Stimuli
         end
         
         
-        kt = 1:length(t2);
+%         kt = 1:length(t2);
+        kt = sort(randperm(length(t2),ttp));
         t2     = t2(kt);
         TDidx  = TDidx(kt);
         
@@ -187,7 +187,7 @@ for ist = Stimuli
         stim   = nan( numel(TDidx), Duration+1 );
         
         % Collect spikes/FR/rms for this stimulus/unit
-        for it = 1:numel(TDidx)
+        for it = 1:numel(t2)
             
             stim(it,:) = ...
                 SoundStream(1, t2(it) : t3(it) )...
@@ -223,7 +223,7 @@ for ist = Stimuli
 %         patch([0 Duration Duration 0], add_y(end) + [0 0 it it],...
 %             patch_colors(1+mod(N_un,2),:),'EdgeColor','none')
 %         plot([raster_x; raster_x], raster_y + add_y(end) + [-0.5; 0.5],...
-%             '-','Color',raster_colors(1+mod(N_un,2),:),'LineWidth',4)
+%             '-','Color',raster_colors(1+mod(N_un,2),:),'LineWidth',2)
         plot(raster_x, raster_y + add_y(end),...
             '.','Color',raster_colors(1+mod(N_un,2),:),'MarkerSize',rasterdotsize)
         set(gca,'Color','none','xtick',[],...
@@ -231,7 +231,7 @@ for ist = Stimuli
         box off
         
         
-        add_y = [add_y add_y(end) + max(kt)];
+        add_y = [add_y add_y(end) + numel(t2)];
         N_un = N_un + 1;
         ytickstr{N_un} = num2str(thisClu.clusterID);
         

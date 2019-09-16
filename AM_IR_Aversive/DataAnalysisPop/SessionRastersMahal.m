@@ -38,7 +38,7 @@ Clusters = Clusters(inspks);
 
 gw_smth = 10;
 Mdist = getPopMahalDistVector(Clusters,TrialData,spkshift,gw_smth);
-q99  = quantile(Mdist,0.99);
+q95  = quantile(Mdist,0.95);
 q100 = max(Mdist);
 
 
@@ -80,7 +80,7 @@ rmsrange = [];
 
 
 %%
-Stimuli = 1:9;
+Stimuli = 3:9;
 for ist = Stimuli
     
     stid = Stimuli(ist);
@@ -102,6 +102,8 @@ for ist = Stimuli
     set(gca,'xlim',[0 figwidthscales(stid)*1000],'xtick',[0 (figwidthscales(stid)*1000)],'ytick',[],...
         'xticklabel',[0 (figwidthscales(stid)*1000)])
     
+    
+    Pop_psth   = nan( 300, figwidthscales(stid)*1000+1 , numel(Clusters));
     
     for iUn = 1:numel(Clusters)
         
@@ -223,6 +225,8 @@ for ist = Stimuli
             stim = zeros(size(stim));
         end
         
+        Pop_psth(1:size(psth,1),:,iUn) = psth;
+        
         
         %% Add to plots
         
@@ -265,6 +269,7 @@ for ist = Stimuli
     stim   = nan( numel(TDidx), Duration+1 );
     psth   = nan( numel(TDidx), Duration+1 );
     mdst   = nan( numel(TDidx), Duration+1 );
+    
     for it = 1:numel(TDidx)
         
         stim(it,:) = ...
@@ -275,9 +280,38 @@ for ist = Stimuli
             Stream_FRsmooth(1, t2(it) : t3(it) );
         
         mdst(it,:) = ...
-            Mdist(1, t2(it) : t3(it) )./q99.*ymaxval;
+            Mdist(1, t2(it) : t3(it) )./q95.*ymaxval;
         
     end %it
+    
+    
+    %% Quick check to compare population activity MEAN vs VARIANCE
+    % cant inspect FF at single trial level without correcting for mean=0
+    % no differences 
+%     
+%     ntr = find(sum(sum(~isnan(Pop_psth),2),3) == size(Pop_psth,2)*size(Pop_psth,3),1,'last');
+%     
+%     Pop_mean_tr = mean(Pop_psth(1:ntr,:,:),3);
+%     Pop_var_tr  = var(Pop_psth(1:ntr,:,:),[],3);
+%     Pop_ff_tr   = var(Pop_psth(1:ntr,:,:),[],3)./mean(Pop_psth(1:ntr,:,:),3);
+%     
+%     r_m = corrcoef(Pop_mean_tr');
+%     r_v = corrcoef(Pop_var_tr');
+%     r_f = corrcoef(Pop_ff_tr');
+%     
+%     figure; 
+%     subplot(3,1,1);
+%     histogram(r_m(:),-0.2:0.05:1.1)
+%     hold on
+%     plot(mean(r_m(:)),0,'og')
+%     subplot(3,1,2)
+%     histogram(r_v,-0.2:0.05:1.1)
+%     hold on
+%     plot(mean(r_v(:)),0,'og')
+%     subplot(3,1,3)
+%     histogram(r_f,-0.2:0.05:1.1)
+%     hold on
+%     plot(mean(r_f(:)),0,'og')
     
     
     %% Add stim, psth, and mahal dynamics to figure

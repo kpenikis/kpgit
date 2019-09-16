@@ -7,12 +7,15 @@ function RCorr_SU
 
 
 close all
-global fn trMin nIterations StimDur exclOnset
+global fn trMin nIterations StimDur exclOnset TempSize
 
-exclOnset   = 0; 
+TempSize    = 10;
+exclOnset   = 1; 
 StimDur     = 1000;
-nIterations = 500;
-inclSilence = 1;
+nIterations = 200;
+inclSilence = 0;
+
+app_str = '_10trTemp';
 
 
 %% Load Unit data files
@@ -28,15 +31,18 @@ spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
 
-%% Preallocate
+% Preallocate
+if inclSilence
+    PCMat = nan(9,9,numel(UnitData));
+else
+    PCMat = nan(8,8,numel(UnitData));
+end
 
-PCMat = nan(9,9,numel(UnitData));
 
 for iUn = 1:numel(UnitData)
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
-    shank       = UnitData(iUn).Shank;
     channel     = UnitData(iUn).Channel(1);
     clu         = UnitData(iUn).Clu(1);
     
@@ -110,9 +116,8 @@ for iUn = 1:numel(UnitData)
         
         st_TDidx_ALL = all_TDidx(TrialData.trID(all_TDidx)==istim);
         
-        %%%  Skip ITI stimuli (?)
-%         ITIflag = 0;%unique(TrialData.ITIflag(st_TDidx_ALL));
-        TDidx = st_TDidx_ALL;%(TrialData.ITIflag(st_TDidx_ALL) == ITIflag(is));
+        %%%  Skip ITI stimuli (should be excluded already)
+        TDidx = st_TDidx_ALL(TrialData.ITIflag(st_TDidx_ALL) == 0);
         
         % Get timestamps of onsets and offsets
         clear t2 t3 t_win
@@ -134,7 +139,7 @@ for iUn = 1:numel(UnitData)
     if inclSilence
         AllStimStarttimes{9} = [TrialData.onset(1):StimDur:(TrialData.offset(1)-StimDur)]';
     else
-        AllStimStarttimes = AllStimStarttimes{1:8};
+        AllStimStarttimes = AllStimStarttimes(1:8);
     end
     
     
@@ -156,7 +161,7 @@ if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-save(fullfile(savedir,'PCMat'),'PCMat','-v7.3')
+save(fullfile(savedir,['PCMat' app_str]),'PCMat','-v7.3')
 
 
 
@@ -179,13 +184,13 @@ shortscreen = [1 scrsz(4)/3 scrsz(3) scrsz(4)/2];
 %~~~~   Distribution of PC vals for each stimulus   ~~~~~
 hf1 = figure;
 set(hf1,'Position',fullscreen,'NextPlot','add')
-plot([0 10],[1 1]./9,'Color',[1 0.5 0.7],'LineWidth',2)
+plot([0 10],[1 1]./size(PCMat,1),'Color',[1 0.5 0.7],'LineWidth',2)
 hold on
 
 PCs=[];
-for stid = 1:9
+for stid = 1:size(PCMat,1)
     
-    for iUn = 1:size(PCMat,3)
+    for iUn = 1:iUn%size(PCMat,3)
         PCs = [PCs; stid PCMat(stid,stid,iUn)];
     end
     
@@ -210,9 +215,9 @@ set(gca,'xtick',1:9,'xticklabel',[Info.stim_ID_key' {'Silence'}],...
 title('RCorr classifier, SU data')
 
 
-% Save figure
+%% Save figure
 
-print_eps_kp(hf1,fullfile(savedir,'PC_perStim'))
+print_eps_kp(hf1,fullfile(savedir,['PC_perStim' app_str]))
 
 
 

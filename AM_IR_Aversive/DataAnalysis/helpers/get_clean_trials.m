@@ -13,16 +13,16 @@ end
 idx_params = find(TrialData.SPL==spl & TrialData.LP==lpn);
 
 
-% if ismember('ITIflag',TrialData.Properties.VariableNames)
+if ismember('ITIflag',TrialData.Properties.VariableNames) %skip for VS sessions
     
     % Find SAFE trials when animal was on spout for at least 90% of the time,
     % and all WARN trials
     idx_spout = find( (TrialData.ITIflag==0 & TrialData.trID>1 & TrialData.Spout>0.9) ...
         |  TrialData.trID==1 ...
         | (TrialData.ITIflag==1 & TrialData.Spout>0.75));
-% else
-%     idx_spout = 1:size(TrialData,1)';
-% end
+else
+    idx_spout = 1:size(TrialData,1)';
+end
 
 % Find trials that are not flagged for artifact (not including Warn trials)
 [~,~,rem] = intersect(find(TrialData.trID==1),artifact_trs);
@@ -30,7 +30,7 @@ artifact_trs(rem) = [];
 idx_clean = 1:size(TrialData,1);
 idx_clean ( artifact_trs ) = [];
 
-if IncludeITI==0
+if ismember('ITIflag',TrialData.Properties.VariableNames) && IncludeITI==0
     idx_ITI = find(TrialData.ITIflag==0);
 else
     idx_ITI = 1:size(TrialData,1);

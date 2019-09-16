@@ -1,6 +1,6 @@
-function [T,ntUsed] = rc_getTemplates(StreamSpikes,GW,AllStimStarttimes,minDur,ntUsed,mspad)
+function [T,ntUsed,TemplTrs] = rc_getTemplates(StreamSpikes,GW,AllStimStarttimes,minDur,ntUsed,mspad)
 
-global exclOnset
+global exclOnset TempSize
 
 % Choose one template trial for each block
 %  T{1,ib} = conv spiketimes
@@ -9,6 +9,8 @@ global exclOnset
 % Add empty row to ntUsed
 it = size(ntUsed,1)+1;
 ntUsed(it,:) = zeros(1,size(ntUsed,2));
+
+TemplTrs = nan(TempSize,numel(AllStimStarttimes));
 
 % Determine the half length (in samples) of the gaussian window. Use later
 % for shifting convolved signal to align with correct time points.
@@ -27,11 +29,11 @@ for is=1:numel(AllStimStarttimes)
     % only check that it hasn't been used if nTemplates is smaller than Ntrials
 %     nt=0;
 %     while ismember(nt,ntUsed(:,is))
-        nt = randi(length(Starttimes),1);
+        nt = randperm(length(Starttimes),TempSize);
 %     end
     % Once have a template trial, add it to matrix to track which used
-    ntUsed(it,is) = nt;
-    
+    ntUsed(it,is)  = nt(1);
+    TemplTrs(:,is) = nt';
     
     % Get trial times
     bkStart_ms = Starttimes(nt);
@@ -41,8 +43,11 @@ for is=1:numel(AllStimStarttimes)
     end
     
     % Get spiketimes during the selected trial, adjusted to start time 0
-    sp01=[]; 
-    sp01 = StreamSpikes((bkStart_ms-mspad):(bkStop_ms+mspad));
+    sp01=nan(TempSize,length((bkStart_ms-mspad):(bkStop_ms+mspad))); 
+    for ii = 1:TempSize
+        sp01(ii,:) = StreamSpikes((bkStart_ms-mspad):(bkStop_ms+mspad));
+    end
+    sp01 = mean(sp01,1);
     
     try
     % Convolve with Gaussian window

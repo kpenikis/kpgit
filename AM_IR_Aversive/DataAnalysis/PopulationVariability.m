@@ -67,6 +67,8 @@ Mus_6=[];  Uns_6=[];
 
 for iUn = 1:numel(UnitData)
     
+    if iUn==86, continue, end
+    
     % Percent of units synchronized by AMrate
     VS_sig(iUn,:) = UnitData(iUn).VSdata_spk(3,2:6)<alfaVS;
     
@@ -296,9 +298,6 @@ for ir=1:5
 end
 
 
-
-
-
 keyboard
 
 
@@ -311,6 +310,90 @@ end
 print_eps_kp(hf1,fullfile(savedir,'VariabilitySummary_rate'))
 print_eps_kp(hf2,fullfile(savedir,'VariabilitySummary_meanphase'))
 print_eps_kp(hf3,fullfile(savedir,'VariabilitySummary_zscMPH'))
+
+
+%~~~~~~~~~~~~
+% Figs 4/5   (separate RS & NS)
+%~~~~~~~~~~~~
+
+iNS = find(UnitInfo.TroughPeak<0.5);
+
+hf5 = figure;
+set(gcf,'Position',fullscreen)
+hold on
+
+for ir=1:5
+    
+    subplot(2,5,ir+[0 5]);
+    
+    zdata = zFR_vec(iNS,1:ceil(1000/AMrates(ir)),ir);
+    
+    imagesc(zdata)
+    caxis([-1 3])
+    cmocean('balance','pivot',0)
+        
+    xlim([0 ceil(1000/AMrates(ir))])
+    ylim([0.5 numel(iNS)+0.5])
+    set(gca,'ytick',[],'xtick',[0 ceil(1000/AMrates(ir))],'tickdir','out','ticklength',[0.02 0.02],'Color','none')
+    if ir==1
+        ylabel('Unit')
+        xlabel('Time in MPH')
+    end
+    title(['NS cells, ' num2str(AMrates(ir)) ' Hz'])
+    box off
+    axis fill
+end
+
+print_eps_kp(hf5,fullfile(savedir,'VariabilitySummary_zscMPH_NS'))
+
+
+%~~~~~~~~~~~~
+%   Fig 6    (avg MPH RS & NS)
+%~~~~~~~~~~~~
+
+iRS = find(UnitInfo.TroughPeak>=0.5);
+iNS = find(UnitInfo.TroughPeak<0.5);
+
+hf6 = figure;
+set(gcf,'Position',fullscreen)
+hold on
+
+for ir=1:5
+    
+    subplot(2,5,ir); hold on
+    zdata = zFR_vec(iRS,1:ceil(1000/AMrates(ir)),ir);
+    plot([0 ceil(1000/AMrates(ir))],[0 0],'k')
+    plot(nanmean(zdata,1),'b','LineWidth',6)
+    
+    xlim([0 ceil(1000/AMrates(ir))])
+    ylim([-1 1])
+    set(gca,'xtick',[0 ceil(1000/AMrates(ir))],'tickdir','out','ticklength',[0.02 0.02],'Color','none')
+    if ir==1
+        ylabel('avg zFR')
+        xlabel('Time')
+    end
+    title(['RS cells, ' num2str(AMrates(ir)) ' Hz'])
+    box off
+    
+    subplot(2,5,ir+5); hold on
+    zdata = zFR_vec(iNS,1:ceil(1000/AMrates(ir)),ir);
+    plot([0 ceil(1000/AMrates(ir))],[0 0],'k')
+    plot(nanmean(zdata,1),'r','LineWidth',6)
+    xlim([0 ceil(1000/AMrates(ir))])
+    ylim([-1 1])
+    set(gca,'xtick',[0 ceil(1000/AMrates(ir))],'tickdir','out','ticklength',[0.02 0.02],'Color','none')
+    if ir==1
+        ylabel('avg zFR')
+        xlabel('Time')
+    end
+    title(['NS cells, ' num2str(AMrates(ir)) ' Hz'])
+    box off
+end
+
+
+print_eps_kp(hf6,fullfile(savedir,'VariabilitySummary_avg-zMPH_RS-NS'))
+
+
 
 
 end

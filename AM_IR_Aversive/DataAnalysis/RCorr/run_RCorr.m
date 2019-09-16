@@ -17,7 +17,7 @@ figsize = [1 scrsz(4)/2 scrsz(3)*2/3 scrsz(4)/2];
 
 
 %~~~~~~~~
-sws = 16; %[1 2 4 8 16 32 64 128 256]; %debug before running with >1 sws
+sws    = 16; %[1 2 4 8 16 32 64 128 256]; %debug before running with >1 sws
 mspad  = 500;
 %~~~~~~~~
 
@@ -49,7 +49,7 @@ for isw = 1:numel(sws)
         
         waitbar(iIt/nIterations,h)
         
-        [T,ntUsed] = rc_getTemplates(StreamSpikes,GW,AllStimStarttimes,StimDur,ntUsed,mspad);
+        [T,ntUsed,TemplTrs] = rc_getTemplates(StreamSpikes,GW,AllStimStarttimes,StimDur,ntUsed,mspad);
         
         stids = find(~cellfun(@isempty,T(1,:)));
         
@@ -69,7 +69,8 @@ for isw = 1:numel(sws)
             for it = 1:numel(Starttimes)
                 
                 % Skip the current template trial
-                if it==ntUsed(end,isTrue)
+%                 if it==ntUsed(end,isTrue)
+                if ismember(it,TemplTrs(:,isTrue))
                     continue
                 end
                 
@@ -131,7 +132,7 @@ for isw = 1:numel(sws)
 end %isw
 close(h)
 
-PCMat = mean(percentCorrectMat(:,:,1,:),4);
+PCMat = mean(percentCorrectMat(:,:,1,:),4,'omitnan');
 
 
 % figure; hold off

@@ -7,6 +7,9 @@ function allRastersSession_VS(SUBJECT,SESSION)
 %  KP, 2019-01, updated 2019-02
 %
 
+keyboard
+%add cluster quality plot
+
 
 %% Load data files
 
@@ -90,7 +93,7 @@ for ist = Stimuli
         'xticklabel',[0 (figwidthscales(stid)*1000)])
     
     theseClus = 1:numel(Clusters); %[13 4 11 12 13 15]
-    for iUn = 11%theseClus 
+    for iUn = theseClus 
         
         % Get spiketimes
         thisClu = Clusters(iUn);
@@ -111,7 +114,7 @@ for ist = Stimuli
         % Get all stimuli presented with these parameters, given a
         % sufficient number of trials without diruptive artifact
         % while the animal was drinking
-        [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP);
+        [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,0);
         
         
         %% Collect trial indices and timestamps
@@ -209,10 +212,12 @@ for ist = Stimuli
     end
     
     savename = sprintf('%s_%s_%s',SUBJECT,SESSION,Info.stim_ID_key{ist});
-%     print_eps_kp(hf(ist),fullfile(savedir,savename))
+    print_eps_kp(hf(ist),fullfile(savedir,savename))
     
     
 end %ist
+
+keyboard
 
 
 % Save data for shihab

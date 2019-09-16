@@ -11,8 +11,7 @@ function ProcessPhys_SynKS( SESS_LABEL )
 %
 %  KP, 2018-08
 %
-
-%%
+%
         %     fs = epData.streams.rVrt.fs (1/5 of phys data)
         % epData.streams.rVrt.data
         %  (1,:) = Instantaneous AM rate  (of the period that is just ending)

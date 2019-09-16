@@ -50,14 +50,14 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = numel(Clusters)
+for iUn = 8:numel(Clusters)
     
     close all
     
     % FOR NOW, ADD PLACEHOLDER FOR ARTIFACT TRIALS FOR SYNAPSE/KS DATA
-    if ~isfield(Info,'artifact')
-        Info.artifact(64).trials = [];
-    end
+%     if ~isfield(Info,'artifact')
+%         Info.artifact(64).trials = [];
+%     end
     if ~isfield(Info,'stim_ID_key')
         Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
     end

@@ -5,11 +5,13 @@ function Res = get_classifier_data(Data,TemplateSize)
 %  detection discriminability data for each.
 %
 %  TemplateSize
-%    Leave one out: -1 
-%    N trials:       N >= 1
-%    prop. trials:   0 < p < 1
+%    Leave one out:          -1 
+%    N trials:               N >= 1
+%    proportion of trials:   0 < p < 1
 %
 %  Select a random set of trials on each iteration. 
+%
+%  Caleld by runPopClass_context & 
 % 
 
 
