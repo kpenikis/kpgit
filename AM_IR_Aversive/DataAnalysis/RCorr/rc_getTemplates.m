@@ -45,7 +45,7 @@ for is=1:numel(AllStimStarttimes)
     % Get spiketimes during the selected trial, adjusted to start time 0
     sp01=nan(TempSize,length((bkStart_ms-mspad):(bkStop_ms+mspad))); 
     for ii = 1:TempSize
-        sp01(ii,:) = StreamSpikes((bkStart_ms-mspad):(bkStop_ms+mspad));
+        sp01(ii,:) = StreamSpikes((bkStart_ms(ii)-mspad):(bkStop_ms(ii)+mspad));
     end
     sp01 = mean(sp01,1);
     
