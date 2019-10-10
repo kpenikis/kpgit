@@ -69,7 +69,7 @@ if nargin>1 && exist('select_session','var')
     end
 else
     
-    SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
+    SpkFns = dir(fullfile(fn.processed,subject,'*VS_Spikes.mat'));
     
     Sessions = [];
     for ifn = 1:numel(SpkFns)

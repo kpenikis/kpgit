@@ -47,6 +47,13 @@ switch REFERENCE
         meanFR = mean(Stream_FRsmooth(ref_samps));
         stdFR = std(Stream_FRsmooth(ref_samps));
         
+%         if stdFR==0
+%             stdFR = 0.1;
+%             if meanFR==0
+%                 meanFR = 0.1;
+%             end
+%         end
+        
         Stream_zscore = (Stream_FRsmooth(msStart:end) - meanFR) / stdFR;
         Stream_zscore = [nan(1,msStart-1) Stream_zscore];
         

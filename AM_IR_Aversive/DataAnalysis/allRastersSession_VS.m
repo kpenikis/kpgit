@@ -7,9 +7,6 @@ function allRastersSession_VS(SUBJECT,SESSION)
 %  KP, 2019-01, updated 2019-02
 %
 
-keyboard
-%add cluster quality plot
-
 
 %% Load data files
 

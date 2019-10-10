@@ -19,19 +19,24 @@ filename = sprintf( '%s_sess-%s_Info'     ,SUBJECT,SESSION); load(fullfile(fn.pr
 filename = sprintf( '%s_sess-%s_TrialData',SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 filename = sprintf( '%s_sess-%s_Spikes'   ,SUBJECT,SESSION); load(fullfile(fn.processed,SUBJECT,filename));
 
-
 %% Prepare figures
 
 set(0,'DefaultTextInterpreter','none')
 set(0,'DefaultAxesFontSize',14)
 rng('shuffle')
 
-scrsz = get(0,'ScreenSize');
+scrsz = get(0,'ScreenSize');   %[left bottom width height]
 halfscreen = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
-largerect = [1 scrsz(4)/2 scrsz(3)/3 scrsz(4)/2];
 
-figwidthscales = [1.5 1 1 1 1 1 1.937 1.937];
+if strcmp(SESSION(end-1:end),'AM')
+    largerect = [1 scrsz(4)/2 scrsz(3)/3 scrsz(4)/2];
+    figwidthscales = [1.5 1 1 1 1 1 1.937 1.937];
+    
+elseif strcmp(SESSION(end-1:end),'VS')
+    largerect = [1 scrsz(4)/2 scrsz(3)/6 scrsz(4)/2];
+    figwidthscales = [1.670  1.406  2.412  5.928  2.554  2.556];
+end
 
 
 % Set colors
@@ -50,18 +55,9 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = 8:numel(Clusters)
+for iUn = 1:numel(Clusters)
     
     close all
-    
-    % FOR NOW, ADD PLACEHOLDER FOR ARTIFACT TRIALS FOR SYNAPSE/KS DATA
-%     if ~isfield(Info,'artifact')
-%         Info.artifact(64).trials = [];
-%     end
-    if ~isfield(Info,'stim_ID_key')
-        Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
-    end
-    
     
     % Get spiketimes
     thisClu = Clusters(iUn); 
@@ -104,7 +100,7 @@ for iUn = 8:numel(Clusters)
         
         %% Collect trial indices and timestamps
         
-        if stid==3 || stid==6
+        if strcmp(SESSION(end-1:end),'AM') && (stid==3 || stid==6)
             TDidx = all_TDidx( TrialData.trID(all_TDidx)==stid & TrialData.ITIflag(all_TDidx)==0 );
             % Find Pdc trials that follow same rate during ITI
 %             TDidx = TDidx(TrialData(TDidx-1,:).trID ~= stid);
@@ -235,7 +231,7 @@ for iUn = 8:numel(Clusters)
     set(gca,'xlim',[1 length(thisClu.maxChTemp)],'xtick',[],'Color','none')
     title(sprintf('%i events | %0.1f Hz',length(spiketimes),meanFR ))
     subplot(1,5,2);
-    histogram([-diff(spiketimes) diff(spiketimes)],[-200:200],'EdgeColor','none','FaceColor','k','FaceAlpha',1);
+    histogram([-diff(spiketimes) diff(spiketimes)],[-199.5:199.5],'EdgeColor','none','FaceColor','k','FaceAlpha',1);
     set(gca,'xlim',[-200 200],'Color','none')
     title(sprintf('%0.1f%% violation rate', 100*sum(diff(spiketimes)<3)/length(spiketimes) ))
     subplot(1,5,3);
@@ -243,11 +239,15 @@ for iUn = 8:numel(Clusters)
     histogram([thisClu.Amplitudes],50,'FaceColor','k','EdgeColor','none')
     end
     title('Distribution of amplitudes')
-    subplot(1,5,[4 5]);
-    plot(spiketimes,[thisClu.Amplitudes],'.k')
-    xlim([0 TrialData.offset(end)])
-    title('Amplitudes across session')
-    xlabel('Time in session')
+    try
+        subplot(1,5,[4 5]);
+        plot(spiketimes,[thisClu.Amplitudes],'.k')
+        xlim([0 TrialData.offset(end)])
+        title('Amplitudes across session')
+        xlabel('Time in session')
+    catch
+        keyboard
+    end
     
     suptitle(sprintf('Shank %i  |  maxCh: %i  |  cluID: %i',thisClu.shank,maxChan,thisClu.clusterID ))
     

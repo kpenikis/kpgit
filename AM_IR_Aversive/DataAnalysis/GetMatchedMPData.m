@@ -13,7 +13,7 @@ if nargin<1
     USE_MEASURE = 'FR'; 'spikes';
 end
 %!!!!!!!!!!!!!!!!!!!
-RERUN       =   0;
+RERUN       =   1;
 %!!!!!!!!!!!!!!!!!!!
 T           =  250;
 
@@ -22,12 +22,13 @@ T           =  250;
 
 fn = set_paths_directories;
 
-q = load(fullfile(fn.processed,'Units'));
+% q = load(fullfile(fn.processed,'Units'));
+q = load(fullfile(fn.processed,'Units_250'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
 %-------
-spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+% spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
 
@@ -37,7 +38,7 @@ savedir = fullfile(fn.processed,'MatchedMPs');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
-savename = 'MatchedMPdata';
+savename = 'MatchedMPdata_250_ownSpkShifts';
 
 if RERUN
     Data = struct;
@@ -79,6 +80,11 @@ for iUn = Un1:numel(UnitData) %round(linspace(Un1+1,numel(UnitData)-1,20))
         keyboard
     end
     
+    % Get this unit's unique integration time value
+    spkshift = UnitData(iUn).IntTime_spk;
+    if spkshift==0
+        continue
+    end
     
     % Get spiketimes and shift based on calculated integration time
     if exist('Spikes','var')                                 % >>> UMS <<<

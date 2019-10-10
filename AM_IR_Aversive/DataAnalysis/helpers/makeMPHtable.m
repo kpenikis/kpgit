@@ -17,7 +17,7 @@ end
 
 
 % 
-[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),round(max(spiketimes)+100),TrialData.onset(1),TrialData.offset(1),20,20,'silence');
+[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),20,20,'silence');
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact

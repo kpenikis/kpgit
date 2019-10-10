@@ -81,6 +81,9 @@ for spl = dBSPL'
         % trials without diruptive artifact while the animal was drinking
         
         [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(channel).trials,spl,lpn,1);
+        if numel(Ntrials)<6
+            continue
+        end
         if minDur~=snipDur
             keyboard
         end

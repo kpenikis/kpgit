@@ -1,4 +1,16 @@
 
+
+if ~exist('Stimuli','var')
+    Stimuli   = [9 2:6];
+end
+if ~exist('Duration','var')
+    Duration = 750;
+end
+if ~exist('skipOnset','var')
+    skipOnset = 250;
+end
+
+
 % Load data files
 try
 if (iUn>1 && ~( strcmp(UnitData(iUn).Subject,UnitData(iUn-1).Subject) && strcmp(UnitData(iUn).Session,UnitData(iUn-1).Session) )) || iUn==1
@@ -9,6 +21,12 @@ if (iUn>1 && ~( strcmp(UnitData(iUn).Subject,UnitData(iUn-1).Subject) && strcmp(
     filename = sprintf( '%s_sess-%s_Spikes'   ,UnitData(iUn).Subject,UnitData(iUn).Session); load(fullfile(fn.processed,UnitData(iUn).Subject,filename));
 end
 
+% if UnitData(iUn).IntTime_spk==0
+%     return
+% else
+%     spkshift = UnitData(iUn).IntTime_spk;
+% end
+
 % Get spiketimes and shift based on calculated integration time
 if exist('Spikes','var')                                 % >>> UMS <<<
     spiketimes = unique(round(Spikes.sorted(UnitData(iUn).Channel).spiketimes(Spikes.sorted(UnitData(iUn).Channel).assigns==UnitData(iUn).Clu') * 1000 - spkshift));  %ms
@@ -17,12 +35,13 @@ elseif exist('Clusters','var')                            % >>> KS <<<
     spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 - spkshift)');
 end
 catch
-    keyboard
+%     keyboard
+    return
 end
 
-Duration = 750;
-Stimuli   = [9 2:6];
-FRtrials  = nan(50,numel(Stimuli));
+FRtrials      = nan(50,numel(Stimuli));
+FFstim        = nan(1,numel(Stimuli));
+StimSpikeData = nan(numel(Stimuli),2);
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
@@ -60,8 +79,7 @@ for ist = 1:numel(Stimuli)
         
         % Get timestamps of onsets and offsets
         clear t2 t3 t_win
-        t2 = TrialData.onset(TDidx) + 250;
-        t3 = TrialData.offset(TDidx);
+        t2 = TrialData.onset(TDidx) + skipOnset;
         
         % Add ITI trials (shortened to match duration)
         if ~isempty(TDidx_iti)
@@ -79,7 +97,12 @@ for ist = 1:numel(Stimuli)
         
     end
     
-    kt     = randperm(length(t2),min(Ntrials(Ntrials>0)));
+    if exist('trMax','var')
+        trLim = min([trMax Ntrials(Ntrials>0)]);
+    else
+        trLim = min(Ntrials(Ntrials>0));
+    end
+    kt     = randperm(length(t2),trLim);
 %     kt     = 1:length(t2);
     t2     = t2(kt);
     TDidx  = TDidx(kt);
@@ -93,15 +116,18 @@ for ist = 1:numel(Stimuli)
     
     %% Get spiking activity for each trial
     
-    FR = nan( numel(TDidx), 1 );
+    nspks = nan( numel(TDidx), 1 );
     for it = 1:numel(TDidx)
+        
         sp=[]; sp = spiketimes( spiketimes>=t2(it) ...
             & spiketimes<=t3(it) ) - t2(it) - 1;
-        FR(it)   = numel(sp)/(Duration/1000);
+        nspks(it)   = numel(sp);
+        
     end %it
     
     % Save  data
-    FRtrials(1:length(FR),ist) = FR;
+    FRtrials(1:length(nspks),ist) = nspks./(Duration/1000);
+    StimSpikeData(ist,:)          = [mean(nspks) var(nspks)];
     
     
 end %ist
@@ -111,9 +137,35 @@ FRtrials = FRtrials(1:numel(kt),:);
 
 
 
-%>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-MPH = makeMPHtable(TrialData,Info.artifact(UnitData(iUn).Channel).trials',UnitData(iUn).spl,UnitData(iUn).lpn,spiketimes,RateStream);
-%>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+%% Also get response from beginning of Warn stimulus
 
+[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),...
+    TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),20,20,'silence');
+
+clear t2 t3 t_win
+WarnDur = 500;
+
+% Get timestamps of onsets and offsets
+TDidx = all_TDidx( TrialData.trID(all_TDidx) == 1 );
+t2 = TrialData.onset(TDidx);
+t3 = t2 + WarnDur-1;
+
+Warn_FR  = nan(numel(TDidx),WarnDur);
+Warn_zFR = nan(numel(TDidx),WarnDur);
+
+for it = 1:numel(TDidx)
+    Warn_FR(it,:)   = Stream_FRsmooth(t2(it):t3(it));
+    Warn_zFR(it,:)  = Stream_zscore(t2(it):t3(it));
+end
+
+
+%%
+if getMPH
+    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    MPH = makeMPHtable(TrialData,Info.artifact(UnitData(iUn).Channel).trials',UnitData(iUn).spl,UnitData(iUn).lpn,spiketimes,RateStream);
+    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+else
+    MPH = [];
+end
 
 

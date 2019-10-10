@@ -62,7 +62,7 @@ for spl = dBSPL'
         
         % Get all stimuli presented with these parameters
         % trials without diruptive artifact while the animal was drinking
-        [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,[],spl,lpn);
+        [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,[],spl,lpn,0);
         
         allStim = unique(TrialData.trID(all_TDidx));
         

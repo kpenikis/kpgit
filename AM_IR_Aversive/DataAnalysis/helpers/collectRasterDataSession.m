@@ -1,4 +1,4 @@
-function [UnitInfo, UnitData, Info, TrialData, Clusters, StimResp, artifactTrs ] = collectRasterDataSession(SUBJECT,SESSION)
+function [UnitInfo, UnitData, Info, TrialData, Clusters, StimResp, artifactTrs, iUnOrig ] = collectRasterDataSession(SUBJECT,SESSION)
 %
 % [UnitInfo, UnitData, Info, TrialData, Clusters, StimResp, artifactTrs ] = collectRasterDataSession(SUBJECT,SESSION)
 %
@@ -39,11 +39,14 @@ filename = sprintf( '%s_sess-%s_Spikes'   ,SUBJECT,SESSION); load(fullfile(fn.pr
 
 
 % Filter Unit files to just this session and sort by baseline FR
-UnitData = UnitData(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT));
-UnitInfo = UnitInfo(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT),:);
+iUnOrig  = find(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT));
+UnitData = UnitData(iUnOrig);
+UnitInfo = UnitInfo(iUnOrig,:);
+
 [~, baseFRrank] = sort([UnitData.BaseFR]);
 UnitInfo = UnitInfo(baseFRrank,:);
 UnitData = UnitData(baseFRrank);
+iUnOrig  = iUnOrig(baseFRrank);
 
 % Get indices of narrow spikes and regular spiking units
 UnitInfo = labelRSNS(UnitInfo);
@@ -69,7 +72,7 @@ end
 
 % Find all stimuli presented with these parameters, given a sufficient minimum
 % number of trials without disruptive artifact, while the animal was drinking
-[all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,artifactTrs,dBSPL,LP);
+[all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,artifactTrs,dBSPL,LP,0);
 
 if sum(Ntrials < minTrs)==1
     keyboard

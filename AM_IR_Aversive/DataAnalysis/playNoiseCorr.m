@@ -252,6 +252,15 @@ for ist = 1:numel(allStim)
 end %ist
 
 
+% col   X  -  Rnoise_stim
+% k  line  -  signal R
+
+% col   .  -  Rnoise_RUN_stim, +/- std
+% m  line  -  Downer paper
+% r  line  -  running corr, whole session
+% b  line  -  Rnoise Silence
+
+
 figure; hold on
 
 % Signal correlation
