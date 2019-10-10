@@ -54,6 +54,10 @@ for ishank = Shanks
         fprintf('   increasing threshold to %0.1f * median RMS\n',mult_factor)
         thresh2 = median(rms_ch) * mult_factor;
         artifact_flag_rms = rms_ch > thresh2;
+        if mult_factor>10
+            beep; beep; beep;
+            keyboard
+        end
     end
     
     

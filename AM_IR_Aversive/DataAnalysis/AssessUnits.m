@@ -25,9 +25,7 @@ global fn AMrates trMin
 fn = set_paths_directories('','',1);
 
 rng('shuffle')
-%!!!!!!!!!!!!!!!!!
-FRcutoff =  0.01;%Hz 
-%!!!!!!!!!!!!!!!!!
+FRcutoff = 0.001;
 
 
 %%  Prepare UnitInfo table and UnitData struct
@@ -61,6 +59,7 @@ else  %to add units to pre-existing struct
     
 end
 
+% used in assess_this_unit
 allUn_FR_raw = nan(0,8);
 allUn_FR_nrm = nan(0,8);
 allUn_GR_raw = nan(0,8);
@@ -73,7 +72,7 @@ if nargin>0 && exist('select_subject','var')
         subjects = {select_subject};
     end
 else
-    subjects = { 'AAB_265058' 'AAB_265054' 'WWWf_253400' 'WWWlf_253395'  }; %'AAB_265059' 
+    subjects = { 'AAB_265054' 'AAB_265058' 'WWWf_253400' 'WWWlf_253395'  }; %'AAB_265059' 
 end
 
 for subj = 1:numel(subjects)
@@ -129,8 +128,7 @@ end
 
 if exist('Spikes','var')                                     % >>> UMS <<<
     
-    load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/SortingConfig/NN_A4x4_16/geometry_NN_A4x4_16.mat','kcoords','chanMap');
-    
+    load(fullfile(fn.sorting,'NN_A4x4_16/geometry_NN_A4x4_16.mat'),'kcoords','chanMap');
     
     Channels = find(Spikes.man_sort==1);
     for ich = 1:length(Channels)
@@ -147,7 +145,9 @@ if exist('Spikes','var')                                     % >>> UMS <<<
                 shank      = kcoords(chanMap==channel);
                 spiketimes = unique(Spikes.sorted(Channels(ich)).spiketimes(Spikes.sorted(Channels(ich)).assigns==clu') * 1000);  %ms
                 
-                if ~isempty(spiketimes) && ~any(strcmp({UnitData.Subject},subject) & strcmp({UnitData.Session},session) & [UnitData.Channel]==channel & [UnitData.Clu]==clu)
+                % Add this unit if it's not already in the table
+                if ~isempty(spiketimes) && ( ~isfield(UnitData,'Subject') || ...
+                        ~any(strcmp({UnitData.Subject},subject) & strcmp({UnitData.Session},session) & [UnitData.Channel]==channel & [UnitData.Clu]==clu) )
                     assess_this_unit
                 end
                 
@@ -172,7 +172,9 @@ elseif exist('Clusters','var')                                % >>> KS <<<
         shank      = Clusters(iclu).shank;
         spiketimes = unique(Clusters(iclu).spikeTimes * 1000)'; %ms
         
-        if ~isempty(spiketimes) && ~any(strcmp({UnitData.Subject},subject) & strcmp({UnitData.Session},session) & [UnitData.Channel]==channel & [UnitData.Clu]==clu)
+        % Add this unit if it's not already in the table
+        if ~isempty(spiketimes) && ( ~isfield(UnitData,'Subject') || ...
+                ~any(strcmp({UnitData.Subject},subject) & strcmp({UnitData.Session},session) & [UnitData.Channel]==channel & [UnitData.Clu]==clu) )
             assess_this_unit
         end
         

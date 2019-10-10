@@ -9,13 +9,12 @@ function RCorr_SU
 close all
 global fn trMin nIterations StimDur exclOnset TempSize
 
-TempSize    = 10;
 exclOnset   = 1; 
 StimDur     = 1000;
 nIterations = 2000;
 inclSilence = 0;
-
-app_str = '_10trTemp_b';
+TempSize    = 10;
+app_str   = '_10trTemp_b';
 
 
 %% Load Unit data files

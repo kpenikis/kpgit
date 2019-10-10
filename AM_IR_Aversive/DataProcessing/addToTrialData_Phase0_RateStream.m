@@ -39,7 +39,6 @@ UnitInfo = q.UnitInfo;
 clear q
 
 SESSIONS = unique(UnitInfo([112 158:end],1:2));
-% ISSUE WITH Jan31-AM  -- CORRUPTED
 
 for ii = 1:size(SESSIONS,1)
     
@@ -63,6 +62,7 @@ for ii = 1:size(SESSIONS,1)
         try
             epData = load(fullfile(fn.raw,subject,['Block-' num2str(Info.block) '.mat']),'-mat');
         catch 
+            beep
             keyboard
         end
     end
@@ -99,6 +99,7 @@ for ii = 1:size(SESSIONS,1)
 %     fprintf('done.\n')
 %     
     catch
+        beep
         keyboard
     end
 end

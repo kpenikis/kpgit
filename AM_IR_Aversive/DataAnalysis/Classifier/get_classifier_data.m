@@ -15,7 +15,7 @@ function Res = get_classifier_data(Data,TemplateSize)
 % 
 
 
-global Iterations trMin
+global Iterations trMin WinLen
 
 rng('shuffle')
 
@@ -45,6 +45,12 @@ for ip = 1:size(Data,1)
     GO     = Data(ip,2);
     rsGO   = GO.raster;
     
+    
+    % Clip raster to window length
+    if ~isstring(WinLen)
+        rsNOGO = rsNOGO(:,1:WinLen);
+        rsGO   = rsGO(:,1:WinLen);
+    end
     
     % Skip if no activity at all
     if sum(sum(rsGO))==0 && sum(sum(rsNOGO))==0
