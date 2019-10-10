@@ -72,7 +72,7 @@ if nargin>0 && exist('select_subject','var')
         subjects = {select_subject};
     end
 else
-    subjects = { 'AAB_265054' 'AAB_265058' 'WWWf_253400' 'WWWlf_253395'  }; %'AAB_265059' 
+    subjects = { 'AAB_265054' 'AAB_265058' 'WWWf_253400' 'WWWlf_253395' 'AAB_265057'  }; % nothing good in AAB_265059 
 end
 
 for subj = 1:numel(subjects)
@@ -90,7 +90,7 @@ if nargin>1 && exist('select_session','var')
     end
 else
     
-    SpkFns = dir(fullfile(fn.processed,subject,'*_Spikes.mat'));
+    SpkFns = dir(fullfile(fn.processed,subject,'*AM_Spikes.mat'));
     
     Sessions = [];
     for ifn = 1:numel(SpkFns)
@@ -206,6 +206,8 @@ end
 
 %% Measure waveform shapes
 
+fprintf('\nMeasuring spike waveform shapes\n')
+
 [UnitInfo,UnitData] = assessWaveformShapes( SAVENAME, [SAVENAME '_WaveformShapes'], 1, UnitInfo, UnitData);
 
 
@@ -217,7 +219,7 @@ end
 %% Save Unit files 
 
 save(fullfile(fn.processed,SAVENAME),'UnitInfo','UnitData','-v7.3');
-
+fprintf('\nUnit data saved.\n')
 
 return
 

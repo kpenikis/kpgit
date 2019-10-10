@@ -1,12 +1,12 @@
 function PCMat = run_RCorr(StreamSpikes,AllStimStarttimes)
 %
-%  called by 
+%  called by RCorr_SU
 %
 %
 %  KP, 2018-03
 %
 
-global nIterations StimDur exclOnset stids
+global nIterations StimDur stids
 
 % Set some plotting params
 set(0,'DefaultTextInterpreter','none')
@@ -77,9 +77,9 @@ for isw = 1:numel(sws)
                 % Get spiketimes
                 bkStart_ms = Starttimes(it);
                 bkStop_ms = bkStart_ms+StimDur-1;
-                if exclOnset
-                    bkStart_ms = bkStart_ms+150;
-                end
+%                 if exclOnset
+%                     bkStart_ms = bkStart_ms+150;
+%                 end
                 
                 % Get spiketimes during the selected trial, adjusted to start time 0
                 sp01=[];
@@ -110,7 +110,8 @@ for isw = 1:numel(sws)
                 
                 % Calculate RCORR values and make block assignment
                 
-                [blockAssignment,maxR] = rc_calcR(T,S);
+%                 [blockAssignment,maxR] = rc_calcR(T,S);
+                [blockAssignment,maxR] = rc_calcEucDist(T,S); %now minE
                 count = count+1;
                 finalMat(count,:) = [it blockAssignment maxR];
                 

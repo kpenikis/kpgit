@@ -1,6 +1,6 @@
 function [T,ntUsed,TemplTrs] = rc_getTemplates(StreamSpikes,GW,AllStimStarttimes,minDur,ntUsed,mspad)
 
-global exclOnset TempSize
+global TempSize
 
 % Choose one template trial for each block
 %  T{1,ib} = conv spiketimes
@@ -38,9 +38,9 @@ for is=1:numel(AllStimStarttimes)
     % Get trial times
     bkStart_ms = Starttimes(nt);
     bkStop_ms = bkStart_ms+minDur-1;
-    if exclOnset
-        bkStart_ms = bkStart_ms+150;
-    end
+%     if exclOnset
+%         bkStart_ms = bkStart_ms+150;
+%     end
     
     % Get spiketimes during the selected trial, adjusted to start time 0
     sp01=nan(TempSize,length((bkStart_ms-mspad):(bkStop_ms+mspad))); 
