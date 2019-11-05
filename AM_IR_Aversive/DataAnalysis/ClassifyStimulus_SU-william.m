@@ -12,12 +12,12 @@ function ClassifyStimulus_SU
 close all
 global fn trMin nIterations StimDur exclOnset TempSize
 
-exclOnset   = 150; 
-StimDur     = 1000;
+exclOnset   = 0; 
+StimDur     = 500;
 if exclOnset>0
     StimDur = StimDur-exclOnset;
 end
-nIterations = 2000;
+nIterations = 1000;
 inclSilence = 0;
 TempSize    = 15;
 app_str   = '_15trTemp';
@@ -44,7 +44,7 @@ else
 end
 
 
-for iUn = 1:numel(UnitData)
+for iUn = 236:numel(UnitData)
     
     subject     = UnitData(iUn).Subject;
     session     = UnitData(iUn).Session;
@@ -106,12 +106,16 @@ for iUn = 1:numel(UnitData)
     
     allStim = unique(TrialData.trID(all_TDidx));
     
-    if sum(Ntrials < trMin)==1
-        all_TDidx(TrialData.trID(all_TDidx)==allStim(Ntrials<trMin))  = [];
-        allStim(Ntrials<trMin)  = [];
-        Ntrials(Ntrials<trMin) = [];
-    elseif  sum(Ntrials < trMin)>1
-        keyboard
+    % In the future, could add iti trials if 4 or 32 hz are the ones with
+    % too few, but currently that's not the case.
+    if sum(Ntrials < TempSize+1)==1
+        all_TDidx(TrialData.trID(all_TDidx)==allStim(Ntrials<TempSize+1))  = [];
+        allStim(Ntrials<TempSize+1)  = [];
+        Ntrials(Ntrials<TempSize+1) = [];
+    elseif  sum(Ntrials < TempSize+1)>1
+        PCMat(:,:,iUn) = nan(size(PCMat(:,:,iUn)));
+        fprintf('   not enough trials, skipping')
+        continue %skip to next unit
     end
     
     
