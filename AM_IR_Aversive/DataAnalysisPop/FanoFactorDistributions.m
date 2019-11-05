@@ -9,9 +9,9 @@ global AMrates
 % alfaVS    = 0.001;
 % trMax     = 20;
 
-Stimuli   = 1:9;
-Duration  = 500;
-skipOnset = 100;
+Stimuli   = 1:8;
+Duration  = 1000;
+skipOnset = 0;
 getMPH    = 0;
         
 % Load Unit data files
@@ -55,19 +55,25 @@ for iUn = 1:numel(UnitData)
     
 end %iUn
 
+% Save FF data
+save(fullfile(fn.figs,'FF',sprintf('FF_Stim%i-%i_%i-%ims',min(Stimuli),max(Stimuli),skipOnset,skipOnset+Duration)),'FanoFs','-v7.3')
+
+
 if plot_flag
     % Finish n spikes plot
     axis square
-    plot(10.^[-2 2],10.^[-2 2],'k')
-    ylim(10.^[-2 2])
-    xlim(10.^[-2 2])
-    title(sprintf('Warn: %i-%i ms',skipOnset,skipOnset+Duration))
+    plot(10.^[-2 3],10.^[-2 3],'--k')
+    ylim(10.^[-2 3])
+    xlim(10.^[-2 3])
+    title(sprintf('Stim %i-%i: %i-%i ms',min(Stimuli),max(Stimuli),skipOnset,skipOnset+Duration))
     xlabel('Mean n spikes')
     ylabel('Var n spikes')
-    set(gca,'xscale','log','yscale','log')
-    set(gca,'tickdir','out','ticklength',[0.02 0.02],'Color','none')
+    set(gca,'xscale','log','yscale','log',...
+        'xtick',[0.01 0.1 1 10 100 1000],'xticklabel',[0.01 0.1 1 10 100 1000],...
+        'ytick',[0.01 0.1 1 10 100 1000],'yticklabel',[0.01 0.1 1 10 100 1000])
+    set(gca,'tickdir','out','ticklength',[0.04 0.04],'Color','none')
     
-    print_eps_kp(hfsp,fullfile(fn.figs,'FF',sprintf('Nspk_Warn_%i-%ims',skipOnset,skipOnset+Duration)))
+    print_eps_kp(hfsp,fullfile(fn.figs,'FF',sprintf('Nspk_Stim%i-%i_%i-%ims',min(Stimuli),max(Stimuli),skipOnset,skipOnset+Duration)))
 end
 
 
@@ -75,9 +81,14 @@ end
 
 if plot_flag
     
-    FanoFs        = [ones(size(FanoFs,1),1) FanoFs];
-    FanoFs(:,1)   = FanoFs(:,end);
-    FanoFs(:,end) = [];
+    if size(FanoFs,2)==9
+        FanoFs        = [ones(size(FanoFs,1),1) FanoFs];
+        FanoFs(:,1)   = FanoFs(:,end);
+        FanoFs(:,end) = [];
+        xaxislabels = ['Spont.' Info.stim_ID_key' ];
+    else 
+        xaxislabels = Info.stim_ID_key(Stimuli)';
+    end
     
     hf1 = figure;
     set(gcf,'Position',fullscreen)
@@ -100,9 +111,9 @@ if plot_flag
     end
     
     plotSpread(FanoFs,'showMM',0,'distributionColors','k')
-    plot(1:size(FanoFs,2),FFmeds,'.-','MarkerSize',40,'LineWidth',2,'Color',[0.9 0.8 0])
+    plot(1:size(FanoFs,2),FFmeds,'.-','MarkerSize',40,'LineWidth',2,'Color',[1 0.8 0])
     
-    set(gca,'xtick',1:9,'xticklabel',['Spont.' Info.stim_ID_key' ])
+    set(gca,'xtick',1:numel(xaxislabels),'xticklabel',xaxislabels)
     set(gca,'tickdir','out','ticklength',[0.02 0.02],'Color','none')
     xlim([0 10])
     ylim([0 10])
@@ -113,7 +124,7 @@ if plot_flag
     axis fill
     box on
     
-    print_eps_kp(hf1,fullfile(fn.figs,'FF',sprintf('FF_%i-%ims',skipOnset,skipOnset+Duration)))
+    print_eps_kp(hf1,fullfile(fn.figs,'FF',sprintf('FF_Stim%i-%i_%i-%ims',min(Stimuli),max(Stimuli),skipOnset,skipOnset+Duration)))
     
 end
 

@@ -1,5 +1,5 @@
 function [blockAssignment,maxR] = rc_calcR(T,S)
-% [blockAssignment,maxR] = calcR(T,S)
+% [blockAssignment,maxR] = rc_calcR(T,S)
 %   inputs
 %   T: cell array of template trial data
 %          (1,nblock) convolved spiketrain

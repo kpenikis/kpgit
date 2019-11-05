@@ -2,8 +2,7 @@ function PopMPH
 % 
 % PopMPH
 %
-% 
-%  Intended to help categorize response types.
+%  View MPHs of all cells in population.
 % 
 
 global AMrates useFR Boundaries
@@ -15,7 +14,7 @@ Rotate   =    1;
 %~~~~~~~~~~~~~~~~~~~~~
 clipZ    =    0;
 %~~~~~~~~~~~~~~~~~~~~~
-zMPH     =    1;
+plMPH    =    1;
 spks     =    0;
 %~~~~~~~~~~~~~~~~~~~~~
 
@@ -51,7 +50,8 @@ switch useFR
         Boundaries  = [-1 0 0.25 0.5 1 2];
     case 'log'
         ThisData    = FR_vec;
-        Boundaries  = [-1 round(10.^[0.5 1 1.25 1.5 1.75]) ];
+        Boundaries  = [-1 round(10.^[0.5 1 1.25 1.5]) ];
+%         Boundaries  = [-1 round(10.^[0.5]) ];
 end
 
 
@@ -78,24 +78,25 @@ colors = [ colors; ...
 %% Filter data to just one session
 
 % keyboard
-SUBJ = 'AAB_265054';
-SESS = 'Apr02-AM';
-
-theseUnits = find(strcmp(UnitInfo.Subject,SUBJ) & strcmp(UnitInfo.Session,SESS));
-
-ThisData = ThisData(theseUnits,:,:);
-FR_Warn  = FR_Warn(theseUnits,:);
+% SUBJ = 'AAB_265054';
+% SESS = 'Apr02-AM';
+% 
+% theseUnits = find(strcmp(UnitInfo.Subject,SUBJ) & strcmp(UnitInfo.Session,SESS));
+% 
+% ThisData = ThisData(theseUnits,:,:);
+% FR_Warn  = FR_Warn(theseUnits,:);
 
 
 %%
 
-if zMPH
+if plMPH
     
     hf1 = figure;
     set(gcf,'Position',fullscreen)
     hold on
     
-    keyboard %check how you want to sort
+%     keyboard %check how you want to sort
+%     [i_sorted,sortdata] = sort_thLat(ThisData(:,1:250,2));
     
     % Warn
     subplot(1,6,1);
@@ -108,7 +109,7 @@ if zMPH
     end
     
     % Save figure
-    savename = sprintf('SessMPH_Apr02_%s_Rot%i',useFR,Rotate);
+    savename = sprintf('PopMPH_%s_Rot%i_oneFR',useFR,Rotate);
     % savename = sprintf('PopMPH_%s_Rot%i',useFR,Rotate);
     if clipZ>0
         savename = [savename '-clipZ' num2str(10*clipZ)];
@@ -118,7 +119,7 @@ if zMPH
     set(gcf,'PaperOrientation','landscape')
     print(gcf,'-dpdf','-r500','-fillpage', fullfile(savedir,savename))
     
-end %if zMPH
+end %if plMPH
 
 
 
@@ -126,8 +127,6 @@ end %if zMPH
 %%
 
 if spks
-  
-% Boundaries = [-1 round(10.^[0.5 1 1.25 1.5 1.75]) ];
 
 hf4 = figure;
 set(gcf,'Position',fullscreen)
@@ -220,6 +219,93 @@ for itr = 1:size(sp_trs,4)
 end %itr
 
 end %if spks
+
+
+
+%% plot 6 trials of one rate
+
+keyboard
+
+convwin     = 10;
+convwin     = ones(1,convwin).*(1/convwin);
+
+hf4 = figure;
+set(gcf,'Position',fullscreen)
+
+ir=2;
+
+for itr = 1:6
+    
+    data   = ThisData(:,1:ceil(1000/AMrates(ir)),ir);
+    spdata = sp_trs(:,1:ceil(1000/AMrates(ir)),ir,itr);
+    
+    % Sort cells by Latency
+    [i_sorted,sortdata] = sort_thLat(data);
+    
+    
+    % ROTATE phase of MPH
+    if Rotate
+        midpoint  = floor(size(data,2)/2);
+        plotdata  = [data(i_sorted,midpoint+1:end)   data(i_sorted,1:midpoint)   data(i_sorted,midpoint+1:end)   data(i_sorted,1:midpoint)];
+        plotspks  = [spdata(i_sorted,midpoint+1:end) spdata(i_sorted,1:midpoint) spdata(i_sorted,midpoint+1:end) spdata(i_sorted,1:midpoint)];
+        xtickset  = [0:midpoint:size(plotdata,2)];
+        xticklabs = {'-pi' '0' 'pi' '2*pi' 'pi'};
+    else
+        plotdata  = [data(i_sorted,:)   data(i_sorted,:)];
+        plotspks  = [spdata(i_sorted,:) spdata(i_sorted,:)];
+        xtickset  = [0 ceil(1000/AMrates(ir)) 2*ceil(1000/AMrates(ir))];
+        xticklabs = [0 ceil(1000/AMrates(ir)) 2*ceil(1000/AMrates(ir))];
+    end
+    
+    ndp = sum(sum(isnan(plotdata),2)==0);
+    
+    
+    % Get corresponding spike data
+    
+    % Now plot raster
+    subplot(4,6,itr);
+    
+    % psth
+    plot(sum(plotspks(1:ndp,:),1),'k')
+    smFR = smoothFR(sum(plotspks(1:ndp,:),1)./ndp,20);
+    hold on
+    plot(smFR,'b')
+    foo = conv(sum(plotspks(1:ndp,:),1),convwin);
+    ps_conv = foo(floor(numel(convwin)/2)+(0:size(plotspks,2)-1));
+    plot(midpoint+(0:ceil(1000/AMrates(ir))),ps_conv(midpoint+(0:ceil(1000/AMrates(ir)))),'m','LineWidth',2)
+    
+    % raster
+%     [x,y] = find(plotspks(1:ndp,:)');
+%     plot([x x]',y'+[-0.5; 0.5],'-k')
+%     set(gca,'ydir','reverse')
+    
+    % Add markers to label NS cells
+    %         flagNS = UnitInfo.TroughPeak(i_sorted(1:ndp))<0.5;
+    %         hold on
+    %         plot(0,find(flagNS),'.','Color',[0.01 0.57 0.44])
+    %         plot(2*ceil(1000/AMrates(ir)),find(flagNS),'.','Color',[0.01 0.57 0.44])
+    
+    % Finish plot
+    xlim([0 2*ceil(1000/AMrates(ir))])
+%     ylim([0.5 ndp+0.5])
+    set(gca,'tickdir','out','ticklength',[0.02 0.02],'Color','none')
+    set(gca,'xtick',xtickset,'xticklabel',xticklabs)
+    ylim([0 10])
+%     [r,~]=find(cumsum(sortdata(i_sorted(1:ndp),1)==Boundaries)==1);
+%     set(gca,'ytick',r,'yticklabel',Boundaries)
+    
+    title([num2str(AMrates(ir)) ' Hz'])
+    box off
+    axis fill
+    
+    set(gcf,'PaperOrientation','landscape')
+    
+    
+end %itr
+
+savename = sprintf('PopMPH_%sPSTH_%ihz_Tr-1-%i',useFR,AMrates(ir),itr);
+print_eps_kp(gcf,fullfile(savedir,'Trials',savename))
+print(gcf,'-dpdf','-r500','-fillpage', fullfile(savedir,'Trials',savename) )
 
 
 end

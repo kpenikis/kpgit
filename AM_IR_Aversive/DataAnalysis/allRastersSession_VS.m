@@ -39,7 +39,7 @@ UnitInfo = labelRSNS(UnitInfo);
 close all
 
 set(0,'DefaultTextInterpreter','none')
-set(0,'DefaultAxesFontSize',20)
+set(0,'DefaultAxesFontSize',14)
 rng('shuffle')
 
 scrsz = get(0,'ScreenSize');  %[left bottom width height]

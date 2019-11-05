@@ -6,7 +6,7 @@ function PCMat = run_RCorr(StreamSpikes,AllStimStarttimes)
 %  KP, 2018-03
 %
 
-global nIterations StimDur stids
+global nIterations StimDur stids 
 
 % Set some plotting params
 set(0,'DefaultTextInterpreter','none')
@@ -45,11 +45,24 @@ for isw = 1:numel(sws)
     
     h = waitbar(0,sprintf('cycling through templates for GW=%i...',sw));
     
+    figure; hold on
     for iIt = 1:nIterations
         
         waitbar(iIt/nIterations,h)
         
         [T,ntUsed,TemplTrs] = rc_getTemplates(StreamSpikes,GW,AllStimStarttimes,StimDur,ntUsed,mspad);
+        
+        % Plot templates (first add to global vars: savedir TempSize iUn)
+%         plot(T{1,2})
+%     end
+%     set(gca,'Color','none','xtick',[],'ytick',[])
+%     box off
+%     ylim([0 0.1])
+%     figstr = sprintf('templ_%i_%i_2hz',iUn,TempSize);
+%     title(figstr)
+%     print_eps_kp(gcf,fullfile(savedir,'exTemplates',figstr))
+    
+%     for iIt = 1:nIterations
         
         stids = find(~cellfun(@isempty,T(1,:)));
         

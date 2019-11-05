@@ -1,9 +1,6 @@
 function CatCellsMPH
 % 
-% PopMPH
-%
-% 
-%  Intended to help categorize response types.
+%  Categorize response types.
 % 
 
 global AMrates 

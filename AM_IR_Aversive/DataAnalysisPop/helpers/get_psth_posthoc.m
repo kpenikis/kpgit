@@ -1,4 +1,4 @@
-
+% called by PopPSTHs
 
 if ~exist('Stimuli','var')
     Stimuli   = [9 2:6];
@@ -8,6 +8,9 @@ if ~exist('Duration','var')
 end
 if ~exist('skipOnset','var')
     skipOnset = 250;
+end
+if ~exist('smoothBin','var')
+    smoothBin = 10;
 end
 
 
@@ -40,16 +43,21 @@ catch
 end
 
 
+% Smooth FR signal
+[Stream_FRsmooth,~,Stream_spikes,~] = convertSpiketimesToFR(spiketimes,...
+    length(SpoutStream),TrialData.onset(1),TrialData.offset(1),smoothBin,smoothBin,'silence');
 
-FRtrials      = nan(50,numel(Stimuli));
-FFstim        = nan(1,numel(Stimuli));
-StimSpikeData = nan(numel(Stimuli),2);
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
 [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(UnitData(iUn).Channel).trials,UnitData(iUn).spl,UnitData(iUn).lpn,1);
 allStim = unique(TrialData.trID(all_TDidx))';
+
+
+% Preallocate output
+Unit_STIM  = nan(numel(Stimuli),Duration);
+Unit_PSTHs = nan(numel(Stimuli),Duration);
 
 for ist = 1:numel(Stimuli)
     
@@ -118,58 +126,20 @@ for ist = 1:numel(Stimuli)
     
     %% Get spiking activity for each trial
     
-    nspks = nan( numel(TDidx), 1 );
+    this_stim = nan(numel(TDidx),Duration);
+    this_psth = nan(numel(TDidx),Duration);
+    
     for it = 1:numel(TDidx)
         
-        sp=[]; sp = spiketimes( spiketimes>=t2(it) ...
-            & spiketimes<=t3(it) ) - t2(it) - 1;
-        nspks(it)   = numel(sp);
+        this_stim(it,:)   = SoundStream(t2(it)+1:t3(it));
+        this_psth(it,:)   = Stream_FRsmooth(t2(it)+1:t3(it));
         
     end %it
     
     % Save  data
-    FRtrials(1:length(nspks),ist) = nspks./(Duration/1000);
-    StimSpikeData(ist,:)          = [mean(nspks) var(nspks)];
+    Unit_STIM(ist,:)  = mean(this_stim,1,'omitnan');
+    Unit_PSTHs(ist,:) = mean(this_psth,1,'omitnan');
     
     
 end %ist
-
-if ~isempty(FRtrials)
-    % Trim to min N trials
-    FRtrials = FRtrials(1:numel(kt),:);
-end
-
-
-
-%% Also get response from beginning of Warn stimulus
-
-[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),...
-    TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),20,20,'silence');
-
-clear t2 t3 t_win
-WarnDur = 500;
-
-% Get timestamps of onsets and offsets
-TDidx = all_TDidx( TrialData.trID(all_TDidx) == 1 );
-t2 = TrialData.onset(TDidx);
-t3 = t2 + WarnDur-1;
-
-Warn_FR  = nan(numel(TDidx),WarnDur);
-Warn_zFR = nan(numel(TDidx),WarnDur);
-
-for it = 1:numel(TDidx)
-    Warn_FR(it,:)   = Stream_FRsmooth(t2(it):t3(it));
-    Warn_zFR(it,:)  = Stream_zscore(t2(it):t3(it));
-end
-
-
-%%
-if getMPH
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    MPH = makeMPHtable(TrialData,Info.artifact(UnitData(iUn).Channel).trials',UnitData(iUn).spl,UnitData(iUn).lpn,spiketimes,RateStream);
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-else
-    MPH = [];
-end
-
 

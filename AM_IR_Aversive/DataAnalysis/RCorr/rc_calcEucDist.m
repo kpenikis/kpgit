@@ -1,5 +1,5 @@
-function [blockAssignment,maxR] = rc_calcEucDist(T,S)
-% [blockAssignment,maxR] = calcR(T,S)
+function [blockAssignment,minE] = rc_calcEucDist(T,S)
+% [blockAssignment,maxR] = rc_calcR(T,S)
 %   inputs
 %   T: cell array of template trial data
 %          (1,nblock) convolved spiketrain
@@ -30,22 +30,24 @@ for j = 1:size(T,2)
     % R is simply the inner dot product of S and T, divided by the
     %product of their vector norms
     if isempty(T{1,j})
-        R = nan;
+        R  = nan;
+        Ed = nan;
     else
-        R  = (S*T{1,j}')/(norm(S)*norm(T{1,j}));
+%         R  = (S*T{1,j}')/(norm(S)*norm(T{1,j}));
         Ed = pdist2(S,T{1,j});
+        Ed = median(median(Ed,'omitnan'),'omitnan');
     end
     
     %Identical calculation, but slower.
     %R = dot(S,T{1,j})/(norm(S)*norm(T{1,j}));
     
-    Rmat(j,:) = [R,j];
+%     Rmat(j,:) = [R,j];
     Emat(j,:) = [Ed,j];
 end
 
 
 %Assign spike train to template level that gave highest R
-[maxR,iR] = max(Rmat(:,1));
+% [maxR,iR] = max(Rmat(:,1));
 [minE,iE] = min(Emat(:,1));
 
 % plot(iR,iE,'ok')

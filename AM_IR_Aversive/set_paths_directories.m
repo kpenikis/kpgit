@@ -42,6 +42,7 @@ else
 %         basefolder = '/Users/kpenikis/Documents/SanesLab/LocalData/AM_IR_aversive';        
     end
     addpath(genpath('/Users/kpenikis/Documents/MATLAB/Colormaps'))
+    addpath(genpath('/Users/kpenikis/Documents/MATLAB/CircStat2012a'))
 end
 
 % First, check if is in the current path (to avoid warning message)

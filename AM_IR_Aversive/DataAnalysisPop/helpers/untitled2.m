@@ -1,4 +1,4 @@
-
+% called by PopPSTHs
 
 if ~exist('Stimuli','var')
     Stimuli   = [9 2:6];
@@ -133,43 +133,4 @@ for ist = 1:numel(Stimuli)
     
     
 end %ist
-
-if ~isempty(FRtrials)
-    % Trim to min N trials
-    FRtrials = FRtrials(1:numel(kt),:);
-end
-
-
-
-%% Also get response from beginning of Warn stimulus
-
-[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),...
-    TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),20,20,'silence');
-
-clear t2 t3 t_win
-WarnDur = 500;
-
-% Get timestamps of onsets and offsets
-TDidx = all_TDidx( TrialData.trID(all_TDidx) == 1 );
-t2 = TrialData.onset(TDidx);
-t3 = t2 + WarnDur-1;
-
-Warn_FR  = nan(numel(TDidx),WarnDur);
-Warn_zFR = nan(numel(TDidx),WarnDur);
-
-for it = 1:numel(TDidx)
-    Warn_FR(it,:)   = Stream_FRsmooth(t2(it):t3(it));
-    Warn_zFR(it,:)  = Stream_zscore(t2(it):t3(it));
-end
-
-
-%%
-if getMPH
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    MPH = makeMPHtable(TrialData,Info.artifact(UnitData(iUn).Channel).trials',UnitData(iUn).spl,UnitData(iUn).lpn,spiketimes,RateStream);
-    %>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>|||<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-else
-    MPH = [];
-end
-
 
