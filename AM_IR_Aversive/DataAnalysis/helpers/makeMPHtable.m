@@ -8,16 +8,19 @@ function MPH = makeMPHtable(TrialData,artifact_trs,spl,lpn,spiketimes,RateStream
 %   KP, 2019-04
 % 
 
-global AMrates rateVec_AC rateVec_DB trMin 
+global AMrates rateVec_AC rateVec_DB trMin binsmth
 
 
 if nargin<7
     OnlyGoodTransitions=0;
 end
+if ~exist('binsmth','var')
+    binsmth = 20;
+end
 
 
 % 
-[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),20,20,'silence');
+[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),[],binsmth,'silence');
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
@@ -167,15 +170,16 @@ for istim = allStim'
         % Get TrialData indices for this transition 
         trans_TDidx = find(TrialData(pst_TDidx,:).trID==pstid);
         
+        
         % Collect spikes/FR/rms for this transition
         for ipd = 1:numel(allPds)
             
             kt=0;
             for it = trans_TDidx'
                 
+                % Get timestamps of each new period
                 newPd_ts  =  t2(it)+[0 cumsum(1000./allPds)];
                 if numel(newPd_ts)~=(numel(allPds)+1), keyboard, end
-                
                 
                 % skip if this period extends beyond recording duration
                 if ceil(newPd_ts(ipd))+ceil(1000/allPds(ipd))-1 > length(Stream_FRsmooth)
@@ -223,13 +227,14 @@ for istim = allStim'
                 MPH_temp(ipd).raster(kt,ceil(sp))  = 1;
                 MPH_temp(ipd).x                    = [MPH_temp(ipd).x sp];
                 MPH_temp(ipd).y                    = [MPH_temp(ipd).y kt.*ones(size(sp))];
-                MPH_temp(ipd).FRsmooth(kt,:)       = Stream_FRsmooth(ceil(newPd_ts(ipd))+[1:ceil(1000/allPds(ipd))]-1);
-                MPH_temp(ipd).zFR(kt,:)            = Stream_zscore(ceil(newPd_ts(ipd))+[1:ceil(1000/allPds(ipd))]-1);
+                MPH_temp(ipd).FRsmooth(kt,:)       = Stream_FRsmooth(ceil(newPd_ts(ipd)) + (0:(ceil(1000/allPds(ipd))-1)));
+                MPH_temp(ipd).zFR(kt,:)            = Stream_zscore( ceil(newPd_ts(ipd)) + (0:(ceil(1000/allPds(ipd))-1)));
                 
             end %it
             
             MPH_temp(ipd).raster((kt+1):end,:)   = [];
             MPH_temp(ipd).FRsmooth((kt+1):end,:) = [];
+            
             
             if size(MPH_temp(ipd).raster,1) ~= size(MPH_temp(ipd).Prev500msFR,2)
                 keyboard
@@ -257,9 +262,9 @@ for istim = allStim'
                 mode(round(MPH_temp(ipd).pdtime))...
                 {MPH_temp(ipd).Prev500msFR} ...
                 {MPH_temp(ipd).Prev100msFR} ...
-                MPH_temp(ipd).PrevAMrt500 ...
-                MPH_temp(ipd).PrevAMrt100 ...
-                {MPH_temp(ipd).raster} {MPH_temp(ipd).x} {MPH_temp(ipd).y}...
+                 MPH_temp(ipd).PrevAMrt500 ...
+                 MPH_temp(ipd).PrevAMrt100 ...
+                {MPH_temp(ipd).raster}   {MPH_temp(ipd).x}   {MPH_temp(ipd).y}...
                 {MPH_temp(ipd).FRsmooth}  {MPH_temp(ipd).zFR}  spl  lpn };
             MPH = [MPH; MPH_addrow];
             

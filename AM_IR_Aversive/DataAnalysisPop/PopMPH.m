@@ -29,13 +29,14 @@ UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
 
-% Load PopMPH data
+% Load PopMPH data 
+%  (created in savePopMPHdata)
 savedir = fullfile(fn.figs,'PopMPH');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-load(fullfile(savedir,'MPHdata.mat'))
+load(fullfile(savedir,'MPHdata_noshift.mat'))
 
 if size(UnitInfo,1) ~= size(FR_vec,1)
     keyboard
@@ -104,12 +105,18 @@ if plMPH
     
     % Each AM rate
     for ir=1:5
+        
+%         data = ThisData(:,1:ceil(1000/AMrates(ir)),ir);
+%         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+%         % Sort cells
+%         [i_sorted,sortdata] = sort_thLat(data);
+
         subplot(1,6,ir+1);
-        plotThisMPH
+        plotThisMPH  %_2pd
     end
     
     % Save figure
-    savename = sprintf('PopMPH_%s_Rot%i_oneFR',useFR,Rotate);
+    savename = sprintf('PopMPH_%s_noshift',useFR);
     % savename = sprintf('PopMPH_%s_Rot%i',useFR,Rotate);
     if clipZ>0
         savename = [savename '-clipZ' num2str(10*clipZ)];
@@ -122,10 +129,10 @@ if plMPH
 end %if plMPH
 
 
-
+return
 
 %%
-
+keyboard
 if spks
 
 hf4 = figure;

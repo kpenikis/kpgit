@@ -4,7 +4,7 @@ if ~exist('Stimuli','var')
     Stimuli   = [9 2:6];
 end
 if ~exist('Duration','var')
-    Duration = 750;
+    Duration  = 750;
 end
 if ~exist('skipOnset','var')
     skipOnset = 250;
@@ -28,11 +28,11 @@ end
 % end
 
 % Get spiketimes and shift based on calculated integration time
-if exist('Spikes','var')                                 % >>> UMS <<<
-    spiketimes = unique(round(Spikes.sorted(UnitData(iUn).Channel).spiketimes(Spikes.sorted(UnitData(iUn).Channel).assigns==UnitData(iUn).Clu') * 1000 - spkshift));  %ms
-elseif exist('Clusters','var')                            % >>> KS <<<
+if exist('Spikes','var')                                      % >>> UMS <<<
+    spiketimes = unique(round(Spikes.sorted(UnitData(iUn).Channel).spiketimes(Spikes.sorted(UnitData(iUn).Channel).assigns==UnitData(iUn).Clu') * 1000 ));  %ms
+elseif exist('Clusters','var')                                 % >>> KS <<<
     iClu = find([Clusters.maxChannel] == UnitData(iUn).Channel & [Clusters.clusterID] == UnitData(iUn).Clu);
-    spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 - spkshift)');
+    spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 )');  % - spkshift
 end
 catch
     keyboard
@@ -65,7 +65,7 @@ for ist = 1:numel(Stimuli)
     
     %% Collect trial indices and timestamps
     
-    if ~Silence                                          % SOUND TRIALS
+    if ~Silence                                              % SOUND TRIALS
         
         if stid==3 || stid==6
             TDidx = all_TDidx( TrialData.trID(all_TDidx)==stid & TrialData.ITIflag(all_TDidx)==0 );
@@ -89,7 +89,7 @@ for ist = 1:numel(Stimuli)
             TDidx = [TDidx; TDidx_iti];
         end
         
-    else                                               % SILENCE TRIALS
+    else                                                   % SILENCE TRIALS
         clear t2 t3 t_win
         SilPd = [TrialData.onset(1) TrialData.offset(1)];
         
@@ -144,7 +144,7 @@ end
 %% Also get response from beginning of Warn stimulus
 
 [Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),...
-    TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),20,20,'silence');
+    TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),[],binsmth,'silence');
 
 clear t2 t3 t_win
 WarnDur = 500;

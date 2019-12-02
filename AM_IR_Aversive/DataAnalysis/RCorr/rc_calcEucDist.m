@@ -35,7 +35,10 @@ for j = 1:size(T,2)
     else
 %         R  = (S*T{1,j}')/(norm(S)*norm(T{1,j}));
         Ed = pdist2(S,T{1,j});
-        Ed = median(median(Ed,'omitnan'),'omitnan');
+        if numel(Ed)>1
+%         Ed = median(median(Ed,'omitnan'),'omitnan');
+            keyboard
+        end
     end
     
     %Identical calculation, but slower.
@@ -71,8 +74,7 @@ if ~isnan(minE)
 elseif isnan(minE)
     
     %Make a random assignment (dont allow to choose empty stim)
-    minEindex = randi(length(stids),1);
-    minEindex = stids(minEindex);
+    minEindex = randi(size(T,2),1);
     
 end
 

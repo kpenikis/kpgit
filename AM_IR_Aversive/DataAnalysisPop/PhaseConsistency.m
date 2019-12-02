@@ -34,7 +34,7 @@ scrsz = get(0,'ScreenSize');   %[left bottom width height]
 fullscreen = [1 scrsz(4) scrsz(3) scrsz(4)];
 
 
-%% Plot raw data: stacked sig response phases 
+%% Plot raw data: concentric sig response phases 
 
 PhaseData = nan(numel(UnitData),3);
 
@@ -123,7 +123,7 @@ print(fullfile(savedir,'SigPhases_2-4-8'),'-dpdf','-bestfit')
 
 
 
-%% Histogram of PHASES with doubling rate
+%% Histogram of PHASES for each rate
 
 % 3rd dim: [mu VS RS]
 PhaseData = nan(numel(UnitData),5,3);
@@ -211,6 +211,53 @@ end
 % Save figure
 set(gcf,'PaperOrientation','landscape')
 print(fullfile(savedir,'PhaseSHIFTDistributions'),'-dpdf','-bestfit')
+
+
+
+%% Correlation of phase SHIFT with doubling rate
+
+% 3rd dim: [mu VS RS]
+PhaseData = nan(numel(UnitData),5,3);
+
+for iUn = 1:numel(UnitData)
+    PhaseData(iUn,:,1) = UnitData(iUn).Phase_spk(2:6);
+    PhaseData(iUn,:,2) = UnitData(iUn).VSdata_spk(1,2:6);
+    PhaseData(iUn,:,3) = UnitData(iUn).VSdata_spk(2,2:6);
+end %iUn
+
+
+% For each doubling of AM rate, with both sig sync, get distribution of
+% phase shifts
+
+Theta = linspace(-2*pi,2*pi,32);
+plotTheta = diff(Theta)./2 + Theta(1:end-1);
+
+iSig = PhaseData(:,:,3)>13.1;
+
+hf=figure; 
+set(hf,'Position',fullscreen)
+
+for ir = 1:size(PhaseData,2)-1
+    
+    % Plot result
+    subplot(2,2,ir);
+    plot([0 360],[0 360],'Color',0.7*[1 1 1],'LineWidth',2)
+    hold on
+    plot(PhaseData( sum(iSig(:,ir:ir+1),2)==2 ,ir,1),PhaseData( sum(iSig(:,ir:ir+1),2)==2 ,ir+1,1),'.','Color',[0.071 0.686 0.573],'MarkerSize',20)
+    axis square
+    xlabel(sprintf('%i Hz phase',AMrates(ir)))
+    ylabel(sprintf('%i Hz phase',AMrates(ir+1)))
+    xlim([0 360])
+    ylim([0 360])
+    
+end
+
+
+% Save figure
+set(gcf,'PaperOrientation','landscape')
+print(fullfile(savedir,'PhaseCorrelations'),'-dpdf','-bestfit')
+
+
 
 
 end

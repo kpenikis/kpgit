@@ -10,7 +10,7 @@ function savePopMPHdata
 %  NOW only used to get and save MPH data, after changes to UnitData.
 %
 
-global AMrates binsmth
+global AMrates
 
 % Load Unit data files
 fn = set_paths_directories('','',1);
@@ -19,10 +19,9 @@ UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
 %-------
-% spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
-binsmth   = 20;
 trMax     = 40;
 getMPH    = 1;
 Stimuli   = [];
@@ -68,10 +67,10 @@ for iUn = 1:numel(UnitData)
         zFR_vec(iUn,1:size(thisRaster,2),stid-1) = mean(vertcat(MPH(MPH.ThisStimID==stid,:).zFR{:}),1);
         
         % Get smoothed FR
-%         FR_vec(iUn,1:size(thisRaster,2),stid-1)  = mean(vertcat(MPH(MPH.ThisStimID==stid & MPH.PrevPd==AMrates(stid-1),:).FRsmooth{:}),1);
         FR_vec(iUn,1:size(thisRaster,2),stid-1)  = mean(vertcat(MPH(MPH.ThisStimID==stid,:).FRsmooth{:}),1);
         
-    end 
+        
+    end %only significant sync
     
     % Save avg Warn response for this unit
     FR_Warn(iUn,:)  = mean(Warn_FR,1);
@@ -85,7 +84,6 @@ if ~exist(savedir,'dir')
 end
 
 % Save MPH data
-save(fullfile(savedir,'MPHdata_noshift'),'zFR_vec','zFR_Warn','FR_vec','FR_Warn','sp_trs','-v7.3')
+save(fullfile(savedir,'MPHdata'),'zFR_vec','zFR_Warn','FR_vec','FR_Warn','sp_trs','-v7.3')
 
-clear binsmth
 end

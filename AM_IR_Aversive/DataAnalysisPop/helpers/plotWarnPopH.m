@@ -32,7 +32,7 @@ switch useFR
         imagesc(log10(plotdata(1:ndp,:)))
 %         caxis([0 log10(max(Boundaries))+0.25])
         caxis([0 1.75])
-        cmocean('gray')
+        cmocean('-gray')
 end
 
 % Add markers to label NS cells

@@ -30,7 +30,7 @@ Un_Indices = [];
 
 for iUn = 1:numel(UnitData)
     
-    [SpikesTrials,includethiscell] = get_rand_tr_spike_trains(UnitData,iUn);
+    [SpikesTrials,includethiscell] = get_rand_tr_spike_trains_limitTrs(UnitData,iUn);
     
     if includethiscell
         Cell_Time_Trial_Stim = [Cell_Time_Trial_Stim; SpikesTrials];

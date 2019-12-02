@@ -1,8 +1,10 @@
 function dataFilt = filter_data( data, fs )
-%  DOESNT WORK BECAUSE DATA MATRIX TOO BIG. WRITING FILTERED DAT FILE
-%  VIA KILOSORT INSTEAD.
+% dataFilt = filter_data( data, fs )
+%
+%  CAN'T FILTER ALL CHANNELS AT ONCE BECAUSE DATA MATRIX TOO BIG. 
+%  WRITING FILTERED DAT FILE VIA KILOSORT INSTEAD.
 % 
-
+%  KP, 2018
 
 
 % Filter data
@@ -16,7 +18,6 @@ Ws = [ 225  8000] * 2 / fs;        %cutoff fqs (stopband)
 for ch = 1:size(data,1)
     dataFilt(ch,:) = filtfilt( B, A, data(ch,:) );
 end
-
 
 
 end

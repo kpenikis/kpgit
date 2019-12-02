@@ -26,7 +26,7 @@ Info.stim_ID_key = { 'Warn';  '2';   '4';   '8';  '16';  '32';   'AC';  'DB'  };
 
 
 
-%% Get Stream Data (fs = 1 kHz; 1 ms)               (now done in <<getPhase0Data>> )
+%% Get Stream Data (fs = 1 kHz; 1 ms)     (now done in <<getPhase0Data>> )
 
 % SpoutStream = round( resample(double(SoundData(7,:)),10000,round(Info.fs_sound*10),5) );
 

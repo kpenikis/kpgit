@@ -1,5 +1,5 @@
-function [SpikesTrials,includethiscell] = get_rand_tr_spike_trains(UnitData,iUn)
-% 
+function [SpikesTrials,includethiscell] = get_rand_tr_spike_trains_allTrs(UnitData,iUn)
+% called by cumulativeSpikeCount
 
 global fn trN Duration Stimuli spkshift
 
@@ -35,12 +35,12 @@ end
 %%
 try
     
-SpikesTrials  = zeros(1,Duration,trN,numel(Stimuli));
+SpikesTrials  = nan(1,Duration,trN,numel(Stimuli)+3);
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
-[all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(UnitData(iUn).Channel).trials,UnitData(iUn).spl,UnitData(iUn).lpn,1);
+[all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,unique(vertcat(Info.artifact(:).trials)),UnitData(iUn).spl,UnitData(iUn).lpn,1);
 allStim = unique(TrialData.trID(all_TDidx))';
 
 for ist = 1:numel(Stimuli)
@@ -91,13 +91,13 @@ for ist = 1:numel(Stimuli)
         
     end
     
-    if numel(t2)<trN
-        sprintf('not enough trials for this stim/cell')
-        includethiscell = 0;
-        return
-    end
+%     if numel(t2)<trN
+%         sprintf('not enough trials for this stim/cell')
+%         includethiscell = 0;
+%         return
+%     end
     
-    kt     = randperm(length(t2),trN);
+    kt     = 1:length(t2); %randperm(length(t2),trN);
     t2     = t2(kt);
     TDidx  = TDidx(kt);
     
@@ -110,12 +110,50 @@ for ist = 1:numel(Stimuli)
     
     %% Get spiking activity for each trial
     
-    for it = 1:numel(TDidx)
+    for it = 1:min(numel(TDidx),trN)
+        
+        istid = stid;
+        if stid==8
+            istid = 9;
+        end
         
         sp=[]; sp = spiketimes( spiketimes>t2(it) ...
             & spiketimes<=t3(it) ) - t2(it);
         
-        SpikesTrials(1,sp,it,ist) = 1;
+        SpikesTrials(1,:,it,istid)  = 0;
+        SpikesTrials(1,sp,it,istid) = 1;
+        
+        
+        % Next segment start
+        if stid>6
+            istid = istid+1;
+            s2 = Phase0(:,find(Phase0(1,:)>(t2(it)+500),1,'first'));
+            
+            sp=[]; sp = spiketimes( spiketimes>s2(1) ...
+                & spiketimes<=(s2(1)+Duration) ) - s2(1);
+            
+            SpikesTrials(1,:,it,istid)  = 0;
+            SpikesTrials(1,sp,it,istid) = 1;
+        end
+        
+        % Next segment start
+        if stid==8
+            istid = istid+1;
+            s3 = Phase0(:,find(Phase0(1,:)>(s2(1)+500),1,'first'));
+            
+            sp=[]; sp = spiketimes( spiketimes>s3(1) ...
+                & spiketimes<=(s3(1)+Duration) ) - s3(1);
+            
+            SpikesTrials(1,:,it,istid)  = 0;
+            SpikesTrials(1,sp,it,istid) = 1;
+        end
+        
+%         figure; 
+%         plot(t2(it)+(0:2000),SoundStream(t2(it)+(0:2000)))
+%         hold on
+%         plot([t2(it) t2(it)],[0 1])
+%         plot([s2(1) s2(1)],[0 1])
+%         plot([s3(1) s3(1)],[0 1])
         
     end %it
     

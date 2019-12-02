@@ -1,5 +1,5 @@
-function ClassifyStimulus_tsPop
-% ClassifyStimulus_tsPop
+function ClassifyStimulus_NspkPop
+% ClassifyStimulus_NspkPop
 %
 %  Basic linear classifier for segments of Pdc and Irr stimuli.
 %
@@ -19,8 +19,6 @@ app_str     = '_15trTemp';
 nTrials     = 16;
 
 StimDur     = 500;
-convwin     = 1;
-convwin     = ones(1,convwin).*(1/convwin);
 
 SetNIterations = 200;
 
@@ -33,7 +31,7 @@ fn = set_paths_directories('','',1);
 savedir = fullfile(fn.figs,'StimClass');
 
 % Load spikes data (created in cumulativeSpikeCount)
-q=load(fullfile(savedir,'Cell_Time_Trial_Stim_alltrs'));
+q=load(fullfile(savedir,'Cell_Time_Trial_Stim_simtrs'));
 Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 
 % Load Unit data files
@@ -41,12 +39,11 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
-
-% keyboard
 if size(Cell_Time_Trial_Stim,1)==257 && ~exist('Un_Indices','var')
     Un_Indices = 1:257;
 end
 
+keyboard
 % Find just Apr02 cells
 sess_idx = find(strcmp(UnitInfo.Subject,'AAB_265054') & strcmp(UnitInfo.Session,'Apr02-AM'));
 Cell_Time_Trial_Stim = Cell_Time_Trial_Stim(intersect(Un_Indices,sess_idx),:,:,:);
@@ -81,7 +78,6 @@ end
 nUnits  = size(Cell_Time_Trial_Stim,1);
 nStim   = size(Cell_Time_Trial_Stim,4);
 
-whichIrr='Apr02';
 
 %% Bootstrap trials
 
@@ -129,14 +125,7 @@ for iN = 1:ValidationN
         % Set templates
         T = cell(2,nStim);
         for ist = 1:nStim
-            
-            T(1,ist) = {sum(mean(CTTS(:,:,temp_trs,ist),3),1)};
-            %         T(1,ist) = {reshape(Cell_Time_Trial_Stim(:,:,iIt,ist),1,nUnits*StimDur,1,1)};
-%             foo = conv(T{1,ist},convwin);
-%             T(1,ist) = {foo(floor(numel(convwin)/2)+(0:StimDur-1))};
-            %         subplot(3,2,ist); hold on
-            %         plot(T{1,ist})
-            %         T(1,ist) = {Cell_Time_Trial_Stim(:,:,iIt,ist)'};
+            T(1,ist) = {mean(mean(CTTS(:,:,temp_trs,ist),3),2)'};
         end
         T(2,:) = deal({iIt});
         
@@ -152,10 +141,7 @@ for iN = 1:ValidationN
             
             for it = test_trs
                 
-                S = sum(CTTS(:,:,it,isTrue),1);
-                %             S = reshape(Cell_Time_Trial_Stim(:,:,it,isTrue),1,nUnits*StimDur,1,1);
-%                 foo = conv(S,convwin);
-%                 S = foo(floor(numel(convwin)/2)+(0:StimDur-1));
+                S = mean(CTTS(:,:,it,isTrue),2)';
                 
                 [blockAssignment,maxR] = rc_calcEucDist(T,S); %min Euc dist
                 %             [blockAssignment,maxR] = rc_calcR(T,S);      %max rcorr
@@ -192,7 +178,7 @@ if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-savename = sprintf('PCMat_tsPop_E_conv%i%s_%s',length(convwin),app_str,whichIrr);
+savename = sprintf('PCMat_NspPop_E%s_Apr02',app_str);
 save(fullfile(savedir,savename),'PCMatN','-v7.3')
 
 

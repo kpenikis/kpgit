@@ -55,15 +55,17 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = 8:numel(Clusters)
+for iUn = 1:numel(Clusters)
     
     close all
     
     % Get spiketimes
     thisClu = Clusters(iUn); 
     maxChan = thisClu.maxChannel;
+    
     %originally: seconds, not rounded
-    spiketimes = round(thisClu.spikeTimes*1000)';
+    sptall=round(thisClu.spikeTimes*1000)';
+    [spiketimes,ispU] = unique(sptall);
     
     
     % Get stimulus params
@@ -84,8 +86,9 @@ for iUn = 8:numel(Clusters)
     % Get all stimuli presented with these parameters, given a
     % sufficient number of trials without diruptive artifact
     % while the animal was drinking
-    [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,0);
+    [all_TDidx,Ntrials,minDur,allStim] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,0);
     allStim = unique(TrialData.trID(all_TDidx))';
+%     allStim = allStim+1;
     
     minTrs = min(Ntrials(~isnan(Ntrials)));
     
@@ -226,25 +229,32 @@ for iUn = 8:numel(Clusters)
     hfClu = figure;
     set(gcf,'Position',fullscreen.*[1 1 1 0.3])
     hold on
+    
     subplot(1,5,1);
     plot(thisClu.maxChTemp,'k','LineWidth',3)
     set(gca,'xlim',[1 length(thisClu.maxChTemp)],'xtick',[],'Color','none')
     title(sprintf('%i events | %0.1f Hz',length(spiketimes),meanFR ))
+    ylim([-0.03 0.01])
+    
     subplot(1,5,2);
     histogram([-diff(spiketimes) diff(spiketimes)],[-199.5:199.5],'EdgeColor','none','FaceColor','k','FaceAlpha',1);
     set(gca,'xlim',[-200 200],'Color','none')
     title(sprintf('%0.1f%% violation rate', 100*sum(diff(spiketimes)<3)/length(spiketimes) ))
+    
     subplot(1,5,3);
     try
     histogram([thisClu.Amplitudes],50,'FaceColor','k','EdgeColor','none')
+    xlim([0 50])
     end
     title('Distribution of amplitudes')
+    
     try
         subplot(1,5,[4 5]);
-        plot(spiketimes,[thisClu.Amplitudes],'.k')
+        plot(spiketimes,[thisClu.Amplitudes(ispU)],'.k')
         xlim([0 TrialData.offset(end)])
         title('Amplitudes across session')
         xlabel('Time in session')
+        ylim([0 50])
     catch
         keyboard
     end
