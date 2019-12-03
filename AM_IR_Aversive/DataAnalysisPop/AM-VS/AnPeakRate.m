@@ -100,6 +100,7 @@ for iiUn = 1:size(Uindices_AMVS,1)
     [PSTH_AMc,STIM_AMc] = getdata4TRF(UData_AM,iUnAM);
     [PSTH_Spc,STIM_Spc] = getdata4TRF(UData_VS,iUnVS);
     
+    
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     % Concatenate AM // Sp data
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
