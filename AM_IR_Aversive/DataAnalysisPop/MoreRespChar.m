@@ -11,7 +11,7 @@ global AMrates useFR Boundaries
 plotF1   = 0;
 plotF2   = 0;
 plotF3   = 0;
-plotF4   = 0;
+plotF4   = 1;
 %~~~~~~~~~~~~~~~~~~~~~
 useFR    =   'log'; 
 useGrp   =   'peakFR'; 'dynRange'; 'tuning'; 'phase'; 
@@ -394,7 +394,8 @@ end
 
 if plotF4 
     
-Rotate=1;
+Rotate =0;
+Reverse=1;
 
 hfPk=figure; 
 set(hfPk,'Position',fullscreen)
@@ -428,6 +429,8 @@ for iUn = 1:size(ThisData,1)
         
         if Rotate
             Data = [ ThisData(iUn,floor(pdms/2):floor(pdms),ist) ThisData(iUn,1:floor(pdms/2)-1,ist)];
+        elseif Reverse
+            Data = fliplr(ThisData(iUn,1:floor(pdms),ist));
         end
 %         plot(ThisData(iUn,:,ist),'Color',colors(ist,:),'LineWidth',3)
 %         hold on
@@ -481,7 +484,8 @@ for iUn = 1:size(ThisData,1)
         % Add to plot
         subplot(2,3,ist); hold on
 %         plot(t_onset(iUn,ist), t_up(iUn,ist),'.','Color',colors(ist,:),'MarkerSize',pk_height(iUn,ist))
-        plot(t_mid(iUn,ist),t_up(iUn,ist),'.','Color',colors(ist,:),'MarkerSize',pk_height(iUn,ist))
+%         plot(t_mid(iUn,ist),t_up(iUn,ist),'.','Color',colors(ist,:),'MarkerSize',pk_height(iUn,ist))
+        plot(t_offset(iUn,ist),t_up(iUn,ist),'.','Color',colors(ist,:),'MarkerSize',pk_height(iUn,ist))
         
 %         plot(t_onset(iUn,ist)+[0 t_up(iUn,ist)],[halfMax halfMax],'Color',colors(ist,:),'LineWidth',6)
         
@@ -497,7 +501,7 @@ for ist = 1:3
     xlim([0 pdms])
     ylim([0 pdms])
     set(gca,'xtick',[0 pdms],'ytick',[0 pdms])
-    xlabel('Mid time (ms)')
+    xlabel('Offset time (ms)')
     ylabel('Peak duration (ms)')
     title([num2str(AMrates(ist)) ' Hz'])
 end
@@ -510,7 +514,8 @@ for ist = 1:2
     subplot(2,3,3+ist); cla
     plot([0 pdms],[0 pdms/2],'Color',0.5*[1 1 1])
     hold on
-    plot(t_mid(:,ist),t_mid(:,ist+1),'.','Color',0.3*[1 1 1],'MarkerSize',20)
+    plot(t_offset(:,ist),t_offset(:,ist+1),'.','Color',0.3*[1 1 1],'MarkerSize',20)
+%     plot(t_mid(:,ist),t_mid(:,ist+1),'.','Color',0.3*[1 1 1],'MarkerSize',20)
 %     plot(t_onset(:,ist),t_onset(:,ist+1),'.','Color',0.3*[1 1 1],'MarkerSize',20)
     
     axis square
@@ -518,8 +523,8 @@ for ist = 1:2
     xlim([0 pdms])
     ylim([0 pdms])
     set(gca,'xtick',[0 pdms],'ytick',[0 pdms])
-    xlabel(['Mid time, ' num2str(AMrates(ist)) ' Hz'])
-    ylabel(['Mid time, ' num2str(AMrates(ist+1)) ' Hz'])
+    xlabel(['Offset time, ' num2str(AMrates(ist)) ' Hz'])
+    ylabel(['Offset time, ' num2str(AMrates(ist+1)) ' Hz'])
 end
 
 % Durations
@@ -546,7 +551,7 @@ ylabel(['Peak duration, ' num2str(AMrates(ist+1)) ' Hz'])
 
 
 savedir = fullfile(fn.figs,'RespChar');
-print_eps_kp(gcf,fullfile(savedir,'Peak_Mids_rotated'))
+print_eps_kp(gcf,fullfile(savedir,'Peak_Offsets_reversed'))
 
 
 end

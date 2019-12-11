@@ -20,7 +20,7 @@ close all
 fn = set_paths_directories('','',1);
 
 % Load spikes data (created in cumulativeSpikeCount)
-load(fullfile(fn.figs,'CmSpCount',['Cell_Time_Trial_Stim_' num2str(20) 'trs']))
+load(fullfile(fn.figs,'StimClass',['Cell_Time_Trial_Stim_simtrs']))
 
 %% Figure settings
 set(0,'DefaultTextInterpreter','none')

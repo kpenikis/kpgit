@@ -59,7 +59,7 @@ for ich = Channels'
 end
 artifactTrs = unique(artifactTrs);
 
-minTrs = 12;
+minTrs = 10;
 
 
 %% Find stimuli and trial indices to include in analysis
@@ -87,7 +87,7 @@ end
 % Now step through stimuli and units
 StimResp = struct();
 
-for stid = unique([TrialData.trID])'
+for stid = allStim'
     
     if stid==0, continue, end
     

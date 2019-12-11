@@ -26,10 +26,11 @@ for j = 1:size(T,2)
     
     % R is simply the inner dot product of S and T, divided by the
     %product of their vector norms
+    %    dividing by the product of the norms causes the answer to be [0 1]
     if isempty(T{1,j})
         R = nan;
     else
-        R = (S*T{1,j}')/(norm(S)*norm(T{1,j}));
+        R = (S*T{1,j}')/(norm(S)*norm(T{1,j}));  
     end
     
     %Identical calculation, but slower.

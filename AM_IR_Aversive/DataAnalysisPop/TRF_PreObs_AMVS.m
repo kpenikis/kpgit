@@ -110,7 +110,7 @@ STRF_corr=[];
 
 %% Figure settings
 
-savedir = fullfile(fn.figs,'TRF_AMVS');
+savedir = fullfile(fn.figs,'TRF_AMVS','exp');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
@@ -417,7 +417,7 @@ save(fullfile(savedir,'Res_TRF_AMVS.mat'),'Results','-v7.3')
 
 % And write to Matched Units excel file
 writetable(Results,fullfile(fn.processed,'UnMatchedLUT.xlsx'),...
-    'Sheet',2,'Range','A1:K30')
+    'Sheet',3,'Range','A1:K30')
 
 
 else
@@ -432,7 +432,7 @@ end
 
 %% Plot results
 
-axmax = 0.8;
+axmax = 1; 
 
 %.......................................
 % Focus on fixed tlag of 100

@@ -1,4 +1,4 @@
-function PopMPH
+function PopMPH_spkShp
 % 
 % PopMPH
 %
@@ -10,15 +10,21 @@ global AMrates useFR Boundaries
 
 %~~~~~~~~~~~~~~~~~~~~~
 useFR    =   'log'; 
-Rotate   =    1;
 %~~~~~~~~~~~~~~~~~~~~~
 clipZ    =    0;
 %~~~~~~~~~~~~~~~~~~~~~
-plMPH    =    0;
-spks     =    1;
+plMPH    =    1;
+spks     =    0;
+%~~~~~~~~~~~~~~~~~~~~~
+whichCells = 'NS'; 'AAB_265054'; 'WWWlf_253395'; 'AAB_265058'; 'WWWf_253400'; 'Jan25'; 'all'; 
+%~~~~~~~~~~~~~~~~~~~~~
+sortHere = 1;
+sortBy   = 'tMax4'; 'baseFR'; 'FF4'; 
+%~~~~~~~~~~~~~~~~~~~~~
+labelNS  = 0;
 %~~~~~~~~~~~~~~~~~~~~~
 
-close all
+% close all
 
 %% Load data
 
@@ -62,6 +68,23 @@ switch useFR
 %         Boundaries  = [-1 round(10.^[0.5]) ];
 end
 
+
+% Label NS cells
+flagNS = UnitInfo.TroughPeak<0.43;
+
+switch whichCells
+    case 'NS'
+        theseCells = find(flagNS);
+    case 'RS'
+        theseCells = find(~flagNS);
+    case 'all'
+        theseCells = 1:size(ThisData,1);
+    case {'Apr02' 'Apr07' 'Apr09' 'Apr11' 'Apr15' 'Mar28' 'Mar30' 'Jan17' 'Jan21' 'Jan25'} 
+        theseCells = find(strcmp({UnitData.Session},[whichCells '-AM']));
+    case {'AAB_265054' 'WWWf_253400' 'AAB_265058' 'WWWlf_253395'}
+        theseCells = find(strcmp({UnitData.Subject},whichCells));
+end
+
 convwin = 10;
 convwin = ones(1,convwin).*(1/convwin);
 
@@ -73,17 +96,6 @@ set(0,'DefaultAxesFontSize',14)
 
 scrsz = get(0,'ScreenSize');   %[left bottom width height]
 fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
-
-% Set colors
-colors = [ 250 250 250;...
-            84  24  69;...
-           120  10  41;...
-           181   0  52;...
-           255  87  51;...
-           255 153   0]./255;
-colors = [ colors; ...
-            [37  84 156]./255 ;...
-            [19 125 124]./255 ];
 
 
 %% Filter data to just one session
@@ -106,8 +118,21 @@ if plMPH
     set(gcf,'Position',fullscreen)
     hold on
     
-%     keyboard %check how you want to sort
-%     [i_sorted,sortdata] = sort_thLat(ThisData(:,1:250,2));
+    clear i_sorted
+    if sortHere
+%         [i_sorted,sortdata] = sort_thLat(ThisData(theseCells,:,2));
+        switch sortBy
+            case 'baseFR'
+                [sortdata,i_sorted] = sort([UnitData(theseCells).BaseFR]);
+            case 'tMax4'
+                [pk,ipk] = max(ThisData(theseCells,1:250,2),[],2);
+                [sortdata,i_sorted] = sortrows([ipk pk],[-1 2]);
+            case 'FF4'
+                FF = var(permute(sum(Cell_Time_Trial_Stim(theseCells,1:250,:,3),2),[1 3 2 4]),[],2,'omitnan') ...
+                    ./ mean(permute(sum(Cell_Time_Trial_Stim(theseCells,1:250,:,3),2),[1 3 2 4]),2,'omitnan');
+                [sortdata,i_sorted] = sort(FF);
+        end
+    end
     
     % Warn
     subplot(1,6,1);
@@ -126,20 +151,24 @@ if plMPH
     end
     
     % Save figure
-    savename = sprintf('PopMPH_%s_noshift',useFR);
-    % savename = sprintf('PopMPH_%s_Rot%i',useFR,Rotate);
+    savedir = fullfile(fn.figs,'PopMPH','Dec2019');
+    if ~exist(savedir,'dir')
+        mkdir(savedir)
+    end
+    
+    savename = sprintf('PopMPH_%s_%s_%s',useFR,whichCells,sortBy);
     if clipZ>0
         savename = [savename '-clipZ' num2str(10*clipZ)];
     end
     
-    print_eps_kp(gcf,fullfile(savedir,savename))
-    set(gcf,'PaperOrientation','landscape')
-    print(gcf,'-dpdf','-r500','-fillpage', fullfile(savedir,savename))
+%     print_eps_kp(gcf,fullfile(savedir,savename))
+    set(hf1,'PaperOrientation','landscape')
+    print(hf1,'-dpdf','-r500','-fillpage', fullfile(savedir,savename))
     
 end %if plMPH
 
 
-
+return
 
 %%
 
@@ -294,20 +323,10 @@ for itr = 1:6
     % Sort cells by Latency
     [i_sorted,sortdata] = sort_thLat(data);
     
-    
-    % ROTATE phase of MPH
-    if Rotate
-        midpoint  = floor(size(data,2)/2);
-        plotdata  = [data(i_sorted,midpoint+1:end)   data(i_sorted,1:midpoint)   data(i_sorted,midpoint+1:end)   data(i_sorted,1:midpoint)];
-        plotspks  = [spdata(i_sorted,midpoint+1:end) spdata(i_sorted,1:midpoint) spdata(i_sorted,midpoint+1:end) spdata(i_sorted,1:midpoint)];
-        xtickset  = [0:midpoint:size(plotdata,2)];
-        xticklabs = {'-pi' '0' 'pi' '2*pi' 'pi'};
-    else
-        plotdata  = [data(i_sorted,:)   data(i_sorted,:)];
-        plotspks  = [spdata(i_sorted,:) spdata(i_sorted,:)];
-        xtickset  = [0 ceil(1000/AMrates(ir)) 2*ceil(1000/AMrates(ir))];
-        xticklabs = [0 ceil(1000/AMrates(ir)) 2*ceil(1000/AMrates(ir))];
-    end
+    plotdata  = [data(i_sorted,:)   data(i_sorted,:)];
+    plotspks  = [spdata(i_sorted,:) spdata(i_sorted,:)];
+    xtickset  = [0 ceil(1000/AMrates(ir)) 2*ceil(1000/AMrates(ir))];
+    xticklabs = [0 ceil(1000/AMrates(ir)) 2*ceil(1000/AMrates(ir))];
     
     ndp = sum(sum(isnan(plotdata),2)==0);
     

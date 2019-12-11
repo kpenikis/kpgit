@@ -10,7 +10,7 @@ function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimes
 %
 % KP, 2018-03; updated 2018-07
 
-
+warning('Now smoothing FR with exponential filter')
 
 Stream_Spks = zeros(1,StreamNSamples);
 Stream_Spks(spiketimes) = 1;
@@ -27,7 +27,16 @@ window=window/sum(window);
 % window=rectwin(bs_rect);
 % window=window/sum(window);
 
-Stream_FRsmooth = conv(Stream_Spks,window,'same').*1e3;
+% Stream_FRsmooth = conv(Stream_Spks,window,'same').*1e3;
+
+
+%exponential decay
+winlen = 1000;
+lambda = 2/bs_gaus;
+window = exp(-lambda*(1:winlen));
+
+Stream_FRsmooth = conv(Stream_Spks,window).*1e3;
+Stream_FRsmooth = Stream_FRsmooth(1:length(Stream_Spks));
 
 
 % Convert FR to z-score
@@ -72,7 +81,7 @@ Stream_zscore    = Stream_zscore(1:StreamNSamples);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Set ymax based on overall FR of unit
 
-yvals = [30 50 75 100 150 200 250 300 400];
+yvals = [30 50 75 100 150 200 250 300 400 500 600 700 800];
 yin = find( ( max(yvals, median(Stream_FRsmooth(msStart:end))+3*std(Stream_FRsmooth(msStart:end)) ) - yvals )==0 );
 ymaxval = yvals(yin(1));
 

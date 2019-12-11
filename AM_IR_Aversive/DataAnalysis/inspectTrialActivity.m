@@ -21,16 +21,13 @@ fn = set_paths_directories(SUBJECT,SESSION,1);
 
 %% 
 
-
-
-
-
-%% Look at trial-by-trial data in various ways
-
-keyboard 
-
 % Select stimulus to inspect
 stid = 3;
+keyboard
+
+
+%% Look at trial-by-trial data in various ways 
+
 
 % Animated view of responses per trial across all units
 hf=figure;
@@ -69,7 +66,7 @@ ylabel('trial rank')
 
 
 % Select a unit to sort n spikes per trial, and plot all
-[~,idx] = sort(nSpksTr(3,:),'descend');
+[~,idx] = sort(nSpksTr(2,:),'descend');
 figure; 
 ic=imagesc(log(nSpksTr(:,idx)));
 colormap(gray)
@@ -78,7 +75,7 @@ ylabel('Units, sorted by baseline FR')
 title('Total number of spikes per trial for each unit')
 
 % Same, but RANK not nspikes  -- some pattern here
-[~,idx] = sort(trRank(3,:),'ascend');
+[~,idx] = sort(trRank(2,:),'ascend');
 figure; 
 ic=imagesc(trRank(:,idx));
 colormap(gray)

@@ -1,10 +1,16 @@
 % Warn first
-data = FR_Warn;
+switch useFR
+    case 'z'
+        data = zFR_Warn(theseCells,:);
+    case 'log'
+        data = FR_Warn(theseCells,:);
+end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Sort cells
-[i_sorted,sortdata] = sort_thLat(data);
-
+if ~exist('i_sorted','var')
+    [i_sorted,sortdata] = sort_thLat(data);
+end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Get ready to plot
@@ -19,13 +25,10 @@ if clipZ>0
     plotdata(plotdata<clipZ) = 0;
 end
 
-% Label NS cells
-flagNS = UnitInfo.TroughPeak(i_sorted(1:ndp))<0.5;
-
 % Render plot
 switch useFR
     case 'z'
-        imagesc(plotdata(1:ndp,:))
+        imagesc(plotdata(~any(isnan(plotdata),2),:))
         caxis([min(Boundaries) max(Boundaries)])
         cmocean('balance','pivot',0) %curl
     case 'log'
@@ -35,27 +38,41 @@ switch useFR
         cmocean('-gray')
 end
 
-% Add markers to label NS cells
-hold on
-plot(0,find(flagNS),'.','Color',[0.01 0.57 0.44])
-plot(size(plotdata,2),find(flagNS),'.','Color',[0.01 0.57 0.44])
+
+if labelNS
+    % Label NS cells
+    hold on
+    plot(0,find(flagNS),'.','Color',[0.01 0.57 0.44])
+    plot(size(plotdata,2),find(flagNS),'.','Color',[0.01 0.57 0.44])
+end
+
 
 % Finish plot
 xlim([0 size(plotdata,2)])
 ylim([0.5 ndp+0.5])
 set(gca,'tickdir','out','ticklength',[0.02 0.02],'Color','none')
 set(gca,'xtick',xtickset,'xticklabel',xticklabs)
+xlabel(whichCells)
 
-BoundMat = cumsum(sortdata(i_sorted(1:ndp),1)>=Boundaries);
-ytplc = []; ytlab = [];
-for ib = numel(Boundaries):-1:1
-    yUn = find(BoundMat(:,ib)==1,1,'first');
-    if ~ismember(yUn,ytplc)
-        ytplc = [ytplc yUn];
-        ytlab = [ytlab Boundaries(ib)];
+if ~sortHere
+    BoundMat = cumsum(sortdata(i_sorted(1:ndp),1)>=Boundaries);
+    ytplc = []; ytlab = [];
+    for ib = numel(Boundaries):-1:1
+        yUn = find(BoundMat(:,ib)==1,1,'first');
+        if ~ismember(yUn,ytplc)
+            ytplc = [ytplc yUn];
+            ytlab = [ytlab Boundaries(ib)];
+        end
     end
+    set(gca,'ytick',fliplr(ytplc),'yticklabel',fliplr(ytlab))
+else
+    set(gca,'ytick',[])
+    switch sortBy
+        case 'baseFR'
+            set(gca,'ytick',1:5:ndp,'yticklabel',round([UnitData(theseCells(i_sorted(1:5:ndp))).BaseFR]))
+    end
+    ylabel(sortBy)
 end
-set(gca,'ytick',fliplr(ytplc),'yticklabel',fliplr(ytlab))
 
 title('Warn')
 box off

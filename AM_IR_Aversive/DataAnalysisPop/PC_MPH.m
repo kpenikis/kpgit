@@ -1,15 +1,8 @@
 function PC_MPH
 % 
-% For each pair, plot Signal Corr vs Total Corr
-%  Noise corr = total - signal 
-%  
-%  Signal correlation: combo of tuning and temporal pattern: concatenate PSTHs or MPHs
-%    [Cell 1 reshape(stim X time), avg trials] vs [Cell 2 reshape(stim X time), avg trials]
+% PCA population response trajectories for each MPH.
 %
-%  Total correlation: full matrix, preserving trials; reshape and concatenate
-%    [Cell 1 reshape(trials X stim X time)] vs [Cell 2 reshape(trials X stim X time)]
-%
-% KP, 2019-10
+% KP, 2019-12
 % 
 
 close all

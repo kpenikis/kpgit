@@ -49,23 +49,20 @@ sess_idx = find(strcmp(UnitInfo.Subject,'AAB_265054') & strcmp(UnitInfo.Session,
 Cell_Time_Trial_Stim = Cell_Time_Trial_Stim(intersect(Un_Indices,sess_idx),:,:,:);
 
 
-%% Preallocate
+%%
+% Can't do entire population (or complete groups) with ALL stimuli
+% including Irr. Can do AC and DB separately.
 
 nTrialMat = nan(size(Cell_Time_Trial_Stim,1),size(Cell_Time_Trial_Stim,4));
 for ist = 1:size(Cell_Time_Trial_Stim,4)
     CT  = permute(sum(Cell_Time_Trial_Stim(:,:,:,ist),2),[1 3 2]);
     nTrialMat(:,ist) = sum(~isnan(CT),2);
 end
+
 ACstim  = 1:8;
 DBstim  = [1:6 9:11];
 ACcells = find(all(nTrialMat(:,ACstim)>=nTrials,2));
 DBcells = find(all(nTrialMat(:,DBstim)>=nTrials,2));
-
-% Can't do entire population (or complete groups) with ALL stimuli
-% including Irr. Can do AC and DB separately.
-
-
-%%
 
 switch whichIrr
     case 'AC'

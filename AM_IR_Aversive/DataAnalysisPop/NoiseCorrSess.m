@@ -19,7 +19,7 @@ close all
 fn = set_paths_directories('','',1);
 
 % Get unit and raster data
-[UnitInfo, UnitData, Info, ~, ~, ~, ~, iUnOrig ] = collectRasterDataSession(SUBJECT,SESSION);
+[UnitInfo, UnitData, Info, ~, ~, ~, artifactTrs, iUnOrig ] = collectRasterDataSession(SUBJECT,SESSION);
 
 % Load rasters
 load(fullfile(fn.figs,'/StimClass/Cell_Time_Trial_Stim_simtrs.mat'))
@@ -28,7 +28,7 @@ load(fullfile(fn.figs,'/StimClass/Cell_Time_Trial_Stim_simtrs.mat'))
 %%
 
 % Set up gaussian window for smoothing
-bs_gaus = 50;
+bs_gaus = 1000;
 window = gausswin(bs_gaus);
 window = window-min(window);
 window = window/sum(window);
