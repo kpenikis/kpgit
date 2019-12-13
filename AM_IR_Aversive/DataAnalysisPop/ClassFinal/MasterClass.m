@@ -15,12 +15,12 @@ function MasterClass
 
 whichIrr     = 'AC';
 
-whichCells   = 'NS'; 
+whichCells   = 'RS'; 
 PickTrials   = 'rand';
 
 Un_Index     = [40 115];
 
-BootstrapN   = 1000;
+BootstrapN   = 500;
 KernelType   = 'linear';
 
 tau          = 5;
@@ -29,10 +29,10 @@ winlen       = 500;
 convwin      = exp(-lambda*(1:winlen));
 % convwin      = convwin./convwin(1);
 
-PSTHsize     = 'N-2';
-TrainSize    = 1;
+PSTHsize     = 'Train-1';
+TrainSize    = 16;
 TestSize     = 1;
-minTrs       = 15 + TrainSize + TestSize;
+minTrs       = TrainSize + TestSize;
 
 rng('shuffle')
 
@@ -116,7 +116,7 @@ cmocean('ice') %ice
 colorbar
 ylabel('True stim')
 xlabel('Assigned')
-title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s/%i/%i trs  |  %s (N=%i)',muPC,dprime,KernelType,whichIrr,PSTHsize,TrainSize,TestSize,whichCells,nUns))
+title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %i/%i trs  |  %s (N=%i)',muPC,dprime,KernelType,whichIrr,TrainSize,TestSize,whichCells,nUns))
 % title(sprintf('%s SVM  (iUn %s, cat)  PC=%0.1f%%  %i/%i trs, conv %i',KernelType,num2str(Un_Index),mean(diag(mean(AssignmentMat,3)))*100,TrainSize,TestSize,length(convwin)))
 
 % Save figure
@@ -125,7 +125,7 @@ if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-savename = sprintf('Results_Train%i_conv%i_%s_%s_%s_RepPredictors',TrainSize,tau,whichIrr,whichCells,PickTrials);
+savename = sprintf('Results_Train%i_conv%i_%s_%s',TrainSize,tau,whichIrr,whichCells);
 % savename = sprintf('Results_%s_Train%i_conv%i_iUns%icat%i',KernelType,TrainSize,length(convwin),Un_Index);
 
 print(fullfile(savedir,savename),'-dpdf')

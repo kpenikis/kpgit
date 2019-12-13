@@ -65,7 +65,7 @@ switch whichIrr
 end
 
 % Repmat, to artificially increase dimensionality of training data
-CTTS = repmat(CTTS,[50 1 1 1]);
+% CTTS = repmat(CTTS,[50 1 1 1]);
 
 
 % Complete

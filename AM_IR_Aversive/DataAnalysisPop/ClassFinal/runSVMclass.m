@@ -79,14 +79,16 @@ for iBS = 1:BSN
                     keyboard
                 end
                 
-                % TRAINING
+                %=====TRAINING=====
                 Train_trs(itmp,:)  = randperm(nTrials(itmp),TrainSize);
                 
-                % TESTING
+                
+                %=====TESTING=====
                 SetRest = 1:nTrials(itmp);
                 SetRest(Train_trs(itmp,:)) = [];
                 Test_tr_ids  = randperm(length(SetRest),TestSize);
                 Test_trs(itmp,:) = SetRest(Test_tr_ids);
+                
             end
         end
         
@@ -96,15 +98,11 @@ for iBS = 1:BSN
         %=================
         T = nan(nSt,Dur);
         for itmp = 1:nSt
-            
-            % N-1 trials
-            PSTH_trs = 1:nTrials(itmp);
-            PSTH_trs([Train_trs(itmp,:) Test_trs(itmp,:)]) = [];
-            
-            % Make template
-            T(itmp,:)  = mean(CTTS(iUn,:,PSTH_trs,itmp),3);
-            
-        end %itmp
+            % Get template for comparison to test trial (with 1 random
+            % trial left out, to match ntrials in the PSTH template for
+            % computing training data corr values) 
+            T(itmp,:)  = mean(CTTS(iUn,:,Train_trs(itmp,randperm(TrainSize,TrainSize-1)),itmp),3);
+        end 
         
         
         %% ###############################################################
@@ -121,18 +119,24 @@ for iBS = 1:BSN
                 % Get trial data
                 trial_data = CTTS(iUn,:,itr,ist);
                 
+                
                 % . .  . . . . . . . . . . . . . . . . . . . . . . . . . . 
                 % . Dot product of this test trial with each template
-                R = nan(1,size(T,1));
+                R = nan(1,nSt);
                 for itmp = 1:nSt
-                    if sum(trial_data)>0 && sum(T(itmp,:))>0 %&& mod(itr,2)>0
-                        R(itmp) = (trial_data*T(itmp,:)')/(norm(trial_data)*norm(T(itmp,:)));
+                    
+                    % Get template data
+                    Nm1_PSTH = mean(CTTS(iUn,:,Train_trs(itmp,Train_trs(itmp,:)~=itr),itmp),3);
+                    
+                    % Calculate dot product
+                    if sum(trial_data)>0 && sum(Nm1_PSTH)>0 
+                        R(itmp) = (trial_data * Nm1_PSTH') / (norm(trial_data)*norm(Nm1_PSTH));
                     else
                         R(itmp) = 0;
                     end
                 end
                 Un_DataTrain  = [ Un_DataTrain;   R ];
-                TrueTrain  = [ TrueTrain; ist ];
+                TrueTrain     = [ TrueTrain; ist ];
             end
             
             %==================
@@ -145,17 +149,17 @@ for iBS = 1:BSN
                 
                 % . .  . . . . . . . . . . . . . . . . . . . . . . . . . . 
                 % . Dot product of this test trial with each template
-                R = nan(1,size(T,1));
+                R = nan(1,nSt);
                 for itmp = 1:nSt
                     if sum(trial_data)>0 && sum(T(itmp,:))>0 %&& mod(itr,2)>0
-                        R(itmp) = (trial_data*T(itmp,:)')/(norm(trial_data)*norm(T(itmp,:)));
+                        R(itmp) = (trial_data * T(itmp,:)') / (norm(trial_data)*norm(T(itmp,:)));
                     else
                         R(itmp) = 0;
                     end
                 end
                 
                 Un_DataTest  = [ Un_DataTest;   R ];
-                TrueTest  = [ TrueTest; ist ];
+                TrueTest     = [ TrueTest; ist ];
             end
             
         end %ist
