@@ -27,25 +27,27 @@ function SVM_ClassStim_rcorr
 
 whichIrr    = 'AC';
 
-whichCells  = 'all'; 
+whichCells  = 'RS'; 
 PickTrials  = 'rand';
 
 Un_Index    = [40 115];
 
-BootstrapN  = 500;
+BootstrapN  = 1000;
 KernelType  = 'linear';
 
 
 
-tau     = 10;
+tau     = 5;
 lambda  = 1/tau;
 winlen  = 500;
 convwin = exp(-lambda*(1:winlen));
+% convwin = convwin./convwin(1);
 
-PSTHsize  = 8;
-TrainSize = 5;
-TestSize  = 5;
-minTrs    = PSTHsize + TrainSize + TestSize;
+PSTHsize  = 'N-2';
+TrainSize = 1;
+TestSize  = 1;
+minTrs    = 15 + TrainSize + TestSize;
+rng('shuffle')
 
 
 %% Load data
@@ -178,40 +180,27 @@ for iBS = 1:BootstrapN
     %% If want all cells to have simultaneous trials, define all sets here
     
     if strcmp(PickTrials,'sim')
-        
+        %======================
+        % SIMULTANEOUS trials
+        %======================
         nTrials   = nan(nStim,1);
-        PSTH_trs  = nan(nStim,PSTHsize);
-        
         Train_trs = nan(nStim,TrainSize);
         Test_trs  = nan(nStim,TestSize);
-        
-        % TEMPLATES
         for itmp = 1:nStim
             if ~isempty(find(~isnan(mean(Cell_Time_Trial_Stim(1,:,:,itmp),2)),1,'last'))
                 nTrials(itmp) = find(~isnan(mean(Cell_Time_Trial_Stim(1,:,:,itmp),2)),1,'last');
             else
                 keyboard
             end
-            PSTH_trs(itmp,:)  = randperm(nTrials(itmp),PSTHsize);
             
             % TRAINING
-            SetRest = 1:nTrials(itmp);
-            SetRest(PSTH_trs(itmp,:)) = [];
-            Train_tr_ids  = randperm(length(SetRest),TrainSize);
-            Train_trs(itmp,:) = SetRest(Train_tr_ids);
-            if any(intersect(Train_trs(itmp,:),PSTH_trs(itmp,:)))
-                keyboard
-            end
+            Train_trs(itmp,:)  = randperm(nTrials(itmp),TrainSize);
             
             % TESTING
             SetRest = 1:nTrials(itmp);
-            SetRest([PSTH_trs(itmp,:) Train_trs(itmp,:)]) = [];
+            SetRest(Train_trs(itmp,:)) = [];
             Test_tr_ids  = randperm(length(SetRest),TestSize);
             Test_trs(itmp,:) = SetRest(Test_tr_ids);
-            if any(intersect(Test_trs(itmp,:),[PSTH_trs(itmp,:) Train_trs(itmp,:)]))
-                keyboard
-            end
-            
         end
     end
     
@@ -228,9 +217,9 @@ for iBS = 1:BootstrapN
     Test_TrueStim  = [];
     
     
-    %~~~~~~~~~~~~~~~~~~~~~~
+    %~~~~~~~~~~~~~~~~~~~~
     % For each cell...
-    %~~~~~~~~~~~~~~~~~~~~~~
+    %~~~~~~~~~~~~~~~~~~~~
     for iUn = 1:nUns
         
         UnTrainingData   = [];
@@ -240,101 +229,60 @@ for iBS = 1:BootstrapN
         %% Collect PSTHs for stimulus templates
         
         if strcmp(PickTrials,'rand')
-            
+            %=================
+            %  RANDOM trials
+            %=================
             nTrials   = nan(nStim,1);
-            PSTH_trs  = nan(nStim,PSTHsize);
-            T         = nan(nStim,Dur);
-            
             Train_trs = nan(nStim,TrainSize);
             Test_trs  = nan(nStim,TestSize);
-            
-            % TEMPLATES
             for itmp = 1:nStim
                 if ~isempty(find(~isnan(mean(Cell_Time_Trial_Stim(iUn,:,:,itmp),2)),1,'last'))
                     nTrials(itmp) = find(~isnan(mean(Cell_Time_Trial_Stim(iUn,:,:,itmp),2)),1,'last');
                 else
                     keyboard
                 end
-                PSTH_trs(itmp,:)  = randperm(nTrials(itmp),PSTHsize);
-                
-                %-----convolved templates
-                conv_data = [];
-                conv_data = conv(mean(Cell_Time_Trial_Stim(iUn,:,PSTH_trs(itmp,:),itmp),3),convwin);
-                T(itmp,:)  = conv_data(1:Dur);
-                
                 
                 % TRAINING
-                SetRest = 1:nTrials(itmp);
-                SetRest(PSTH_trs(itmp,:)) = [];
-                Train_tr_ids  = randperm(length(SetRest),TrainSize);
-                Train_trs(itmp,:) = SetRest(Train_tr_ids);
-                if any(intersect(Train_trs(itmp,:),PSTH_trs(itmp,:)))
-                    keyboard
-                end
-                
+                Train_trs(itmp,:)  = randperm(nTrials(itmp),TrainSize);
                 
                 % TESTING
                 SetRest = 1:nTrials(itmp);
-                SetRest([PSTH_trs(itmp,:) Train_trs(itmp,:)]) = [];
+                SetRest(Train_trs(itmp,:)) = [];
                 Test_tr_ids  = randperm(length(SetRest),TestSize);
                 Test_trs(itmp,:) = SetRest(Test_tr_ids);
-                if any(intersect(Test_trs(itmp,:),[PSTH_trs(itmp,:) Train_trs(itmp,:)]))
-                    keyboard
-                end
-                
-            end %itmp
-            
-            
-        else % just creat Templates for this Cell
-            
-            T = nan(nStim,Dur);
-            
-            % TEMPLATES
-            for itmp = 1:nStim
-                %-----convolved templates
-                conv_data = [];
-                conv_data = conv(mean(Cell_Time_Trial_Stim(iUn,:,PSTH_trs(itmp,:),itmp),3),convwin);
-                T(itmp,:)  = conv_data(1:Dur);
-            end %itmp
-            
+            end
         end
         
-%         nTrials   = nan(nStim,1);
-%         PSTH_trs  = nan(nStim,PSTHsize);
-%         T         = nan(nStim,Dur);
-%         
-%         for itmp = 1:nStim
-%             if ~isempty(find(~isnan(mean(Cell_Time_Trial_Stim(iUn,:,:,itmp),2)),1,'last'))
-%                 nTrials(itmp) = find(~isnan(mean(Cell_Time_Trial_Stim(iUn,:,:,itmp),2)),1,'last');
-%             else
-%                 keyboard
-%             end
-%             
-%             PSTH_trs(itmp,:)  = randperm(nTrials(itmp),PSTHsize);
-%             
-%             %-----convolved templates
-%             conv_data = [];
-%             conv_data = conv(mean(Cell_Time_Trial_Stim(iUn,:,PSTH_trs(itmp,:),itmp),3),convwin);
-%             T(itmp,:)  = conv_data(1:Dur);
-%         end
+        
+        %=================
+        %   TEMPLATES
+        %=================
+        T = nan(nStim,Dur);
+        for itmp = 1:nStim
+            
+            % N-1 trials
+            PSTH_trs = 1:nTrials(itmp);
+            PSTH_trs([Train_trs(itmp,:) Test_trs(itmp,:)]) = [];
+            
+            %-----convolved templates
+            conv_data = [];
+            conv_data = conv(mean(Cell_Time_Trial_Stim(iUn,:,PSTH_trs,itmp),3),convwin);
+            T(itmp,:)  = conv_data(1:Dur);
+            
+        end %itmp
         
         
         
-        %% Now gather and calculate input data
+        %% ###############################################################
+        %               Gather and calculate input data
+        %  ###############################################################
         
         for ist = 1:nStim   %true stimulus of test trials
             
-            % Collect trials for training set
-%             SetRest = 1:nTrials(ist);
-%             SetRest(PSTH_trs(ist,:)) = [];
-%             Train_tr_ids  = randperm(length(SetRest),TrainSize);
-%             Train_trs = SetRest(Train_tr_ids);
-%             if any(intersect(Train_trs,PSTH_trs(ist,:)))
-%                 keyboard
-%             end
-            
+            %==================
+            %  Training data
+            %==================
             for itr = Train_trs(ist,:)
-                
                 conv_data = [];
                 
                 %-----1ms resolution
@@ -356,19 +304,11 @@ for iBS = 1:BootstrapN
                 end
                 UnTrainingData  = [ UnTrainingData;   R ];
                 Train_TrueStim  = [ Train_TrueStim; ist ];
-                
             end
             
-            % Collect trials for test set
-%             SetRest = 1:nTrials(ist);
-%             SetRest([PSTH_trs(ist,:) Train_trs]) = [];
-%             Test_tr_ids  = randperm(length(SetRest),TestSize);
-%             Test_trs = SetRest(Test_tr_ids);
-%             if any(intersect(Test_trs,[PSTH_trs(ist,:) Train_trs]))
-%                 keyboard
-%             end
-            
-            
+            %==================
+            %    Test data
+            %==================
             for itr = Test_trs(ist,:)
                 conv_data = [];
                 
@@ -403,24 +343,29 @@ for iBS = 1:BootstrapN
         TestingData    = [ TestingData  UnTestingData];
         
     end %iUn
-        
-    Train_TrueStim = Train_TrueStim(1:40);
-    Test_TrueStim  = Test_TrueStim(1:40);
     
-    inputData     = [];
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    % Finish preparing input data
+    Train_TrueStim = Train_TrueStim(1:size(TrainingData,1));
+    Test_TrueStim  = Test_TrueStim(1:size(TestingData,1));
+    
+    inputData = [];
     inputData = [TrainingData Train_TrueStim];
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
-    
-    % - - - - - - - - -
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Train classifier
     trainedClass = trainSVMClass(inputData,KernelType);
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
-    % - - - - - - - - - - - -
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Test on held out data
     Test_FitStim  = trainedClass.predictFcn(TestingData);
     
     confMat = confusionmat(Test_TrueStim, Test_FitStim);
     AssignmentMat(:,:,iBS) = confMat./sum(confMat,2);
+    % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    
     
 end %iBS
 
@@ -453,7 +398,7 @@ cmocean('ice') %ice
 colorbar
 ylabel('True stim')
 xlabel('Assigned')
-title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %i/%i/%i trs  |  %s (N=%i)',muPC,dprime,KernelType,whichIrr,PSTHsize,TrainSize,TestSize,whichCells,nUns))
+title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s/%i/%i trs  |  %s (N=%i)',muPC,dprime,KernelType,whichIrr,PSTHsize,TrainSize,TestSize,whichCells,nUns))
 % title(sprintf('%s SVM  (iUn %s, cat)  PC=%0.1f%%  %i/%i trs, conv %i',KernelType,num2str(Un_Index),mean(diag(mean(AssignmentMat,3)))*100,TrainSize,TestSize,length(convwin)))
 
 % Save figure
@@ -482,7 +427,7 @@ CR1.PC       = muPC;
 CR1.dprime   = dprime;
 CR1.trials   = {PickTrials};
 CR1.rcorrOpt = {'norm'};
-CR1.nTemp    = PSTHsize;
+CR1.nTemp    = {PSTHsize};
 CR1.nTrain   = TrainSize;
 CR1.nTest    = TestSize;
 CR1.conv     = {'exp'};
