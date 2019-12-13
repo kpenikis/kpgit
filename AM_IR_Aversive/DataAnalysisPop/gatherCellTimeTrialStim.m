@@ -14,7 +14,7 @@ UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
 %-------
-spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+spkshift = 0; %mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
 
@@ -39,7 +39,7 @@ if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-save(fullfile(savedir,'Cell_Time_Trial_Stim_simtrs'),'Cell_Time_Trial_Stim','Un_Indices')
+save(fullfile(savedir,'Cell_Time_Trial_Stim'),'Cell_Time_Trial_Stim','Un_Indices','-v7.3')
 
 
 

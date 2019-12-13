@@ -1,5 +1,5 @@
 function [CTTS,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-    whichIrr, whichCells, nTrialMat, UnitData, ACstim, DBstim, iRS, iNS, minTrs, convwin )
+    whichIrr, whichCells, nTrialMat, UnitData, ACstim, DBstim, iRS, iNS, minTrs, convwin, AnWin )
 
 switch whichCells
     case {'all' 'RSNS'}                                         % All Cells
@@ -57,11 +57,11 @@ end
 
 switch whichIrr
     case 'AC'
-        CTTS = Cell_Time_Trial_Stim(theseCells,:,:,ACstim);
-        nTrialMat = nTrialMat(theseCells,ACstim);
+        CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,ACstim);
+%         nTrialMat = nTrialMat(theseCells,ACstim);
     case 'DB'
-        CTTS = Cell_Time_Trial_Stim(theseCells,:,:,DBstim);
-        nTrialMat = nTrialMat(theseCells,DBstim);
+        CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,DBstim);
+%         nTrialMat = nTrialMat(theseCells,DBstim);
 end
 
 % Repmat, to artificially increase dimensionality of training data

@@ -5,6 +5,9 @@ global fn trN Duration Stimuli spkshift
 
 includethiscell = 0;
 
+padPreT0 = 500;
+padPost  = 500;
+
 if ~exist('Stimuli','var')
     Stimuli   = 1:6;
 end
@@ -35,7 +38,7 @@ end
 %%
 try
     
-SpikesTrials  = nan(1,Duration,trN,numel(Stimuli)+3);
+SpikesTrials  = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+2);
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
@@ -82,6 +85,7 @@ for ist = 1:numel(Stimuli)
         end
         
     else                                               % SILENCE TRIALS
+        keyboard
         clear t2 t3 t_win
         SilPd = [TrialData.onset(1) TrialData.offset(1)];
         
@@ -114,11 +118,14 @@ for ist = 1:numel(Stimuli)
         
         istid = stid;
         if stid==8
-            istid = 9;
+            istid = 9; %advance one slot for DB
         end
         
-        sp=[]; sp = spiketimes( spiketimes>t2(it) ...
-            & spiketimes<=t3(it) ) - t2(it);
+        WinBeg = t2(it)-padPreT0;
+        WinEnd = t3(it)+padPost;
+        
+        sp=[]; sp = spiketimes( spiketimes>WinBeg ...
+            & spiketimes<=WinEnd ) - WinBeg;
         
         SpikesTrials(1,:,it,istid)  = 0;
         SpikesTrials(1,sp,it,istid) = 1;
@@ -127,33 +134,38 @@ for ist = 1:numel(Stimuli)
         % Next segment start
         if stid>6
             istid = istid+1;
-            s2 = Phase0(:,find(Phase0(1,:)>(t2(it)+500),1,'first'));
             
-            sp=[]; sp = spiketimes( spiketimes>s2(1) ...
-                & spiketimes<=(s2(1)+Duration) ) - s2(1);
+            s2 = Phase0(:,find(Phase0(1,:)>=(t2(it)+500),1,'first'));
             
-            SpikesTrials(1,:,it,istid)  = 0;
-            SpikesTrials(1,sp,it,istid) = 1;
-        end
-        
-        % Next segment start
-        if stid==8
-            istid = istid+1;
-            s3 = Phase0(:,find(Phase0(1,:)>(s2(1)+500),1,'first'));
+            WinBeg = s2(1)-padPreT0;
+            WinEnd = s2(1)+Duration+padPost;
             
-            sp=[]; sp = spiketimes( spiketimes>s3(1) ...
-                & spiketimes<=(s3(1)+Duration) ) - s3(1);
+            sp=[]; sp = spiketimes( spiketimes>WinBeg ...
+                & spiketimes<=WinEnd ) - WinBeg;
             
             SpikesTrials(1,:,it,istid)  = 0;
             SpikesTrials(1,sp,it,istid) = 1;
         end
         
+%         % Next segment start
+%         if stid==8
+%             istid = istid+1;
+%             s3 = Phase0(:,find(Phase0(1,:)>(s2(1)+500),1,'first'));
+%             
+%             sp=[]; sp = spiketimes( spiketimes>s3(1) ...
+%                 & spiketimes<=(s3(1)+Duration) ) - s3(1);
+%             
+%             SpikesTrials(1,:,it,istid)  = 0;
+%             SpikesTrials(1,sp,it,istid) = 1;
+%         end
 %         figure; 
 %         plot(t2(it)+(0:2000),SoundStream(t2(it)+(0:2000)))
 %         hold on
-%         plot([t2(it) t2(it)],[0 1])
-%         plot([s2(1) s2(1)],[0 1])
-%         plot([s3(1) s3(1)],[0 1])
+%         plot([t2(it) t2(it)],[0 1.5],'k','LineWidth',2)
+%         plot([s2(1) s2(1)],[0 1.5])
+%         plot([s3(1) s3(1)],[0 1.5])
+%         plot([s3(1) s3(1)]+500,[0 1.5])
+%         plot([t2(it) t2(it)]+1937,[0 1.5],'k','LineWidth',2)
         
     end %it
     
