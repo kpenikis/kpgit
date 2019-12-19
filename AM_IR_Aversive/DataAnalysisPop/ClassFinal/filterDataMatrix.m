@@ -1,14 +1,17 @@
-function [CTTS,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-    whichIrr, whichCells, nTrialMat, UnitData, ACstim, DBstim, iRS, iNS, minTrs, convwin, AnWin )
+function [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+    whichIrr, whichCells, nTrialMat, UnitData, theseStim, iRS, iNS, minTrs, convwin, AnWin )
 
 switch whichCells
     case {'all' 'RSNS'}                                         % All Cells
-        switch whichIrr
-            case 'AC'
-                theseCells = find(all(nTrialMat(:,ACstim)>=minTrs,2));
-            case 'DB'
-                theseCells = find(all(nTrialMat(:,DBstim)>=minTrs,2));
-        end
+        theseCells = find(all(nTrialMat(:,theseStim)>=minTrs,2));
+%         switch whichIrr
+%             case 'AC'
+%                 theseCells = find(all(nTrialMat(:,ACstim)>=minTrs,2));
+%             case 'DB'
+%                 theseCells = find(all(nTrialMat(:,DBstim)>=minTrs,2));
+%             case 'Speech'
+%                 theseCells = find(all(nTrialMat>=minTrs,2));
+%         end
         
         if strcmp(whichCells,'RSNS')
             keyboard
@@ -21,14 +24,15 @@ switch whichCells
         end
         
         
-    case {'Mar28-AM' 'Mar30-AM' 'Apr02-AM' 'Apr11-AM'}            % Session
+    case {'Mar28-AM' 'Mar30-AM' 'Apr02-AM' 'Apr11-AM' 'Jan17-AM' 'Oct26-AM' 'Mar26-AM' 'Jan25-AM' 'Jan21-AM'}            % Session
         
-        switch whichIrr
-            case 'AC'
-                theseCells = find( strcmp({UnitData.Session}',whichCells) & all(nTrialMat(:,ACstim)>=minTrs,2) );
-            case 'DB'
-                theseCells = find( strcmp({UnitData.Session}',whichCells) & all(nTrialMat(:,DBstim)>=minTrs,2) );
-        end
+        theseCells = find( strcmp({UnitData.Session}',whichCells) & all(nTrialMat(:,theseStim)>=minTrs,2) );
+%         switch whichIrr
+%             case 'AC'
+%                 theseCells = find( strcmp({UnitData.Session}',whichCells) & all(nTrialMat(:,ACstim)>=minTrs,2) );
+%             case 'DB'
+%                 theseCells = find( strcmp({UnitData.Session}',whichCells) & all(nTrialMat(:,DBstim)>=minTrs,2) );
+%         end
         
         
     case 'select'                                  % One or subset of cells
@@ -37,32 +41,43 @@ switch whichCells
         
         
     case 'RS'                                                          % RS
-        switch whichIrr
-            case 'AC'
-                theseCells = iRS(all(nTrialMat(iRS,ACstim)>=minTrs,2));
-            case 'DB'
-                theseCells = iRS(all(nTrialMat(iRS,DBstim)>=minTrs,2));
-        end
+        theseCells = iRS(all(nTrialMat(iRS,theseStim)>=minTrs,2));
+%         switch whichIrr
+%             case 'AC'
+%                 theseCells = iRS(all(nTrialMat(iRS,ACstim)>=minTrs,2));
+%             case 'DB'
+%                 theseCells = iRS(all(nTrialMat(iRS,DBstim)>=minTrs,2));
+%             case 'Speech'
+%                 theseCells = iRS(all(nTrialMat(iRS,:)>=minTrs,2));
+%         end
         
         
     case 'NS'                                                          % NS
-        switch whichIrr
-            case 'AC'
-                theseCells = iNS(all(nTrialMat(iNS,ACstim)>=minTrs,2));
-            case 'DB'
-                theseCells = iNS(all(nTrialMat(iNS,DBstim)>=minTrs,2));
-        end
+        theseCells = iRS(all(nTrialMat(iRS,theseStim)>=minTrs,2));
+%         switch whichIrr
+%             case 'AC'
+%                 theseCells = iNS(all(nTrialMat(iNS,ACstim)>=minTrs,2));
+%             case 'DB'
+%                 theseCells = iNS(all(nTrialMat(iNS,DBstim)>=minTrs,2));
+%             case 'Speech'
+%                 theseCells = iNS(all(nTrialMat(iNS,:)>=minTrs,2));
+%         end
 end
 
 
-switch whichIrr
-    case 'AC'
-        CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,ACstim);
-%         nTrialMat = nTrialMat(theseCells,ACstim);
-    case 'DB'
-        CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,DBstim);
-%         nTrialMat = nTrialMat(theseCells,DBstim);
-end
+% Filter the data matrix
+CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
+
+% switch whichIrr
+%     case 'AC'
+%         CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,ACstim);
+% %         nTrialMat = nTrialMat(theseCells,ACstim);
+%     case 'DB'
+%         CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,DBstim);
+% %         nTrialMat = nTrialMat(theseCells,DBstim);
+%     case 'Speech'
+%         CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,:);
+% end
 
 % Repmat, to artificially increase dimensionality of training data
 % CTTS = repmat(CTTS,[50 1 1 1]);
