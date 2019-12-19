@@ -78,7 +78,7 @@ for iUn = 1:numel(Clusters)
     % Convert FR to z-score
     bs_smth = 20;
     [Stream_FRsmooth,Stream_zscore,Stream_Spikes,ymaxval] = convertSpiketimesToFR(spiketimes,...
-        length(SpoutStream),TrialData.onset(1),TrialData.offset(1),10,bs_smth,'silence');
+        length(SpoutStream),TrialData.onset(1),TrialData.offset(1),'exp',bs_smth,'silence');
     
     meanFR = 1000* sum(Stream_Spikes(TrialData.onset(1):end)) / length(Stream_Spikes(TrialData.onset(1):end));
     
@@ -97,7 +97,7 @@ for iUn = 1:numel(Clusters)
         
     ymaxval = 0;
 
-    for ist = 1:numel(allStim)
+    for ist = numel(allStim)
         
         stid = allStim(ist);
         

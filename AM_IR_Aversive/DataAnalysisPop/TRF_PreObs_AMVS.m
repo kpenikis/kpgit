@@ -24,7 +24,7 @@ function TRF_PreObs_AMVS(RERUN)
 global fn spkshift smth_win exclOnset AM_durs VS_durs
 
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-smth_win    = 10;
+smth_win    = 5;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 % only set up for one val rn
 TLAGS = 100;
@@ -33,7 +33,7 @@ exclOnset   = 0;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 PlotEx      = 0;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-nBS         = 500;
+nBS         = 10;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 if nargin<1
@@ -178,7 +178,7 @@ for iiUn = 1:size(Uindices_AMVS,1)
     coinc_AM_VS   = nan(numel(TLAGS),nBS);
     coinc_VS_self = nan(numel(TLAGS),nBS);
     coinc_VS_AM   = nan(numel(TLAGS),nBS);
-    
+        
     for iBS = 1:nBS
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -365,6 +365,10 @@ for iiUn = 1:size(Uindices_AMVS,1)
             
             
         end %tlags
+        
+%         plot(STRF_AM(it,1:tlag,iBS),'m')
+%         plot(STRF_VS(it,1:tlag,iBS),'b')
+        
     end %iBS
     
     
@@ -413,11 +417,11 @@ end %iUn
 Results(1,:)=[];
 
 % Save Results
-save(fullfile(savedir,'Res_TRF_AMVS.mat'),'Results','-v7.3')
+% save(fullfile(savedir,'Res_TRF_AMVS.mat'),'Results','-v7.3')
 
 % And write to Matched Units excel file
-writetable(Results,fullfile(fn.processed,'UnMatchedLUT.xlsx'),...
-    'Sheet',3,'Range','A1:K30')
+% writetable(Results,fullfile(fn.processed,'UnMatchedLUT.xlsx'),...
+%     'Sheet',4,'Range','A1:K30')
 
 
 else

@@ -15,8 +15,8 @@ smth_win    = 10;
 Irr         = [6 7];
 Pdc         = [1 2 3 4 5]; 
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-TLAGS       = round(logspace(log10(20),log10(500),10));
-% TLAGS       = [];
+% TLAGS       = round(logspace(log10(20),log10(500),10));
+TLAGS       = 500;
 d_tlag      = 100;
 TLAGS       = sort([TLAGS d_tlag]);
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -35,7 +35,7 @@ UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
 %-------
-spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+spkshift = 0; %mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
 
@@ -152,7 +152,7 @@ for iUn = 1:numel(UnitData)
     %%
     
     [Stream_FRsmooth,Stream_zscore,Stream_spikes,ymaxval] = convertSpiketimesToFR(spiketimes,...
-        length(SoundStream),TrialData.onset(1),TrialData.offset(1),[],smth_win,'silence');
+        length(SoundStream),TrialData.onset(1),TrialData.offset(1),'exp',smth_win,'silence');
     
     % Find all stimuli presented with these parameters, given a
     % sufficient number of trials without diruptive artifact
@@ -434,12 +434,12 @@ for iUn = 1:numel(UnitData)
         BMFrt=nan;
     end
     
-    % Override any data for this unit
-    if iUn==87
-        for ii=6:10
-            Results_addrow{ii}=nan;
-        end
-    end
+% %     % Override any data for this unit
+% %     if iUn==87
+% %         for ii=6:10
+% %             Results_addrow{ii}=nan;
+% %         end
+% %     end
     
     % Add to Results table
     Results_addrow = { subject session channel clu  iUn   mean(coinc_Pdc_Irr(TLAGS==100,:),'omitnan')   mean(coinc_Irr_Irr(TLAGS==100,:),'omitnan')  p_tt  c_max  i_max   UnitData(iUn).BaseFR  mean(psth_Pdc1)  VSmax  VSrt  BMFrt  };

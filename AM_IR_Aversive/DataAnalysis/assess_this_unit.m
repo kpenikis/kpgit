@@ -1,40 +1,21 @@
 % function assess_this_unit
 
+fprintf('  %s  %s  ch %i  clu %i\n',subject,session,channel,clu)
 
 %% GET STIM INFO
 [dBSPL,LP] = theseSoundParams(TrialData);
-% if numel(dBSPL)>1 || numel(LP)>1
-%     keyboard    %if WWWlf_395 DA: dBSPL = 75;
-% end
-
-
-%% Label response type
-
-fprintf('  %s  %s  ch %i  clu %i\n',subject,session,channel,clu)
-
-% result = input('Unit''s response type \n 0: n/a \n 1: sparse \n 2: sustained \n 3: gap \n  ');
-% switch result
-%     case 0
-%         RespType = 'na';
-%     case 1
-%         RespType = 'sparse';
-%     case 2
-%         RespType = 'sustained';
-%     case 3
-%         RespType = 'gap';
-% end
-RespType = 'na';
-
+if numel(dBSPL)>1 || numel(LP)>1
+    keyboard    %if WWWlf_395 DA: dBSPL = 75;
+end
 
 
 %% Get FR over session
 
-bs_hist = 1;
-bs_smth = 20;
+SmoothType  = 'gauss';
+SmoothWidth = 20;
 
 [Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(unique(round(spiketimes)),...
-    length(SpoutStream),TrialData.onset(1),TrialData.offset(1),bs_hist,bs_smth,'silence');
-
+    length(SpoutStream),TrialData.onset(1),TrialData.offset(1),SmoothType,SmoothWidth,'silence');
 
 % Skip if unit has very low overall firing rate
 if mean(Stream_FRsmooth(TrialData.onset(1):end)) < FRcutoff
@@ -118,7 +99,7 @@ for spl = dBSPL'
         %  and adjust spiketimes accordingly
         
         try
-        IntegrationTime_spk = calculateIntegrationTime(unique(round(spiketimes)),TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType);
+            IntegrationTime_spk = calculateIntegrationTime(unique(round(spiketimes)),TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu);
         catch
             warning('integration time program didnt run properly')
             IntegrationTime_spk = 0;
@@ -126,12 +107,13 @@ for spl = dBSPL'
         if isnan(IntegrationTime_spk)
             IntegrationTime_spk = 0;
         end
-        spiketimes = unique(round(spiketimes - IntegrationTime_spk));
+%         spiketimes = unique(round(spiketimes - IntegrationTime_spk));
+        spiketimes = unique(round(spiketimes)); %NO MORE SPIKE SHIFT!
         
-        % Re-run with shifted spiketimes
-        [Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(spiketimes,...
-            length(SpoutStream),TrialData.onset(1),TrialData.offset(1),bs_hist,bs_smth,'silence');
-        
+%         % Re-run with shifted spiketimes
+%         [Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(spiketimes,...
+%             length(SpoutStream),TrialData.onset(1),TrialData.offset(1),SmoothType,SmoothWidth,'silence');
+%         
         
         %% Now collect rest of this unit's data
         %   AFTER shifting spike times!
@@ -281,7 +263,7 @@ for spl = dBSPL'
         
         %% Save info to table
         
-        add_row = { subject session channel clu RespType };
+        add_row = { subject session channel clu };
         [add_row{end+1:size(UnitInfo,2)}] = deal(nan);
         
         UnitInfo = [ UnitInfo; add_row ];

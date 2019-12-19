@@ -1,4 +1,4 @@
-function IntegrationTime_spk = calculateIntegrationTime(spiketimes,TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu,RespType)
+function IntegrationTime_spk = calculateIntegrationTime(spiketimes,TrialData,all_TDidx,Stream_Spikes,Stream_FRsmooth,AMrates,subject,session,channel,clu)
 
 VSdata_spk    = nan(3,8);
 MeanPhase_spk = nan(1,8);

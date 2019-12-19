@@ -69,7 +69,7 @@ if RERUN
                 
         % - - - -   Collect data   - - - - -
         
-        get_trial_data_speech
+        get_trial_speech_RepSegs
         
         FR_vec(iUn,:,:)  = iu_FRvec;
         zFR_vec(iUn,:,:) = iu_zFRvec;

@@ -1,9 +1,14 @@
-function [SpikesTrials,includethiscell] = get_rand_tr_spike_trains_allTrs(UnitData,iUn)
-% called by cumulativeSpikeCount
+function [SpikesTrials,StimTrials,includethiscell] = get_simTr_CTTS_Speech(UnitData,iUn)
+% called by gatherCellTimeTrialStim_Speech
+%
+% KP, 2019-12-16
+%
 
 global fn trN Duration Stimuli spkshift
 
 includethiscell = 0;
+
+spkshift = 0;
 
 padPreT0 = 500;
 padPost  = 500;
@@ -39,87 +44,64 @@ end
 try
     
 SpikesTrials  = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+2);
+StimTrials    = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+2);
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
 [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,unique(vertcat(Info.artifact(:).trials)),UnitData(iUn).spl,UnitData(iUn).lpn,1);
+
 allStim = unique(TrialData.trID(all_TDidx))';
+if numel(allStim)<6
+    keyboard
+end
 
 for ist = 1:numel(Stimuli)
     
     stid = Stimuli(ist);
     
-    Silence = false;
-    if stid==9
-        Silence = true;
-    elseif ~ismember(stid,allStim)
-        continue
-    end
-    
     
     %% Collect trial indices and timestamps
     
-    if ~Silence                                          % SOUND TRIALS
-        
-        if stid==3 || stid==6
-            TDidx = all_TDidx( TrialData.trID(all_TDidx)==stid & TrialData.ITIflag(all_TDidx)==0 );
-            % Find Pdc trials that follow same rate during ITI
-            TDidx = TDidx(TrialData(TDidx-1,:).trID ~= stid);
-            
-            TDidx_iti = all_TDidx(TrialData.trID(all_TDidx)==stid & TrialData.ITIflag(all_TDidx)==1 & TrialData.Spout(all_TDidx)>0.95);
-            TDidx_iti = TDidx_iti(TrialData(TDidx_iti-1,:).trID>6);
-        else
-            TDidx = all_TDidx( TrialData.trID(all_TDidx)==stid );
-            TDidx_iti = [];
-        end
-        
-        % Get timestamps of onsets and offsets
-        clear t2 t3 t_win
-        t2 = TrialData.onset(TDidx);
-        
-        % Add ITI trials (shortened to match duration)
-        if ~isempty(TDidx_iti) && numel(t2)<trN
-            t2 = [t2; TrialData.onset(TDidx_iti)];
-            TDidx = [TDidx; TDidx_iti];
-        end
-        
-    else                                               % SILENCE TRIALS
-        keyboard
-        clear t2 t3 t_win
-        SilPd = [TrialData.onset(1) TrialData.offset(1)];
-        
-        t2 = TrialData.onset(1) : Duration : (TrialData.offset(1)-mod(diff(SilPd),Duration)-Duration);
-        TDidx = 1:length(t2);
-        Ntrials(stid) = length(t2);
-        
-    end
+    TDidx = all_TDidx( TrialData.trID(all_TDidx)==stid );
     
-%     if numel(t2)<trN
+    % Get timestamps of onsets and offsets
+    clear t2 t3 t_win
+    t2 = TrialData.onset(TDidx);
+        
+%     if numel(t2)<11
+% %         keyboard
 %         sprintf('not enough trials for this stim/cell')
 %         includethiscell = 0;
 %         return
 %     end
     
-    kt     = 1:length(t2); %randperm(length(t2),trN);
+    kt     = 1:length(t2);
     t2     = t2(kt);
+    if stid==3
+        t2 = t2+30;
+    end
+    if stid==4
+        t2 = t2+60;
+    end
     TDidx  = TDidx(kt);
     
     t3 = t2 + Duration;
     
-    if Silence && t3(end)>TrialData.offset(1)
-        keyboard
-    end
-    
     
     %% Get spiking activity for each trial
-    
+%     figure; hold on
+%     title(stid)
     for it = 1:min(numel(TDidx),trN)
         
         istid = stid;
-        if stid==8
-            istid = 9; %advance one slot for DB
+        if stid==4
+            istid = 5; %advance one slot for DB
         end
+        if stid>4
+            istid = stid+2; %advance one slot for DB
+        end
+        
         
         WinBeg = t2(it)-padPreT0;
         WinEnd = t3(it)+padPost;
@@ -130,42 +112,53 @@ for ist = 1:numel(Stimuli)
         SpikesTrials(1,:,it,istid)  = 0;
         SpikesTrials(1,sp,it,istid) = 1;
         
+        StimTrials(1,:,it,istid) = SoundStream((WinBeg+1):WinEnd);
         
-        % Next segment start
-        if stid>6
+        
+        % Add another segment from sentence STIMULUS 3
+        if stid==3
             istid = istid+1;
             
-            s2 = Phase0(:,find(Phase0(1,:)>=(t2(it)+500),1,'first'));
+            s2 = t2(it) + 650;
             
-            WinBeg = s2(1)-padPreT0;
-            WinEnd = s2(1)+Duration+padPost;
+            WinBeg = s2-padPreT0;
+            WinEnd = s2+Duration+padPost;
             
             sp=[]; sp = spiketimes( spiketimes>WinBeg ...
                 & spiketimes<=WinEnd ) - WinBeg;
             
             SpikesTrials(1,:,it,istid)  = 0;
             SpikesTrials(1,sp,it,istid) = 1;
+            
+            StimTrials(1,:,it,istid) = SoundStream((WinBeg+1):WinEnd);
         end
         
-%         % Next segment start
-%         if stid==8
-%             istid = istid+1;
-%             s3 = Phase0(:,find(Phase0(1,:)>(s2(1)+500),1,'first'));
-%             
-%             sp=[]; sp = spiketimes( spiketimes>s3(1) ...
-%                 & spiketimes<=(s3(1)+Duration) ) - s3(1);
-%             
-%             SpikesTrials(1,:,it,istid)  = 0;
-%             SpikesTrials(1,sp,it,istid) = 1;
-%         end
-%         figure; 
-%         plot(t2(it)+(0:2000),SoundStream(t2(it)+(0:2000)))
-%         hold on
-%         plot([t2(it) t2(it)],[0 1.5],'k','LineWidth',2)
-%         plot([s2(1) s2(1)],[0 1.5])
-%         plot([s3(1) s3(1)],[0 1.5])
-%         plot([s3(1) s3(1)]+500,[0 1.5])
-%         plot([t2(it) t2(it)]+1937,[0 1.5],'k','LineWidth',2)
+        
+        % Add another segment from sentence STIMULUS 4
+        if stid==4 
+            istid = istid+1;
+            
+            s2 = t2(it) + 2810;
+            
+            WinBeg = s2-padPreT0;
+            WinEnd = s2+Duration+padPost;
+            
+            sp=[]; sp = spiketimes( spiketimes>WinBeg ...
+                & spiketimes<=WinEnd ) - WinBeg;
+            
+            SpikesTrials(1,:,it,istid)  = 0;
+            SpikesTrials(1,sp,it,istid) = 1;
+            
+            StimTrials(1,:,it,istid) = SoundStream((WinBeg+1):WinEnd);
+        end
+        
+        % Plot stim to check
+%         figure; hold on
+%         plot(t2(it)+(0:2000)-t2(it),SoundStream(t2(it)+(0:2000)))
+%         plot([t2(it) t2(it)]-t2(it),[0 0.03],'k','LineWidth',2)
+%         plot([t2(it) t2(it)]+Duration-t2(it),[0 0.03],'LineWidth',2)
+%         plot([s2 s2]-t2(it),[0 0.03],'k','LineWidth',2)
+%         plot([s2 s2]+Duration-t2(it),[0 0.03],'LineWidth',2)
         
     end %it
     

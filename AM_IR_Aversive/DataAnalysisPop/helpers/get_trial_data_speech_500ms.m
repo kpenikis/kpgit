@@ -18,6 +18,7 @@ spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 )');
 % Calculate zFR
 bs_hist = 1;
 bs_smth = 20;
+keyboard
 
 [Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(spiketimes,...
     TrialData.offset(end)+100,TrialData.onset(1),TrialData.offset(1),bs_hist,bs_smth,'silence');

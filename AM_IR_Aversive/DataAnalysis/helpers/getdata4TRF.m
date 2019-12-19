@@ -49,7 +49,7 @@ end
 %%
 
 [Stream_FRsmooth,Stream_zscore,Stream_spikes,~] = convertSpiketimesToFR(spiketimes,...
-    length(SoundStream),TrialData.onset(1),TrialData.offset(1),[],smth_win,'silence');
+    length(SoundStream),TrialData.onset(1),TrialData.offset(1),'exp',smth_win,'silence');
 
 % Find all stimuli presented with these parameters, and trials without 
 % diruptive artifact & while the animal was drinking

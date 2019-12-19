@@ -21,7 +21,7 @@ whichCells   = 'all';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
-WinBegs      = 501+[-50 -25 500];
+WinBegs      = 501+[500];
 WinEnds      = WinBegs+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
@@ -30,7 +30,7 @@ PickTrials   = 'rand';
 % STIM
 whichIrr     = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 10;
+BootstrapN   = 200;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -147,7 +147,8 @@ print(fullfile(savedir,savename),'-dpdf')
 
 %% Save results to master table 
 
-tablesavename = sprintf('CR_v%s_%s_%s',varPar,whichIrr,whichCells);
+mastertablesavename = sprintf('CR_v%s_%s_%s',varPar,whichIrr,whichCells);
+thistablesavename   = savename;
 
 CR1 = table;
 CR1.figname  = {savename};
@@ -170,15 +171,19 @@ CR1.tau      = tau;
 % Load saved table
 clear q;
 try
-q=load(fullfile(savedir,tablesavename));
+    q=load(fullfile(savedir,mastertablesavename));
 end
 
+if ii>1 && ~exist('q','var')
+    keyboard
+end
 
 if ~exist('q','var')
     
     % Save new table
     CR = CR1;
-    save(fullfile(savedir,tablesavename),'CR','-v7.3')
+    save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
+    save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
     
 else % Save updated table
     
@@ -186,10 +191,25 @@ else % Save updated table
     CR = q.CR;
     CR = [CR; CR1];
     
-    save(fullfile(savedir,tablesavename),'CR','-v7.3')
+    save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
+    save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
 end
 
 
 end %vary classification parameter
+
+keyboard
+
+figure;
+plot([0 0],[2 3.5],'-k')
+hold on
+plot([CR.WinBeg CR.WinEnd]'-500,[[CR.dprime] [CR.dprime]]','-b','LineWidth',3)
+xlabel('Time in stimulus')
+ylabel('d''')
+title('Performance as a function of window analyzed')
+grid on
+
+print_eps_kp(gcf,fullfile(savedir,mastertablesavename))
+
 
 end

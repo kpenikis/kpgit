@@ -1,4 +1,4 @@
-function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,bs_rect,bs_gaus,REFERENCE)
+function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,SmoothType,SmoothWin,REFERENCE)
 % [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,bs_rect,bs_gaus,REFERENCE)
 %
 % For use with the long stream stimulus. Bins and smooths spiketimes to
@@ -8,35 +8,44 @@ function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimes
 % throughout the whole session. 
 % Lastly, outputs the ymaxval, for plotting all rasters on the same axes.
 %
-% KP, 2018-03; updated 2018-07
+% KP, 2018-03; updated 2019-12
 
-warning('Now smoothing FR with exponential filter')
+
+if ~ischar(SmoothType)
+    error('Update smoothing input variables')
+end
 
 Stream_Spks = zeros(1,StreamNSamples);
 Stream_Spks(spiketimes) = 1;
 
 
 % Get smoothed FR from spiketimes for entire stream
-
-%gaussian window
-window=gausswin(bs_gaus);
-window=window-min(window);
-window=window/sum(window);
-
-%rectangular window
-% window=rectwin(bs_rect);
-% window=window/sum(window);
-
-% Stream_FRsmooth = conv(Stream_Spks,window,'same').*1e3;
-
-
-%exponential decay
-winlen = 1000;
-lambda = 2/bs_gaus;
-window = exp(-lambda*(1:winlen));
-
-Stream_FRsmooth = conv(Stream_Spks,window).*1e3;
-Stream_FRsmooth = Stream_FRsmooth(1:length(Stream_Spks));
+switch SmoothType
+    
+    case 'gauss'
+        %gaussian window
+        window=gausswin(SmoothWin);
+        window=window-min(window);
+        window=window/sum(window);
+        
+        Stream_FRsmooth = conv(Stream_Spks,window,'same').*1e3;
+        
+    case 'rect'
+        %rectangular window
+        window=rectwin(SmoothWin);
+        window=window/sum(window);
+        
+        Stream_FRsmooth = conv(Stream_Spks,window,'same').*1e3;
+        
+    case 'exp'
+        %exponential decay
+        winlen = 1000;
+        lambda = 1/SmoothWin;
+        window = exp(-lambda*(1:winlen));
+        
+        Stream_FRsmooth = conv(Stream_Spks,window).*1e3;
+        Stream_FRsmooth = Stream_FRsmooth(1:length(Stream_Spks));
+end
 
 
 % Convert FR to z-score
@@ -81,7 +90,7 @@ Stream_zscore    = Stream_zscore(1:StreamNSamples);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Set ymax based on overall FR of unit
 
-yvals = [30 50 75 100 150 200 250 300 400 500 600 700 800];
+yvals = [30 50 75 100 150 200 250 300 400 500 600 700 800 1000 1500];
 yin = find( ( max(yvals, median(Stream_FRsmooth(msStart:end))+3*std(Stream_FRsmooth(msStart:end)) ) - yvals )==0 );
 ymaxval = yvals(yin(1));
 
