@@ -51,6 +51,17 @@ IRDur  = round(sum(1./[2 4 8 16 32 2 4 8 16 32]) * Info.fs_sound); %samples
 nw=0;
 nt=0;
 
+Warn_Onsets   =[];
+Warn_Offsets  =[];
+Warn_ID       =[];
+Warn_Onsets   =[];
+Warn_ITI_flag =[];
+Warn_IR_flag  =[];
+Warn_SPL      =[];
+Warn_LP       =[];
+Warn_LP       =[];
+Warn_Spout_pct=[];
+
 for it = 1:numel(trialID)
     
     
