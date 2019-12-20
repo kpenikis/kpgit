@@ -66,7 +66,7 @@ CUTOFF = 0.25;
 % Remove outlier periods
 for irate=[2 4 8 16 32]
     idx = find(Phase0(2,:)==irate);
-    fprintf('   %i of %i %i Hz pds removed\n', sum(pctDiff(idx(1:end-1))>0.1),numel(idx),irate)
+    fprintf('   %i of %i %i Hz pds removed\n', sum(pctDiff(idx(1:end-1))>CUTOFF),numel(idx),irate)
 end
 
 Phase0(:,pctDiff>CUTOFF) = [];
