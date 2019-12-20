@@ -20,7 +20,7 @@ varPar       = 'AnDur';
 whichCells   = 'all'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
-Dur          = [500];
+Dur          = [10:10:150 250 350 500];
 WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -99,125 +99,118 @@ allUns = size(Env_Time_Trial_Stim,1);
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 for ii = 1:numel(WinEnds)
     
-    for thisNun = [1 50]
-        
-        AnWin = WinBeg(ii):WinEnds(ii);
-                
-        % Define cells and stimuli
-        [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+    AnWin = WinBeg(ii):WinEnds(ii);
+    
+    % Define cells and stimuli
+    [~,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
         whichIrr, whichCells, nTrialMat, UnitData,...
         theseStim, iRS, iNS, minTrs, convwin, AnWin );
-        
-        
-        % Also classify Envelope
-        theseCells
-        ETTS = Env_Time_Trial_Stim(1:thisNun,AnWin,:,theseStim);
-        
-        AssMat = runSVMclass( ETTS(:,:,:,:), BootstrapN, nStim, Dur, thisNun, ...
+    
+    
+    % Also classify Envelope    
+    AssMat = runSVMclass( Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim), BootstrapN, nStim, Dur, nUns, ...
         PickTrials, TrainSize, TestSize, KernelType );
-        
-        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        %##########################################################################
-        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        
-        
-        %%
-        % Figure settings
-        set(0,'DefaultTextInterpreter','none')
-        set(0,'DefaultAxesFontSize',12)
-        
-        % scrsz = get(0,'ScreenSize');     %[left bottom width height]
-        % fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
-        % shortscreen = [1 scrsz(4)/3 scrsz(3) scrsz(4)/2];
-        
-        
-        %% Plot ENVELOPE
-        
-        ConfMat = mean(AssMat,3);
-        muPC    = mean(diag(ConfMat))*100;
-        dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
-        
-        % Plot
-        hf(ii) = figure;
-        imagesc(ConfMat)
-        axis square
-        caxis([0 1])
-        cmocean('ice') %ice
-        % cmocean('curl','pivot',0)
-        colorbar
-        ylabel('True stim')
-        xlabel('Assigned')
-        set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
-        
-        title(sprintf('Env: %0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
-        muPC,dprime,KernelType,whichIrr,whichCells,thisNun))
-        
-        
-        % Save figure
-        savedir = fullfile(fn.figs,'ClassAM','Env');
-        if ~exist(savedir,'dir')
+    
+    %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    %##########################################################################
+    %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    
+    
+    %%
+    % Figure settings
+    set(0,'DefaultTextInterpreter','none')
+    set(0,'DefaultAxesFontSize',12)
+    
+    % scrsz = get(0,'ScreenSize');     %[left bottom width height]
+    % fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
+    % shortscreen = [1 scrsz(4)/3 scrsz(3) scrsz(4)/2];
+    
+    
+    %% Plot ENVELOPE
+    
+    ConfMat = mean(AssMat,3);
+    muPC    = mean(diag(ConfMat))*100;
+    dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
+    
+    % Plot
+    hf(ii) = figure;
+    imagesc(ConfMat)
+    axis square
+    caxis([0 1])
+    cmocean('ice') %ice
+    % cmocean('curl','pivot',0)
+    colorbar
+    ylabel('True stim')
+    xlabel('Assigned')
+    set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
+    
+    title(sprintf('Env: %0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
+        muPC,dprime,KernelType,whichIrr,whichCells,nUns))
+    
+    
+    % Save figure
+    savedir = fullfile(fn.figs,'ClassAM','Env');
+    if ~exist(savedir,'dir')
         mkdir(savedir)
-        end
+    end
+    
+    %         savename = sprintf('Res_v%s_Train%i_%s_%s_%s',varPar,...
+    %             TrainSize,whichIrr,whichCells,PickTrials);
+    savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichIrr,whichCells);
+    
+    print(hf(ii),fullfile(savedir,savename),'-dpdf')
+    
+    
+    %% Save results to master table
+    
+    mastertablesavename = sprintf('EnvCR_v%s_%s_%s',varPar,whichIrr,whichCells);
+    %         mastertablesavename = sprintf('CR_v%s_%s',varPar,whichIrr);
+    thistablesavename   = savename;
+    
+    CR1 = table;
+    CR1.figname  = {savename};
+    CR1.Stim     = {whichIrr};
+    CR1.Cells    = {whichCells};
+    CR1.iC       = 0;
+    CR1.Results  = {AssMat};
+    CR1.PC       = muPC;
+    CR1.dprime   = dprime;
+    CR1.WinBeg   = WinBeg(ii);
+    CR1.WinEnd   = WinEnds(ii);
+    CR1.trials   = {PickTrials};
+    CR1.rcorrOpt = {'norm'};
+    CR1.nTemp    = {PSTHsize};
+    CR1.nTrain   = TrainSize;
+    CR1.nTest    = TestSize;
+    CR1.conv     = {'exp'};
+    CR1.tau      = tau;
+    CR1.BsN      = BootstrapN;
+    
+    % Load saved table
+    clear q;
+    try
+        q=load(fullfile(savedir,mastertablesavename));
+    end
+    
+    if ii>1 && ~exist('q','var')
+        keyboard
+    end
+    
+    if ~exist('q','var')
         
-        %         savename = sprintf('Res_v%s_Train%i_%s_%s_%s',varPar,...
-        %             TrainSize,whichIrr,whichCells,PickTrials);
-        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichIrr,whichCells);
+        % Save new table
+        CR = CR1;
+        save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
+        save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
         
-        print(hf(ii),fullfile(savedir,savename),'-dpdf')
+    else % Save updated table
         
+        % Concatenate new data
+        CR = q.CR;
+        CR = [CR; CR1];
         
-        %% Save results to master table
-        
-        mastertablesavename = sprintf('EnvCR_v%s_%s_%s',varPar,whichIrr,whichCells);
-        %         mastertablesavename = sprintf('CR_v%s_%s',varPar,whichIrr);
-        thistablesavename   = savename;
-        
-        CR1 = table;
-        CR1.figname  = {savename};
-        CR1.Stim     = {whichIrr};
-        CR1.Cells    = {1:thisNun};
-        CR1.iC       = 0;
-        CR1.Results  = {AssMat};
-        CR1.PC       = muPC;
-        CR1.dprime   = dprime;
-        CR1.WinBeg   = WinBeg(ii);
-        CR1.WinEnd   = WinEnds(ii);
-        CR1.trials   = {PickTrials};
-        CR1.rcorrOpt = {'norm'};
-        CR1.nTemp    = {PSTHsize};
-        CR1.nTrain   = TrainSize;
-        CR1.nTest    = TestSize;
-        CR1.conv     = {'exp'};
-        CR1.tau      = tau;
-        CR1.BsN      = BootstrapN;
-        
-        % Load saved table
-        clear q;
-        try
-            q=load(fullfile(savedir,mastertablesavename));
-        end
-        
-        if ii>1 && ~exist('q','var')
-            keyboard
-        end
-        
-        if ~exist('q','var')
-            
-            % Save new table
-            CR = CR1;
-            save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
-            
-        else % Save updated table
-            
-            % Concatenate new data
-            CR = q.CR;
-            CR = [CR; CR1];
-            
-            save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
-        end
-        
+        save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
+        save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
     end
 end %vary classification parameter
 
@@ -228,26 +221,24 @@ keyboard
 i01 = find(cellfun(@length,CR.Cells)==1);
 i50 = find(cellfun(@length,CR.Cells)==50);
 dps = CR.dprime;
-dps(isinf(dps)) = 6;
-dps(dps>6) = 6;
+dps(isinf(dps)) = 5;
+dps(dps>6) = 5;
 
 figure;
-
 hold on
 subplot(1,2,1); hold on
-ip(1)=plot(CR.WinEnd(i01)-500,dps(i01),'-r','LineWidth',2);
-ip(2)=plot(CR.WinEnd(i50)-500,dps(i50),'-k','LineWidth',2);
+ip(1)=plot(CR.WinEnd-500,dps,'-k','LineWidth',2);
 xlabel('Analysis window end')
 ylabel('d''')
-legend({'one cell' '50 cells'},'Location','southeast')
+ylim([0 5])
 
 subplot(1,2,2); hold on
 plot([0 500],[6/8 6/8].*100,':k')
 plot([0 500],[7/8 7/8].*100,':k')
-ip(1)=plot(CR.WinEnd(i01)-500,CR.PC(i01),'-r','LineWidth',2);
-ip(2)=plot(CR.WinEnd(i50)-500,CR.PC(i50),'-k','LineWidth',2);
+ip(1)=plot(CR.WinEnd-500,CR.PC,'-k','LineWidth',2);
 xlabel('Analysis window end')
 ylabel('Percent correct')
+ylim([0 100])
 suptitle('Discriminability of ENVELOPE')
 
 
