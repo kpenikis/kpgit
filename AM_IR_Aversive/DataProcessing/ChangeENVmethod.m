@@ -16,7 +16,7 @@ else
     subjects = { 'AAB_265054' 'AAB_265057' 'AAB_265058' 'WWWf_253400' 'WWWlf_253395'}; % nothing good in AAB_265059
 end
 
-for subj = 1:numel(subjects)
+for subj = 4:numel(subjects)
     
     subject = subjects{subj};
     
@@ -32,14 +32,14 @@ for subj = 1:numel(subjects)
     else
         switch subject
             case {'AAB_265054' 'AAB_265058' 'AAB_265057'}
-                SpkFns = dir(fullfile(fn.processed,subject,'*AM_TrialData.mat'));
+                TDFns = dir(fullfile(fn.processed,subject,'*AM_TrialData.mat'));
             case {'WWWf_253400' 'WWWlf_253395' }
-                SpkFns = dir(fullfile(fn.processed,subject,'*_TrialData.mat'));
+                TDFns = dir(fullfile(fn.processed,subject,'*_TrialData.mat'));
         end
         
         Sessions = [];
-        for ifn = 1:numel(SpkFns)
-            Sessions = [Sessions; extractBetween(SpkFns(ifn).name,'sess-','_TrialData')];
+        for ifn = 1:numel(TDFns)
+            Sessions = [Sessions; extractBetween(TDFns(ifn).name,'sess-','_TrialData')];
         end
         
     end
@@ -48,53 +48,67 @@ for subj = 1:numel(subjects)
     % Step through each session
     for sess = Sessions'
         
-        session = char(sess);
-        
-        if ~isempty(strfind(session,'-VS'))
-            continue
-        end
-        
-        % Load data files
-        clear Info TrialData SoundStream SpoutStream Phase0 RateStream
-        fprintf('\n***************************************\nLoading %s sess %s...\n',subject,session)
-        filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
-        filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
-        
-        
-        % Also load epData
-        epdatafile = fullfile(fn.raw,subject,Info.epData_fn);
-        fprintf(' loading data file %s...',epdatafile)
-        clear epData;
-        
-        epData = load([epdatafile '.mat'],'-mat'); %loads data struct: epData
-        
-        if ~exist('epData','var')
+        try
+            
+            session = char(sess);
+            
+            if ~isempty(strfind(session,'-VS'))
+                continue
+            end
+            
+            % Load data files
+            clear Info TrialData SoundStream SpoutStream Phase0 RateStream oldSS
+            fprintf('\n***************************************\nLoading %s sess %s...\n',subject,session)
+            filename = sprintf( '%s_sess-%s_Info'     ,subject,session); load(fullfile(fn.processed,subject,filename));
+            filename = sprintf( '%s_sess-%s_TrialData',subject,session); load(fullfile(fn.processed,subject,filename));
+            
+            
+            % Load epData file
+            clear epData
+            fprintf('Loading epData for %s %s... \n',subject,session)
+            try
+                epData = load([fullfile(fn.raw,subject,Info.epData_fn) '.mat'],'-mat');
+            catch
+                try
+                    epData = load(fullfile(fn.raw,subject,['Block-' num2str(Info.block) '.mat']),'-mat');
+                catch
+                    beep
+                    keyboard
+                end
+            end
+            if ~exist('epData','var')
+                fprintf('COULDN''T LOAD epData..skipping..\n')
+                continue
+            elseif isfield(epData,'epData')
+                epData = epData.epData;
+                disp(' (old file) ')
+            end
+            disp('loaded.')
+            
+            
+            % Calculate new SoundStream
+            oldSS = SoundStream;
+            clear SoundData SoundStream SpoutStream Phase0 RateStream
+            getPhase0Data;
+            
+            % Check match between old and new SoundStreams
+            %         figure; hold on
+            %         plot(oldSS,'k','LineWidth',2)
+            %         plot(SoundStream,'LineWidth',2)
+            if corr(SoundStream',oldSS')<0.98
+                keyboard
+            end
+            
+            
+            % Re-save TrialData
+            savename = sprintf('%s_sess-%s_TrialData',subject,session);
+            save(fullfile(fn.processed,subject,savename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');
+            
+            disp('done.')
+            
+        catch
             keyboard
-        elseif isfield(epData,'epData')
-            epData = epData.epData;
-            disp('(old file) done.')
         end
-        disp('done.')
-        
-        
-        % Calculate new SoundStream
-        oldSS = SoundStream;
-        clear SoundStream SpoutStream Phase0 RateStream
-        getPhase0Data;
-        
-        % Check match between old and new SoundStreams
-%         figure; hold on
-%         plot(oldSS,'k','LineWidth',2)
-%         plot(SoundStream,'LineWidth',2)
-        if corr(SoundStream',oldSS')<0.98
-            keyboard
-        end
-        
-        
-        % Re-save TrialData 
-        savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
-        save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');
-        
     end %sess
 end %subj
 
