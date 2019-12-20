@@ -29,7 +29,7 @@ switch ENV_type
         %~~~~~~~~~~~~~~~~~~~
         % ENVELOPE METHOD 2: Hilbert analytic signal, then low pass filtered
         
-        hilbtrans = abs(hilbert(data));
+        hilbtrans = real(hilbert(data));
         
         % Lowpass
 %         lpFilt = designfilt('lowpassfir','PassbandFrequency',45, ...

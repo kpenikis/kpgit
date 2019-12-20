@@ -23,8 +23,14 @@ end
 
 data(flagged)    = 0; % can't be nans for envelope function
 
-% Remake sound stream
-SoundStream_long = envelope(data,40,'rms');
+
+%% Remake sound stream
+
+% Old method: RMS with 40 ms window
+%   SoundStream_long = envelope(data,40,'rms');
+% New method: Hilbert transform, followed by LP at 45 Hz
+SoundStream_long = calcSoundEnv(data,Info.fs_sound,'HilbLP');
+
 SoundStream      = resample(SoundStream_long,10000,round(Info.fs_sound*10),5);
 
 % Also resample sound flag to mark artifact trials later
@@ -45,6 +51,22 @@ end
 
 %%Save the artifact flags into the Info struct
 Info.soundflag.trials = find(ArtifactFlags(:,1));
+
+
+
+
+%% Plot data and envelopes
+
+% L = length(data);
+% TimeVec = linspace(0,L/Info.fs_sound,L);
+% 
+% % Plot
+% figure;
+% plot(TimeVec,data,'k')
+% hold on
+% plot(TimeVec,ENV,'LineWidth',3)
+% plot(linspace(0,L/Info.fs_sound,length(SoundStream)),SoundStream,'LineWidth',1.5)
+% 
 
 
 
