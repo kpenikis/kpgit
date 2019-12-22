@@ -13,11 +13,11 @@ function MasterClass_varPar_19
 
 % close all
 
-varPar       = 'TrShAnDurFR';
+varPar       = 'AnDur';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'Apr11-AM'; 
+whichCells   = 'all'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = [50 75 100 125 150 200 300 400 500];
@@ -25,7 +25,7 @@ WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
-PickTrialss  = {'rand' 'sim'};
+PickTrialss  = {'rand'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
 whichIrr     = 'AC';
@@ -39,7 +39,7 @@ winlen       = 500;
 convwin      = exp(-lambda*(1:winlen));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PSTHsize     = 'Train-1';
-TrainSize    = 16;
+TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -52,9 +52,9 @@ fn = set_paths_directories('','',1);
 savedir = fullfile(fn.figs,'StimClass');
 
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
-q=load(fullfile(savedir,'CTTS_AM')); %Cell_Time_Trial_Stim
+q=load(fullfile(savedir,'Cell_Time_Trial_Stim')); 
 Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
-Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
+% Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 if size(Cell_Time_Trial_Stim,1)==257 && ~exist('Un_Indices','var')
     Un_Indices = 1:257;
 end
@@ -257,6 +257,7 @@ figure;
 plot([CR.WinEnd]-500,[CR.dprime],'ok')
 xlabel('Time from onset (ms)')
 ylabel('d''')
+ylim([0 3])
 print_eps_kp(gcf,fullfile(savedir,mastertablesavename))
 
 

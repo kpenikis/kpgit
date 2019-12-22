@@ -151,7 +151,7 @@ for iUn = 1:numel(UnitData)
     
     %%
     
-    [Stream_FRsmooth,Stream_zscore,Stream_spikes,ymaxval] = convertSpiketimesToFR(spiketimes,...
+    [Stream_FRsmooth,~,~,~] = convertSpiketimesToFR(spiketimes,...
         length(SoundStream),TrialData.onset(1),TrialData.offset(1),'exp',smth_win,'silence');
     
     % Find all stimuli presented with these parameters, given a
@@ -160,12 +160,16 @@ for iUn = 1:numel(UnitData)
     
     [all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP,0);
     
+    if min(allStim)>1
+        allStim = [1; allStim];
+    end
     Ntrials(1) = 200; %set high so Warn stimulus doesn't interfere
     
     % N trials of Stim and PSTH per group
     nTrGrp = min(Ntrials(2:6)); %floor(min(Ntrials(2:end))/2);
-    if nTrGrp<16 && iUn~=87
-        keyboard
+    if nTrGrp<10
+        fprintf('Insufficient N Pdc trials; skipping %s clu %i\n',session,clu)
+        continue
     end
     
     if any(Ntrials(7:end) < nTrGrp*2)
@@ -175,6 +179,10 @@ for iUn = 1:numel(UnitData)
         allStim(allStim==thisIR) = [];
     end
     
+    if numel(allStim)<7
+        fprintf('Insufficient stimuli with min N trials; skipping %s clu %i\n',session,clu)
+        continue
+    end
     
     
     %% 
@@ -399,7 +407,6 @@ for iUn = 1:numel(UnitData)
     end %iBS
     
     if mode(sum(isnan(coinc_Irr_Irr),2)/size(coinc_Irr_Irr,2)) > 0.5
-        keyboard
         coinc_Irr_Irr = nan(size(coinc_Irr_Irr));
     end
     
@@ -455,15 +462,15 @@ Results(1,:)=[];
 % train Pdc predict Irr   vs.   train Irr predict Irr
 
 % Load results from Pred vs Obs avg FR
-loaddir = fullfile(fn.figs,'PredObs');
-Pdata_FR = load(fullfile(loaddir,'Pdata_FR'));
-Pdata_FR = Pdata_FR.Pdata;
-
-% Set color according to difference from FR PredObs analysis
-unNL = nan(numel(UnitData),1);
-for iu = 1:numel(UnitData)
-    unNL(iu) = mean(Pdata_FR(Pdata_FR.iUn==iu,:).obsIR - Pdata_FR(Pdata_FR.iUn==iu,:).predIR);
-end
+% loaddir = fullfile(fn.figs,'PredObs');
+% Pdata_FR = load(fullfile(loaddir,'Pdata_FR'));
+% Pdata_FR = Pdata_FR.Pdata;
+% 
+% % Set color according to difference from FR PredObs analysis
+% unNL = nan(numel(UnitData),1);
+% for iu = 1:numel(UnitData)
+%     unNL(iu) = mean(Pdata_FR(Pdata_FR.iUn==iu,:).obsIR - Pdata_FR(Pdata_FR.iUn==iu,:).predIR);
+% end
 
 axmax = 1;
 
@@ -478,30 +485,22 @@ set(hf100,'Position',fullscreen,'NextPlot','add')
 % Scatter plot
 hs(1)=subplot(2,3,1);
 hold on
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
 axis square; box on
 try
-    scatter(C100_Pdc,C100_Irr,100,abs(unNL),'LineWidth',1)
+    scatter(C100_Irr,C100_Pdc,50,abs(unNL),'filled')
     cmocean('thermal')
 catch
-    scatter(C100_Pdc,C100_Irr,100,'k','LineWidth',1)
+    scatter(C100_Irr,C100_Pdc,50,'k','filled')
 end
+plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
 set(gca,'Color','none')
-title('tlag=100')
-xlabel('STRF from Pdc')
-ylabel('STRF from Irr')
+p100 = signrank(C100_Pdc,C100_Irr);
+title(sprintf('tlag=100, p=%0.3f',p100))
+ylabel('STRF from Pdc')
+xlabel('STRF from Irr')
 
 % Histogram of x axis
 hs(4)=subplot(2,3,4);
-histogram(C100_Pdc,0:0.05:1,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
-xlabel('Corr from Pdc STRF')
-title('Histogram of x axis, tlag=100')
-axis square; box off
-set(gca,'Color','none')
-ylim([0 0.5])
-
-% Histogram of y axis
-hs(5)=subplot(2,3,5);
 histogram(C100_Irr,0:0.05:1,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
 xlabel('Corr from Irr STRF')
 title('Histogram of y axis, tlag=100')
@@ -509,39 +508,53 @@ axis square; box off
 set(gca,'Color','none')
 ylim([0 0.5])
 
+% Histogram of y axis
+hs(5)=subplot(2,3,5);
+histogram(C100_Pdc,0:0.05:1,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
+xlabel('Corr from Pdc STRF')
+title('Histogram of x axis, tlag=100')
+axis square; box off
+set(gca,'Color','none')
+ylim([0 0.5])
+
 % Histogram of difference
 hs(6)=subplot(2,3,6);
-histogram(C100_Pdc-C100_Irr,-0.5:0.05:0.5,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
+histogram(C100_Irr-C100_Pdc,-0.5:0.05:0.5,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
+hold on
+plot([0 0],[0 0.5],'Color',[0.7 0.7 0.7])
 xlabel('Corr Irr - Corr Pdc')
 title('Histogram of diagonal, tlag=100')
 axis square; box off
 set(gca,'Color','none')
 
 
+
 % Use extra subplots to display other tlags
 
 hs(2)=subplot(2,3,2);
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
 hold on
-scatter(C500_Pdc,C500_Irr,100,'b','LineWidth',1)
-title('tlag=500')
-xlabel('STRF from Pdc')
-ylabel('STRF from Irr')
+scatter(C500_Irr,C500_Pdc,50,'b','filled')
+plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
+p500 = signrank(C500_Pdc,C500_Irr);
+title(sprintf('tlag=500, p=%0.3f',p500))
+ylabel('STRF from Pdc')
+xlabel('STRF from Irr')
 axis square; box on
 set(gca,'Color','none')
 
 hs(3)=subplot(2,3,3);  %shows that the bias isn't that bad
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
 hold on
-scatter(Cmax_Pdc,Cmax_Irr,100,'r','LineWidth',1)
-title('Best tlag for Irr')
-xlabel('STRF from Pdc')
-ylabel('STRF from Irr')
+scatter(Cmax_Irr,Cmax_Pdc,50,'r','filled')
+plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
+pbest = signrank(Cmax_Pdc,Cmax_Irr);
+title(sprintf('Best Irr tlag, p=%0.3f',pbest))
+ylabel('STRF from Pdc')
+xlabel('STRF from Irr')
 axis square; box on
 set(gca,'Color','none')
 
-
 suptitle('Coincidence values for predicting IR response, from STRFs from Pdc vs. Irr stimulus')
+
 
 
 savename = sprintf('PredictIR');

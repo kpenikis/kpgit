@@ -97,7 +97,7 @@ for iUn = 1:numel(Clusters)
         
     ymaxval = 0;
 
-    for ist = numel(allStim)
+    for ist = 1:numel(allStim)
         
         stid = allStim(ist);
         
