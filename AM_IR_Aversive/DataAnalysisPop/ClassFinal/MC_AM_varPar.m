@@ -114,16 +114,9 @@ for ii = 1:numel(WinEnds)
         
         
         % Train and test classifier
-%         S_AssMat = runSVMclass( CTTS, BootstrapN, nStim, Dur, nUns, ...
-%             PickTrials,TrainSize, TestSize, KernelType );
-        
-        [S_AssMat,E_AssMat] = runSVMclass_SnE( CTTS, BootstrapN, nStim, Dur, nUns, ...
-            PickTrials,TrainSize, TestSize, KernelType );
-        
-        % Also classify envelope
-        S_AssMat = runSVMclass( Env_Time_Trial_Stim,...
-            BootstrapN, nStim, Dur, nUns, ...
-            PickTrials,TrainSize, TestSize, KernelType );
+        [S_AssMat,E_AssMat] = runSVMclass_SnE( CTTS, ...
+            Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim),...
+            BootstrapN, nStim, Dur, nUns, PickTrials,TrainSize, TestSize, KernelType );
         
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
