@@ -1,4 +1,4 @@
-function MasterClass_varPar_19
+function MC_AM_varPar
 % MasterClass (all parameters defined at top of file)
 %
 %  SVM classifier for segments of Pdc and Irr stimuli.
@@ -11,7 +11,7 @@ function MasterClass_varPar_19
 %  KP, 2019-12
 %
 
-% close all
+close all
 
 varPar       = 'AnDur';
 
@@ -20,7 +20,7 @@ varPar       = 'AnDur';
 whichCells   = 'all'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
-Dur          = [20 50 100 200 500];
+Dur          = [10:10:150 200 300 400 500];
 WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -28,9 +28,9 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials  = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'U2';
+whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 200;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -39,7 +39,7 @@ winlen       = 500;
 convwin      = exp(-lambda*(1:winlen));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PSTHsize     = 'Train-1';
-TrainSize    = 16;
+TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,7 +49,7 @@ rng('shuffle')
 %% Load data
 
 fn = set_paths_directories('','',1);
-savedir = fullfile(fn.figs,'StimClass');
+savedir = fullfile(fn.figs,'ClassAM','RawData');
 
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
 q=load(fullfile(savedir,'CTTS_AM')); %Cell_Time_Trial_Stim
@@ -64,6 +64,16 @@ q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
+
+
+%%
+% Figure settings
+set(0,'DefaultTextInterpreter','none')
+set(0,'DefaultAxesFontSize',18)
+
+% scrsz = get(0,'ScreenSize');     %[left bottom width height]
+% fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
+% shortscreen = [1 scrsz(4)/3 scrsz(3) scrsz(4)/2];
 
 
 %% Prepare to parse data
@@ -95,13 +105,13 @@ iRS = find(UnitInfo.TroughPeak>0.43);
 iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>3);
 
 
-
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 for ii = 1:numel(WinEnds)
     
     AnWin = WinBeg(ii):WinEnds(ii);
+    fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
     
 %     for iTrSh = 1:numel(PickTrialss)
 %         
@@ -109,7 +119,7 @@ for ii = 1:numel(WinEnds)
         
         % Define cells and stimuli
         [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-            whichStim, whichCells, nTrialMat, UnitData,...
+            whichCells, nTrialMat, UnitData,...
             theseStim, iRS, iNS, minTrs, convwin, AnWin );
         
         
@@ -124,29 +134,22 @@ for ii = 1:numel(WinEnds)
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         
         
-        %%
-        % Figure settings
-        set(0,'DefaultTextInterpreter','none')
-        set(0,'DefaultAxesFontSize',18)
         
-        % scrsz = get(0,'ScreenSize');     %[left bottom width height]
-        % fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
-        % shortscreen = [1 scrsz(4)/3 scrsz(3) scrsz(4)/2];
+        %% Plot NEURAL result
         
-        
-        %% Plot NEURAL 
         ConfMat = mean(S_AssMat,3);
         muPC    = mean(diag(ConfMat))*100;
         dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
         
+        ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
         
         % Plot
         hf(ii) = figure;
         imagesc(ConfMat)
         axis square
-        caxis([0 1])
-        cmocean('ice') %ice
-        % cmocean('curl','pivot',0)
+        caxis([-1 1])
+%         cmocean('ice') %ice
+        cmocean('curl','pivot',0)
         colorbar
         ylabel('True stim')
         xlabel('Assigned')
@@ -157,9 +160,9 @@ for ii = 1:numel(WinEnds)
         
         
         % Save figure
-        savedir = fullfile(fn.figs,'ClassAM',whichStim);
-        if ~exist(savedir,'dir')
-            mkdir(savedir)
+        savedir = fullfile(fn.figs,'ClassAM',whichStim,varPar);
+        if ~exist(fullfile(savedir,'backupTables'),'dir')
+            mkdir(fullfile(savedir,'backupTables'))
         end
         
 %         savename = sprintf('Res_v%s_Train%i_%s_%s_%s',varPar,...
@@ -174,6 +177,12 @@ for ii = 1:numel(WinEnds)
         mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
 %         mastertablesavename = sprintf('CR_v%s_%s',varPar,whichIrr);
         thistablesavename   = savename;
+        
+        % Calculate performance for Env data
+        ConfMat  = mean(E_AssMat,3);
+        muPC_E   = mean(diag(ConfMat))*100;
+        dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
+        
         
         CR1 = table;
         CR1.figname  = {savename};
@@ -193,6 +202,10 @@ for ii = 1:numel(WinEnds)
         CR1.conv     = {'exp'};
         CR1.tau      = tau;
         CR1.BsN      = BootstrapN;
+        CR1.ResEnv   = {E_AssMat};
+        CR1.PC_E     = muPC_E;
+        CR1.dprime_E = dprime_E;
+        
         
         % Load saved table
         clear q;
@@ -209,7 +222,7 @@ for ii = 1:numel(WinEnds)
             % Save new table
             CR = CR1;
             save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
+            save(fullfile(savedir,'backupTables',thistablesavename),'CR1','-v7.3')
             
         else % Save updated table
             
@@ -218,7 +231,7 @@ for ii = 1:numel(WinEnds)
             CR = [CR; CR1];
             
             save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(savedir,thistablesavename),'CR1','-v7.3')
+            save(fullfile(savedir,'backupTables',thistablesavename),'CR1','-v7.3')
         end
         
         

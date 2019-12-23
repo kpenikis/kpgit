@@ -6,7 +6,7 @@ function gatherCellTimeTrialStim
 
 global fn trN Duration Stimuli spkshift
 
-trN      = 100;
+trN      = 130;
 Duration = 500;
 Stimuli  = 1:8;
 
@@ -23,9 +23,9 @@ spkshift = 0; %mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 
 %%
 
-Cell_Time_Trial_Stim = []; 
-Env_Time_Trial_Stim  = [];
-Un_Indices = [];
+Cell_Time_Trial_Stim  = []; 
+Env_Time_Trial_Stim   = [];
+Un_Indices            = [];
 
 for iUn = 1:numel(UnitData)
     
@@ -33,13 +33,13 @@ for iUn = 1:numel(UnitData)
     
     if includethiscell
         Cell_Time_Trial_Stim = [Cell_Time_Trial_Stim; SpikesTrials];
-        Env_Time_Trial_Stim  = [Env_Time_Trial_Stim; StimTrials];
+        Env_Time_Trial_Stim  = [Env_Time_Trial_Stim;    StimTrials];
         Un_Indices           = [Un_Indices; iUn];
     end
     
 end
 
-savedir = fullfile(fn.figs,'StimClass');
+savedir = fullfile(fn.figs,'ClassAM','RawData');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end

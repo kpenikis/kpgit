@@ -1,5 +1,5 @@
 function [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-    whichIrr, whichCells, nTrialMat, UnitData, theseStim, iRS, iNS, minTrs, convwin, AnWin )
+    whichCells, nTrialMat, UnitData, theseStim, iRS, iNS, minTrs, convwin, AnWin )
 
 switch whichCells
     case {'all' 'RSNS'}                                         % All Cells
