@@ -11,7 +11,8 @@ global AMrates useFR Boundaries
 plotF1   = 0;
 plotF2   = 0;
 plotF3   = 0;
-plotF4   = 1;
+plotF4   = 0;
+plotF5   = 1;
 %~~~~~~~~~~~~~~~~~~~~~
 useFR    =   'log'; 
 useGrp   =   'peakFR'; 'dynRange'; 'tuning'; 'phase'; 
@@ -390,7 +391,7 @@ end
 
 
 
-%% Time x duration, latency from peak time
+%% Time x duration, latency from peak time (reversed)
 
 if plotF4 
     
@@ -558,6 +559,143 @@ end
 
 
 
+
+%% Latency rank across rates
+
+% maybe do count from peak (so offsets and onsets don't look too different)
+
+if plotF5
+    
+% hfPk=figure; 
+% set(hfPk,'Position',fullscreen)
+
+nStim = 5;
+t_onset   = nan(size(ThisData,1),nStim);
+t_offset  = nan(size(ThisData,1),nStim);
+t_up      = nan(size(ThisData,1),nStim);
+t_mid     = nan(size(ThisData,1),nStim);
+pk_height = nan(size(ThisData,1),nStim);
+pk_time   = nan(size(ThisData,1),nStim);
+
+for iUn = 1:size(ThisData,1)
+    
+    for ist = 1:nStim
+        
+        if UnitData(iUn).VSdata_spk(2,ist+1)<13.1
+            continue
+        end
+        
+        pdms = ceil(1000/AMrates(ist));
+        
+        halfMax = ( max(ThisData(iUn,:,ist)) - min(ThisData(iUn,:,ist)) ) /2;
+        [PKS,LOCS] = findpeaks(ThisData(iUn,:,ist),'MinPeakHeight',halfMax);
+        
+        if isempty(PKS)
+            continue
+        end
+        
+        % ASSUME just one peak
+        [~,ipk] = max(PKS);
+        pk_height(iUn,ist) = PKS(ipk);
+        pk_time(iUn,ist) = LOCS(ipk);
+        
+        % Find time before surpassing halfMax, and time after falling below        
+        for ims = [LOCS(ipk):-1:1 pdms:-1:LOCS(ipk)]
+            if ThisData(iUn,ims,ist)<halfMax
+                t_onset(iUn,ist) = ims;
+                break
+            end
+        end
+        
+        for ims = [LOCS(ipk):pdms 1:LOCS(ipk)]
+            if ThisData(iUn,ims,ist)<halfMax
+                t_offset(iUn,ist) = ims;
+                break
+            end
+        end
+        
+        % Calculate peak duration
+        if t_offset(iUn,ist)>=t_onset(iUn,ist)
+            t_up(iUn,ist) = t_offset(iUn,ist)-t_onset(iUn,ist);
+        else
+            t_up(iUn,ist) = t_offset(iUn,ist)+pdms-t_onset(iUn,ist);
+        end
+        
+        % Time of midpoint of peak
+        t_mid(iUn,ist) = t_onset(iUn,ist)+t_up(iUn,ist)/2;
+        if t_mid(iUn,ist)>pdms
+            t_mid(iUn,ist) = t_mid(iUn,ist)-pdms;
+        end
+        
+        % Add to plot
+%         subplot(2,3,ist); hold on
+%         plot(t_onset(iUn,ist), t_up(iUn,ist),'.','Color',colors(ist,:),'MarkerSize',pk_height(iUn,ist))
+%         plot(t_mid(iUn,ist),t_up(iUn,ist),'.','Color',colors(ist,:),'MarkerSize',pk_height(iUn,ist))
+                
+    end %ist
+end %iUn
+
+% Finish plots
+for ist = 1:3
+    pdms = ceil(1000/AMrates(ist));
+    
+    subplot(2,3,ist); hold on
+    axis square
+    xlim([0 pdms])
+    ylim([0 pdms])
+    set(gca,'xtick',[0 pdms],'ytick',[0 pdms])
+    xlabel('Mid time (ms)')
+    ylabel('Peak duration (ms)')
+    title([num2str(AMrates(ist)) ' Hz'])
+end
+
+
+% Below, plot relationship between metrics of consecutive rates
+for ist = 1:2
+    pdms = ceil(1000/AMrates(ist));
+    
+    subplot(2,3,3+ist); cla
+    plot([0 pdms],[0 pdms/2],'Color',0.5*[1 1 1])
+    hold on
+    plot(t_mid(:,ist),t_mid(:,ist+1),'.','Color',0.3*[1 1 1],'MarkerSize',20)
+%     plot(t_onset(:,ist),t_onset(:,ist+1),'.','Color',0.3*[1 1 1],'MarkerSize',20)
+    
+    axis square
+    
+    xlim([0 pdms])
+    ylim([0 pdms])
+    set(gca,'xtick',[0 pdms],'ytick',[0 pdms])
+    xlabel(['Mid time, ' num2str(AMrates(ist)) ' Hz'])
+    ylabel(['Mid time, ' num2str(AMrates(ist+1)) ' Hz'])
+end
+
+% Durations
+alt_cols = [colors(1,[2 1 3]); colors(2,[3 2 1])];
+
+for ist = 1:2
+    pdms = ceil(1000/AMrates(ist));
+    
+    subplot(2,3,6); 
+    plot([0 pdms],[0 pdms/2],'Color',alt_cols(ist,:))
+    hold on
+    plot(t_up(:,ist),t_up(:,ist+1),'.','Color',alt_cols(ist,:),'MarkerSize',20)
+    
+end
+
+pdms = ceil(1000/AMrates(1));
+plot([0 pdms],[0 pdms],'Color',0.5*[1 1 1])
+axis square
+xlim([0 pdms])
+ylim([0 pdms])
+set(gca,'xtick',[0 pdms],'ytick',[0 pdms])
+xlabel(['Peak duration, ' num2str(AMrates(ist)) ' Hz'])
+ylabel(['Peak duration, ' num2str(AMrates(ist+1)) ' Hz'])
+
+
+savedir = fullfile(fn.figs,'RespChar');
+print_eps_kp(gcf,fullfile(savedir,'Peak_Mids'))
+
+end
 
 
 

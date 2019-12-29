@@ -21,23 +21,24 @@ function TRF_PreObs_AMVS(RERUN)
 
 
 % close all
-global fn spkshift smth_win exclOnset AM_durs VS_durs
+global fn spkshift smth_win exclOnset AM_durs VS_durs nTrGrp
 
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-smth_win    = 5;
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+smth_win    = 10;
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 % only set up for one val rn
-TLAGS = 100;
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-exclOnset   = 0; 
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+TLAGS       = 500;
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+exclOnset   = 1; 
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 PlotEx      = 0;
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-nBS         = 10;
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+nBS         = 200;
+%!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+nTrGrp      = 10;
 
 if nargin<1
-    RERUN = 0;
+    RERUN = 1;
 end
 
 
@@ -50,7 +51,7 @@ UData_AM = q.UnitData;
 UInfo_AM = q.UnitInfo;
 clear q
 %-------
-spkshift = mean([UData_AM([UData_AM.IntTime_spk]>0).IntTime_spk]);
+spkshift = 0; %mean([UData_AM([UData_AM.IntTime_spk]>0).IntTime_spk]);
 %-------
 
 q = load(fullfile(fn.processed,'UnitsVS'));
@@ -69,10 +70,9 @@ for iu = 1:size(MatchedUnits,1)
     if numel(iU_AM)==1 && numel(iU_VS)==1
         Uindices_AMVS(iu,:) = [iU_AM iU_VS];
     else
-%         keyboard
+        keyboard
     end
 end
-
 
 
 %% Data setup
@@ -85,7 +85,9 @@ rng('shuffle')
 
 % Preallocate
 Results = table;
-Results.iiUn             = nan;
+Results.iiUn          = nan;
+Results.smthWin       = nan;
+Results.tlag          = nan;
 Results.C_AM_self     = nan;
 Results.C_AM_self_std = nan;
 Results.C_AM_VS       = nan;
@@ -97,20 +99,10 @@ Results.C_VS_AM_std   = nan;
 Results.BaseFR           = nan;
 Results.BMFrt            = nan;
 
-C_Pdc =[];
-C_Irr =[];
-C500_Pdc =[];
-C500_Irr =[];
-Cmax_Pdc =[];
-Cmax_Irr =[];
-Cmax_ALL =[];
-Imax_ALL =[];
-STRF_corr=[];
-
 
 %% Figure settings
 
-savedir = fullfile(fn.figs,'TRF_AMVS','exp');
+savedir = fullfile(fn.figs,'TRF_AMVS');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
@@ -123,10 +115,6 @@ fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
 tallrect    = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 
 dotSize = 40;
-
-% Set colors
-subjcolors = [0.5 0.2 0.7];
-Subjects   = unique({UData_AM.Subject});
 
 
 %%
@@ -142,21 +130,12 @@ for iiUn = 1:size(Uindices_AMVS,1)
         continue
     end
     
-    % Get PSTH and STIM cells from AM data
-    %  PSTH_cell{st}(trials,time)
-    %  STIM_cell{st}(trials,time)
-    
-    % make generic?
+    % Get PSTH and Stim data
     [PSTH_AM,STIM_AM] = getdata4TRF(UData_AM,iUnAM);
     [PSTH_VS,STIM_VS] = getdata4TRF(UData_VS,iUnVS);
     
     fprintf(' running model\n')
-    
-    % Get PSTH and STIM cells from VS data
-    %  PSTH_cell{st}(trials,time)
-    %  STIM_cell{st}(trials,time)
-    
-    
+     
     
     %%  ------  STRF analysis  ------
     
@@ -166,11 +145,6 @@ for iiUn = 1:size(Uindices_AMVS,1)
     end
     
     nTrAll = cellfun(@(x) size(x,1), [PSTH_AM; PSTH_VS]);
-    nTr = 10;
-    %     nTr = min(nTrAll(nTrAll>0));
-    %     if nTr<15
-    %         keyboard
-    %     end
     
     STRF_AM       = nan(numel(TLAGS),max(TLAGS),nBS);
     STRF_VS       = nan(numel(TLAGS),max(TLAGS),nBS);
@@ -189,23 +163,24 @@ for iiUn = 1:size(Uindices_AMVS,1)
         
         for st = find(~cellfun(@isempty,PSTH_AM))'
             
-            if size(STIM_AM{st},1)<(nTr*2)
+            if size(STIM_AM{st},1)<(nTrGrp*2)
                 continue
             end
             
             allTrs = randperm(size(STIM_AM{st},1));
             
             % Average trials and concatenate stim
-            psth_AM1  = [psth_AM1 mean(PSTH_AM{st}(allTrs(1:nTr),:),1) ];
-            stim_AM1  = [stim_AM1 mean(STIM_AM{st}(allTrs(1:nTr),:),1) ];
+            psth_AM1  = [psth_AM1 mean(PSTH_AM{st}(allTrs(1:nTrGrp),:),1) ];
+            stim_AM1  = [stim_AM1 mean(STIM_AM{st}(allTrs(1:nTrGrp),:),1) ];
             
-            psth_AM2  = [psth_AM2 mean(PSTH_AM{st}(allTrs(nTr+(1:nTr)),:),1) ];
-            stim_AM2  = [stim_AM2 mean(STIM_AM{st}(allTrs(nTr+(1:nTr)),:),1) ];
+            psth_AM2  = [psth_AM2 mean(PSTH_AM{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
+            stim_AM2  = [stim_AM2 mean(STIM_AM{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
             
         end
-        if ~any(find(psth_AM1))
+        if length(psth_AM1)<5000
             keyboard
         end
+        
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         % Concatenate SPEECH data
@@ -215,32 +190,33 @@ for iiUn = 1:size(Uindices_AMVS,1)
         
         for st = find(~cellfun(@isempty,PSTH_VS))'
             
-            if size(STIM_VS{st},1)<(nTr*2)
+            if size(STIM_VS{st},1)<(nTrGrp*2)
                 continue
             end
             
             allTrs = randperm(size(STIM_VS{st},1));
             
             % Average trials and concatenate stim
-            psth_VS1  = [psth_VS1 mean(PSTH_VS{st}(allTrs(1:nTr),:),1) ];
-            stim_VS1  = [stim_VS1 mean(STIM_VS{st}(allTrs(1:nTr),:),1) ];
+            psth_VS1  = [psth_VS1 mean(PSTH_VS{st}(allTrs(1:nTrGrp),:),1) ];
+            stim_VS1  = [stim_VS1 mean(STIM_VS{st}(allTrs(1:nTrGrp),:),1) ];
             
-            psth_VS2  = [psth_VS2 mean(PSTH_VS{st}(allTrs(nTr+(1:nTr)),:),1) ];
-            stim_VS2  = [stim_VS2 mean(STIM_VS{st}(allTrs(nTr+(1:nTr)),:),1) ];
+            psth_VS2  = [psth_VS2 mean(PSTH_VS{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
+            stim_VS2  = [stim_VS2 mean(STIM_VS{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
             
         end
-        if ~any(find(psth_VS1))
+        if length(psth_VS1)<5000
             keyboard
         end
         
+        
         % Normalize stimulus traces to [0 1]
-        minAM = min([stim_AM1 stim_AM2]);
-        maxAM = max([stim_AM1-minAM stim_AM2-minAM]);
+        minAM    = min([stim_AM1 stim_AM2]);
+        maxAM    = max([stim_AM1-minAM stim_AM2-minAM]);
         stim_AM1 = (stim_AM1-minAM)./maxAM;
         stim_AM2 = (stim_AM2-minAM)./maxAM;
         
-        minVS = min([stim_VS1 stim_VS2]);
-        maxVS = max([stim_VS1-minVS stim_VS2-minVS]);
+        minVS    = min([stim_VS1 stim_VS2]);
+        maxVS    = max([stim_VS1-minVS stim_VS2-minVS]);
         stim_VS1 = (stim_VS1-minVS)./maxVS;
         stim_VS2 = (stim_VS2-minVS)./maxVS;
         
@@ -252,7 +228,6 @@ for iiUn = 1:size(Uindices_AMVS,1)
         
         % For each tlag, calculate STRF, predict response, and compare to observed
         
-        %         t100idx = find(TLAGS==100);
         for it = 1:numel(TLAGS)
             
             tlag  = TLAGS(it);
@@ -403,7 +378,7 @@ for iiUn = 1:size(Uindices_AMVS,1)
     end
     
     % Add to Results table
-    Results_addrow = { iiUn   ...
+    Results_addrow = { iiUn smth_win tlag  ...
         mean(coinc_AM_self,'omitnan') std(coinc_AM_self,'omitnan')...
         mean(coinc_AM_VS,'omitnan')   std(coinc_AM_VS,'omitnan')...
         mean(coinc_VS_self,'omitnan') std(coinc_VS_self,'omitnan')...
@@ -416,8 +391,9 @@ end %iUn
 
 Results(1,:)=[];
 
+savename = sprintf('Res_TRF_%i_AMVS_On-%i',tlag,sum(~exclOnset));
 % Save Results
-% save(fullfile(savedir,'Res_TRF_AMVS.mat'),'Results','-v7.3')
+save(fullfile(savedir,savename),'Results','-v7.3')
 
 % And write to Matched Units excel file
 % writetable(Results,fullfile(fn.processed,'UnMatchedLUT.xlsx'),...
@@ -459,7 +435,7 @@ plot(Results.C_VS_self,Results.C_VS_AM,'.g','MarkerSize',dotSize,'MarkerFaceColo
 xlim([0 axmax])
 ylim([0 axmax])
 set(gca,'Color','none')
-title(sprintf('All putative matches, N=%i',size(Results,1)))
+title(sprintf('All putative matches, tlag=%i (N=%i)',tlag,size(Results,1)))
 xlabel('Same Context Prediction')
 ylabel('Opposite Context Prediction')
 
@@ -525,7 +501,7 @@ ylabel('VS Context Prediction')
 
 
 % Save figure
-print_eps_kp(hf,fullfile(savedir,'Res_TRF_AMVS'))
+print_eps_kp(hf,fullfile(savedir,savename))
 
 
 

@@ -22,9 +22,9 @@ TLAGS       = sort([TLAGS d_tlag]);
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 exclOnset   = 0; 
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-PlotEx = 0;
+PlotEx      = 0;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
+minIrrTr    = 20;
 
 %% Load Unit data files
 
@@ -158,29 +158,34 @@ for iUn = 1:numel(UnitData)
     % sufficient number of trials without diruptive artifact
     % while the animal was drinking
     
-    [all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP,0);
+    [all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP,1);
     
     if min(allStim)>1
+        Ntrials = [1 Ntrials];
         allStim = [1; allStim];
     end
     Ntrials(1) = 200; %set high so Warn stimulus doesn't interfere
     
-    % N trials of Stim and PSTH per group
-    nTrGrp = min(Ntrials(2:6)); %floor(min(Ntrials(2:end))/2);
-    if nTrGrp<10
-        fprintf('Insufficient N Pdc trials; skipping %s clu %i\n',session,clu)
-        continue
-    end
     
-    if any(Ntrials(7:end) < nTrGrp*2)
-        thisIR = allStim(Ntrials(7:end) < nTrGrp*2) + 6;
+    % Remove Irr stim with too few trials
+    if any(Ntrials(7:end) < minIrrTr)
+        thisIR = allStim(Ntrials(7:end) < minIrrTr) + 6;
         all_TDidx(TrialData.trID(all_TDidx)==thisIR)  = [];
         Ntrials(allStim==thisIR) = [];
         allStim(allStim==thisIR) = [];
     end
     
     if numel(allStim)<7
-        fprintf('Insufficient stimuli with min N trials; skipping %s clu %i\n',session,clu)
+        fprintf('Insufficient Irr stimuli with min N trials; skipping %s clu %i\n',session,clu)
+        continue
+    end
+    
+    
+    % N trials of Stim and PSTH per group
+    nTrGrp = min([min(Ntrials(2:6)) floor(min(Ntrials(7:end))/2)]); %floor(min(Ntrials(2:end))/2);
+    nTrGrp = 10;
+    if nTrGrp>floor(minIrrTr/2)
+        fprintf('Insufficient N trials; skipping %s clu %i\n',session,clu)
         continue
     end
     
@@ -197,8 +202,8 @@ for iUn = 1:numel(UnitData)
         st_TDidx_ALL = all_TDidx(TrialData.trID(all_TDidx)==stid);
         
         %%%  Skip ITI stimuli (?)
-        ITIflag = 0;%unique(TrialData.ITIflag(st_TDidx_ALL));
-        TDidx = st_TDidx_ALL(TrialData.ITIflag(st_TDidx_ALL) == ITIflag(1));
+%         ITIflag = 0;%unique(TrialData.ITIflag(st_TDidx_ALL));
+        TDidx = st_TDidx_ALL;%(TrialData.ITIflag(st_TDidx_ALL) == ITIflag(1));
         
         % Get timestamps of onsets and offsets
         clear t2 t3 Duration t_win
@@ -212,6 +217,7 @@ for iUn = 1:numel(UnitData)
         
         if exclOnset
             t2 = t2+150;
+            Duration = Duration-150;
         end
         
         % Permute order of trials
@@ -221,21 +227,21 @@ for iUn = 1:numel(UnitData)
         
         
         % Collect responses for each trial
-        stim_i   = nan(  numel(t2), Duration+1);
-        psth_rw  = zeros(numel(t2), Duration+1);
-        psth_sm  = nan(  numel(t2), Duration+1);
+        stim_i   = nan(  numel(t2), Duration);
+        psth_rw  = zeros(numel(t2), Duration);
+        psth_sm  = nan(  numel(t2), Duration);
         
         for it = 1:numel(t2)
             
             stim_i(it,:) = ...
-                SoundStream(1, t2(it) : t3(it) )...
-                ./ max(SoundStream(1, t2(it) : t3(it) ));
+                SoundStream(1, (t2(it)+1) : t3(it) )...
+                ./ max(SoundStream(1, (t2(it)+1) : t3(it) ));
                         
-            sp=[]; sp = spiketimes( spiketimes>=t2(it) ...
-                & spiketimes<=t3(it) ) - t2(it) +1 ;
+            sp=[]; sp = spiketimes( spiketimes>t2(it) ...
+                & spiketimes<=t3(it) ) - t2(it) ;
             
             psth_rw(it,sp) = 1000;  % raw, compare to smoothed 
-            psth_sm(it,:) = Stream_FRsmooth(1, t2(it) : t3(it) );
+            psth_sm(it,:) = Stream_FRsmooth(1, (t2(it)+1) : t3(it) );
             
         end %it
         
@@ -441,16 +447,10 @@ for iUn = 1:numel(UnitData)
         BMFrt=nan;
     end
     
-% %     % Override any data for this unit
-% %     if iUn==87
-% %         for ii=6:10
-% %             Results_addrow{ii}=nan;
-% %         end
-% %     end
-    
     % Add to Results table
     Results_addrow = { subject session channel clu  iUn   mean(coinc_Pdc_Irr(TLAGS==100,:),'omitnan')   mean(coinc_Irr_Irr(TLAGS==100,:),'omitnan')  p_tt  c_max  i_max   UnitData(iUn).BaseFR  mean(psth_Pdc1)  VSmax  VSrt  BMFrt  };
     Results = [Results; Results_addrow];
+    
     
 end %iUn
 
@@ -503,7 +503,7 @@ xlabel('STRF from Irr')
 hs(4)=subplot(2,3,4);
 histogram(C100_Irr,0:0.05:1,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
 xlabel('Corr from Irr STRF')
-title('Histogram of y axis, tlag=100')
+title('x axis (tlag=100)')
 axis square; box off
 set(gca,'Color','none')
 ylim([0 0.5])
@@ -512,21 +512,21 @@ ylim([0 0.5])
 hs(5)=subplot(2,3,5);
 histogram(C100_Pdc,0:0.05:1,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
 xlabel('Corr from Pdc STRF')
-title('Histogram of x axis, tlag=100')
+title('y axis (tlag=100)')
 axis square; box off
 set(gca,'Color','none')
 ylim([0 0.5])
 
 % Histogram of difference
 hs(6)=subplot(2,3,6);
-histogram(C100_Irr-C100_Pdc,-0.5:0.05:0.5,'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
+histogram(C100_Irr-C100_Pdc,linspace(-0.5,0.5,50),'FaceColor','k','EdgeColor','none','FaceAlpha',1,'Normalization','probability')
 hold on
 plot([0 0],[0 0.5],'Color',[0.7 0.7 0.7])
+plot(mean(C100_Irr-C100_Pdc),0.5,'m^')
 xlabel('Corr Irr - Corr Pdc')
-title('Histogram of diagonal, tlag=100')
+title(sprintf('Diagonal (tlag=100) mean=%0.3f', mean(C100_Irr-C100_Pdc,'omitnan')))
 axis square; box off
 set(gca,'Color','none')
-
 
 
 % Use extra subplots to display other tlags
@@ -557,12 +557,15 @@ suptitle('Coincidence values for predicting IR response, from STRFs from Pdc vs.
 
 
 
-savename = sprintf('PredictIR');
+%% Save results
+
+savename = sprintf('Pdata_TRF_wITIs_On%i_10tr',sum(~exclOnset));
+
+
 print_eps_kp(hf100,fullfile(savedir,savename));
 
-
 % Also save Pdata table
-save(fullfile(savedir,'Pdata_TRF'),'Results','-v7.3')
+save(fullfile(savedir,savename),'Results','-v7.3')
 
 
 

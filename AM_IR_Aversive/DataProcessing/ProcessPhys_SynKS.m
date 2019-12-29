@@ -157,15 +157,15 @@ end
 % ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
 % Parse stimulus data and save necessary info
 
-if strcmp(BlockType,'behavior')
-
-    [TrialData,SpoutStream,SoundStream,RateStream,Phase0,Info] = pp_parse_sound_data( epData.streams.rVrt.data, epData.epocs, Info );
-    
-elseif strcmp(BlockType,'vocodedspeech')
-
-    [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_vocodedspeech( epData.streams.rVrt.data, epData.epocs, Info );
-
-end
+% if strcmp(BlockType,'behavior')
+% 
+%     [TrialData,SpoutStream,SoundStream,RateStream,Phase0,Info] = pp_parse_sound_data( epData.streams.rVrt.data, epData.epocs, Info );
+%     
+% elseif strcmp(BlockType,'vocodedspeech')
+% 
+%     [TrialData,SpoutStream,SoundStream,RateStream,Info] = pp_parse_vocodedspeech( epData.streams.rVrt.data, epData.epocs, Info );
+% 
+% end
 
 
 %% SAVE DATA
@@ -176,13 +176,13 @@ fprintf(' saving Info struct and Trial data...')
 savename = sprintf('%s_sess-%s_Info',SUBJECT,SESS_LABEL);
 save(fullfile( saveDir, savename),'Info','-v7.3');
 
-if exist('TrialData','var') && strcmp(BlockType,'behavior')
-    savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
-    save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');
-elseif exist('TrialData','var') && strcmp(BlockType,'vocodedspeech')
-    savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
-    save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','-v7.3');
-end
+% if exist('TrialData','var') && strcmp(BlockType,'behavior')
+%     savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
+%     save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');
+% elseif exist('TrialData','var') && strcmp(BlockType,'vocodedspeech')
+%     savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
+%     save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','-v7.3');
+% end
 
 fprintf('  done.\n')
 

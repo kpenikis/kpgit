@@ -31,7 +31,7 @@ UnitData  = UnitData(baseFRrank);
 Clusters  = Clusters(baseFRrank);
 
 % Get indices of narrow spikes and regular spiking units
-UnitInfo = labelRSNS(UnitInfo);
+% UnitInfo = labelRSNS(UnitInfo);
 
 
 %% Prepare figures
@@ -71,7 +71,7 @@ Stimuli(Stimuli==0)=[];
 AvgEnv = nan(numel(Stimuli),6000);
 PSTH   = nan(numel(Stimuli),6000);
 
-for ist = Stimuli
+for ist = 1:numel(Stimuli)
     
     stid = Stimuli(ist);
     
@@ -81,13 +81,13 @@ for ist = Stimuli
     %%
     % Set up figure
     hf(ist) = figure;
-    set(gcf,'Position',tallrect.* [1 1 figwidthscales(stid) 1])
+    set(gcf,'Position',tallrect.* [1 1 figwidthscales(ist) 1])
     hold on
     hs(ist,1) = subplot(9,1,1);
-    set(gca,'xlim',[0 figwidthscales(stid)*1000],'xtick',[],'ytick',[])
+    set(gca,'xlim',[0 figwidthscales(ist)*1000],'xtick',[],'ytick',[])
     hs(ist,2) = subplot(9,1,2:9);
-    set(gca,'xlim',[0 figwidthscales(stid)*1000],'xtick',[0 (figwidthscales(stid)*1000)],'ytick',[],...
-        'xticklabel',[0 (figwidthscales(stid)*1000)])
+    set(gca,'xlim',[0 figwidthscales(ist)*1000],'xtick',[0 (figwidthscales(ist)*1000)],'ytick',[],...
+        'xticklabel',[0 (figwidthscales(ist)*1000)])
     
     theseClus = 1:numel(Clusters); %[13 4 11 12 13 15]
     for iUn = theseClus 
@@ -104,20 +104,23 @@ for ist = Stimuli
         
         % Convert FR to z-score
         bs_smth = 20;
-        [Stream_FRsmooth,Stream_zscore,Stream_Spikes,ymaxval] = convertSpiketimesToFR(spiketimes,...
-            length(SpoutStream),TrialData.onset(1),TrialData.offset(1),10,bs_smth,'silence');
+        [Stream_FRsmooth,~,~,~] = convertSpiketimesToFR(spiketimes,...
+            length(SpoutStream),TrialData.onset(1),TrialData.offset(1),'exp',bs_smth,'silence');
         
         
         % Get all stimuli presented with these parameters, given a
         % sufficient number of trials without diruptive artifact
         % while the animal was drinking
-        [all_TDidx,Ntrials] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,0);
+        [all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,Info.artifact(maxChan).trials,dBSPL,LP,0);
         
         
         %% Collect trial indices and timestamps
         
         TDidx = [];
         TDidx = all_TDidx([TrialData.trID(all_TDidx)]==stid);
+        if isempty(TDidx)
+            continue
+        end
         
         % Get timestamps of onsets and offsets
         clear t2 t3 Duration t_win
@@ -208,14 +211,14 @@ for ist = Stimuli
         mkdir(savedir)
     end
     
-    savename = sprintf('%s_%s_%s',SUBJECT,SESSION,Info.stim_ID_key{ist});
+    savename = sprintf('%s_%s_%s',SUBJECT,SESSION,Info.stim_ID_key{stid});
     print_eps_kp(hf(ist),fullfile(savedir,savename))
     
     
 end %ist
 
 keyboard
-
+return
 
 % Save data for shihab
 

@@ -90,7 +90,7 @@ Stream_zscore    = Stream_zscore(1:StreamNSamples);
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 % Set ymax based on overall FR of unit
 
-yvals = [30 50 75 100 150 200 250 300 400 500 600 700 800 1000 1500];
+yvals = [30 50 75 100 150 200 250 300 400 500 600 700 800 1000 1500 3000];
 yin = find( ( max(yvals, median(Stream_FRsmooth(msStart:end))+3*std(Stream_FRsmooth(msStart:end)) ) - yvals )==0 );
 ymaxval = yvals(yin(1));
 

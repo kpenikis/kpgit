@@ -7,7 +7,7 @@ function [PSTH_cell,STIM_cell] = getdata4TRF(UnitData,iUn)
 %
 %
 
-global fn spkshift smth_win exclOnset AM_durs VS_durs
+global fn spkshift smth_win exclOnset AM_durs VS_durs nTrGrp
 
 
 % Get unit info
@@ -48,22 +48,41 @@ end
 
 %%
 
-[Stream_FRsmooth,Stream_zscore,Stream_spikes,~] = convertSpiketimesToFR(spiketimes,...
+[Stream_FRsmooth,~,~,~] = convertSpiketimesToFR(spiketimes,...
     length(SoundStream),TrialData.onset(1),TrialData.offset(1),'exp',smth_win,'silence');
 
 % Find all stimuli presented with these parameters, and trials without 
 % diruptive artifact & while the animal was drinking
-[all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP,0);
-Ntrials(1) = nan; %so Warn stimulus doesn't interfere
+[all_TDidx,Ntrials,~,allStim] = get_clean_trials(TrialData,Info.artifact(channel).trials,dBSPL,LP,1);
+
 
 % Set stim vars depending on what type of session
 if strcmp(session(end-1:end),'AM')
-%     theseStIDs = intersect(2:8,allStim');
-    theseStIDs = 2:8;
-    Durations = AM_durs;
+    
+    if min(allStim)>1
+        Ntrials = [1 Ntrials];
+        allStim = [1; allStim];
+    end
+    
+    theseStIDs = intersect(2:8,allStim');
+    Durations  = AM_durs;
+    
 elseif strcmp(session(end-1:end),'VS')
     theseStIDs = 1:6;
-    Durations = VS_durs;
+    Durations  = VS_durs;
+end
+
+% Remove stim with too few trials
+if any(Ntrials < (nTrGrp*2))
+    remStim = allStim(Ntrials(2:end) < (nTrGrp*2))';
+    if strcmp(session(end-1:end),'AM')
+        remStim = remStim + 1;
+    end
+    for is = 1:numel(remStim)
+        all_TDidx(TrialData.trID(all_TDidx)==remStim(is))  = [];
+        Ntrials(allStim==remStim(is)) = [];
+        allStim(allStim==remStim(is)) = [];
+    end
 end
 
 STIM_cell = cell(numel(theseStIDs),1);
@@ -76,15 +95,6 @@ PSTH_cell = cell(numel(theseStIDs),1);
 % Do need to check for number of trials, but do this later?
 % Differs for Pdc-Irr vs AM-VS comparisons
 
-% nTrGrp = min(Ntrials(theseStIDs)); %floor(min(Ntrials(2:end))/2);
-
-% if any(Ntrials(7:end) < nTrGrp*2)
-%     thisIR = allStim(Ntrials(7:end) < nTrGrp*2) + 6;
-%     all_TDidx(TrialData.trID(all_TDidx)==thisIR)  = [];
-%     Ntrials(allStim==thisIR) = [];
-%     allStim(allStim==thisIR) = [];
-% end
-
 
 %%
 
@@ -94,22 +104,22 @@ for stid = theseStIDs
     
     st_TDidx_ALL = all_TDidx(TrialData.trID(all_TDidx)==stid);
     
-    if numel(st_TDidx_ALL)<8
+    if numel(st_TDidx_ALL)<(nTrGrp*2)
         continue
     end
     
-    %%%  Skip ITI stimuli
-    if strcmp(session(end-1:end),'AM')
-        ITIflag = 0;%unique(TrialData.ITIflag(st_TDidx_ALL));
-        TDidx = st_TDidx_ALL(TrialData.ITIflag(st_TDidx_ALL) == ITIflag(1));
-    else
+    %%%  Keep ITI stimuli
+%     if strcmp(session(end-1:end),'AM')
+%         ITIflag = 0;%unique(TrialData.ITIflag(st_TDidx_ALL));
+%         TDidx = st_TDidx_ALL(TrialData.ITIflag(st_TDidx_ALL) == ITIflag(1));
+%     else
         TDidx = st_TDidx_ALL;
-    end
+%     end
     
     % Get timestamps of onsets and offsets
     clear t2 t3 Duration t_win
     t2 = TrialData.onset(TDidx);
-    Duration = Durations(stid); %mode(diff([t2 t3],1,2));
+    Duration = Durations(stid); 
     t3 = t2 + Duration;
     if t3(end)>length(Stream_FRsmooth)
         t3 = t3(1:end-1);
@@ -118,6 +128,7 @@ for stid = theseStIDs
     
     if exclOnset
         t2 = t2+150;
+        Duration = Duration-150;
     end
     
     % Collect responses for each trial
@@ -154,7 +165,5 @@ STIM_cell = foo; clear foo
 % OPTIONAL: Subtract spontaneous FR from PSTH
 %     foo = cellfun(@(x) max(x-UnitData(iUn).BaseFR,0), PSTH_cell, 'UniformOutput',false);
 %     PSTH_cell = foo; clear foo
-
-
 
 end

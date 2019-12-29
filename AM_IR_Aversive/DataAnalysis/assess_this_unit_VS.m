@@ -12,11 +12,10 @@ end
 
 %% Get FR over session
 
-bs_hist = 1;
 bs_smth = 20;
 
 [Stream_FRsmooth,Stream_zscore,Stream_Spikes] = convertSpiketimesToFR(round(spiketimes),...
-    length(SpoutStream),TrialData.onset(1),TrialData.offset(1),bs_hist,bs_smth,'silence');
+    length(SpoutStream),TrialData.onset(1),TrialData.offset(1),'exp',bs_smth,'silence');
 
 
 % Skip if unit has very low overall firing rate

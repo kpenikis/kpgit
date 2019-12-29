@@ -55,7 +55,7 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = 1:numel(Clusters)
+for iUn = numel(Clusters)
     
     close all
     
@@ -158,7 +158,6 @@ for iUn = 1:numel(Clusters)
         raster_y = [];
         stim   = nan( numel(TDidx), Duration+1 ); 
         psth   = nan( numel(TDidx), Duration+1 ); 
-        
         
         % Collect spikes/FR/rms for this stimulus/unit
         for it = 1:numel(TDidx)
