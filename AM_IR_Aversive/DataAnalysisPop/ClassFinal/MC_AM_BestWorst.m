@@ -236,7 +236,7 @@ for ii = 1:numel(WinEnds)
     
     %         savename = sprintf('Res_v%s_Train%i_%s_%s_%s',varPar,...
     %             TrainSize,whichIrr,whichCells,PickTrials);
-    savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,'Best');
+    savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,'Best',nBest);
 %     savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,whichCells);
     
     %         print(hf(ii),fullfile(savedir,savename),'-dpdf')

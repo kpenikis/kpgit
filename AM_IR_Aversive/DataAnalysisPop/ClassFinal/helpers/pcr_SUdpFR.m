@@ -1,6 +1,14 @@
 
 %% ~~~~ Distribution of PC vals for each stimulus, by mean FR
 
+% CellTypes
+iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
+iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
+
+if ~exist('CReach','var')
+    CReach = CR;
+end
+
 nSpks  = (mean(sum(mean(CTTS,3,'omitnan'),2,'omitnan'),4));
 nSpkRS = (mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2,'omitnan'),4));
 nSpkNS = (mean(sum(mean(CTTS(iNS,:,:,:),3,'omitnan'),2,'omitnan'),4));

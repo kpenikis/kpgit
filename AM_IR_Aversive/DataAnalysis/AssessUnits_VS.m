@@ -95,7 +95,8 @@ filename = sprintf( '%s_sess-%s_Spikes'   ,subject,session); load(fullfile(fn.pr
 
 % FOR NOW, ADD PLACEHOLDER FOR ARTIFACT TRIALS FOR SYNAPSE/KS DATA
 if ~isfield(Info,'artifact')
-        Info.artifact(64).trials = [];
+    keyboard
+    Info.artifact(64).trials = [];
 end
 
  
@@ -169,14 +170,14 @@ end %subject
 UnitInfo(1,:)=[];
 
 
-%% Measure waveform shapes
-
-[UnitInfo,UnitData] = assessWaveformShapes( SAVENAME, [SAVENAME '_WaveformShapes'], 1, UnitInfo, UnitData);
-
-
 %% Save Unit files 
 
 save(fullfile(fn.processed,SAVENAME),'UnitInfo','UnitData','-v7.3');
+
+
+%% Measure waveform shapes
+
+[UnitInfo,UnitData] = assessWaveformShapes( SAVENAME, [SAVENAME '_WaveformShapes'], 1, UnitInfo, UnitData);
 
 
 
