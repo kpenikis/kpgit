@@ -1,11 +1,11 @@
-function MC_AM_varPar
+function MC_AM_skipCells
 % MasterClass (all parameters defined at top of file)
 %
 %  SVM classifier for segments of Pdc and Irr stimuli.
 %  Instead of feeding spiking data into SVM (or whatever classifier), input
 %  just a scalar for each class comparison. This allows for independent
 %  information from many neurons, without a drastic increase of
-%  dimensionality. 
+%  dimensionality.
 %
 %
 %  KP, 2019-12
@@ -13,14 +13,15 @@ function MC_AM_varPar
 
 close all
 
-varPar       = 'AnDur';
+varPar       = 'Full';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'NS'; 
+whichCells   = 'SkipBestRS';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
-Dur          = [10:20:150 200 300 400 500];
+% Dur          = [10:20:150 200 300 400 500];
+Dur          = 500;
 WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -30,7 +31,7 @@ PickTrials  = 'rand';
 % STIM
 whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 50;
+BootstrapN   = 100;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -43,6 +44,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Skip2Cell    = [30 50];
+
 rng('shuffle')
 
 
@@ -51,15 +54,20 @@ rng('shuffle')
 fn = set_paths_directories('','',1);
 savedir = fullfile(fn.figs,'ClassAM','RawData');
 
+% Load Unit data files
+q = load(fullfile(fn.processed,'Units'));
+UnitData = q.UnitData;
+UnitInfo = q.UnitInfo;
+clear q
+
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
 q=load(fullfile(savedir,'CTTS_AM')); %Cell_Time_Trial_Stim
 Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
-% Load Unit data files
-q = load(fullfile(fn.processed,'Units'));
-UnitData = q.UnitData;
-UnitInfo = q.UnitInfo;
+% Load SU classification results
+q = load(fullfile(fn.figs,'ClassAM',whichStim,varPar,'each','CR_each.mat'));
+CReach = q.CR;
 clear q
 
 
@@ -92,9 +100,6 @@ switch whichStim
         theseStim  = [1:6 9:11];
     case 'Speech'
         theseStim  = 1:size(Cell_Time_Trial_Stim,4);
-%         MinStim  = find(min(nTrialMat,[],1)>=minTrs);
-    case 'U2'
-        theseStim  = 1:2;
 end
 
 % CellTypes
@@ -110,33 +115,44 @@ for ii = 1:numel(WinEnds)
     AnWin = WinBeg(ii):WinEnds(ii);
     fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
     
-%     for iTrSh = 1:numel(PickTrialss)
-%         
-%         PickTrials = PickTrialss{iTrSh};
+    for nc = 1:numel(Skip2Cell)
+        
+        nSub = Skip2Cell(nc);
         
         % Define cells and stimuli
         [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-            whichCells, nTrialMat, UnitData,...
+            'each', nTrialMat, UnitData,...
             theseStim, iRS, iNS, minTrs, convwin, AnWin );
         
         ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
         
-        % Train and test classifier
-        [S_AssMat,E_AssMat] = runSVMclass_SnE( CTTS, ETTS, ...
-            BootstrapN, nStim, Dur, nUns, PickTrials,TrainSize, TestSize, KernelType );
-%             Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim),...
-            
+        iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
+        iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
         
+        
+        % Find indices of Best N cells (iRS)
+        [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+        UseCells = iRS(iSUdps((nSub+1):end));
+            
+        % Find indices of loudest N cells (iRS)
+%         nSpkRS = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
+%         [FRs,iSUFR] = sort(nSpkRS,'descend');
+%         UseCells = iRS(iSUFR((nSub+1):end));
+        
+        
+        % Train and test classifier
+        [S_AssMat_NC,E_AssMat_NC] = runSVMclass_SnE( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+            BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType ); 
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %##########################################################################
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         
         
+        %% Plot NEURAL results
         
-        %% Plot NEURAL result
+        ConfMat = mean(S_AssMat_NC,3);
         
-        ConfMat = mean(S_AssMat,3);
         muPC    = mean(diag(ConfMat))*100;
         dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
         
@@ -147,7 +163,7 @@ for ii = 1:numel(WinEnds)
         imagesc(ConfMat)
         axis square
         caxis([-1 1])
-%         cmocean('ice') %ice
+        %         cmocean('ice') %ice
         cmocean('curl','pivot',0)
         colorbar
         ylabel('True stim')
@@ -155,30 +171,27 @@ for ii = 1:numel(WinEnds)
         set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
         
         title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
-            muPC,dprime,KernelType,whichStim,whichCells,nUns))
+            muPC,dprime,KernelType,whichStim,whichCells,nSub))
         
         
         % Save figure
-        savedir = fullfile(fn.figs,'ClassAM',whichStim,varPar);
+        savedir = fullfile(fn.figs,'ClassAM',whichStim,varPar,whichCells);
         if ~exist(fullfile(savedir,'backupTables'),'dir')
             mkdir(fullfile(savedir,'backupTables'))
         end
         
-%         savename = sprintf('Res_v%s_Train%i_%s_%s_%s',varPar,...
-%             TrainSize,whichIrr,whichCells,PickTrials);
-        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,whichCells);
+        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,'Loudest',nSub);
         
-%         print(hf(ii),fullfile(savedir,savename),'-dpdf')
+        print(hf(ii),fullfile(savedir,savename),'-dpdf')
         
         
         %% Save results to master table
         
         mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
-%         mastertablesavename = sprintf('CR_v%s_%s',varPar,whichIrr);
         thistablesavename   = savename;
         
         % Calculate performance for Env data
-        ConfMat  = mean(E_AssMat,3);
+        ConfMat  = mean(E_AssMat_NC,3);
         muPC_E   = mean(diag(ConfMat))*100;
         dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
         
@@ -187,8 +200,8 @@ for ii = 1:numel(WinEnds)
         CR1.figname  = {savename};
         CR1.Stim     = {whichStim};
         CR1.Cells    = {whichCells};
-        CR1.iC       = 0;
-        CR1.Results  = {S_AssMat};
+        CR1.iC       = nSub;
+        CR1.Results  = {S_AssMat_NC};
         CR1.PC       = muPC;
         CR1.dprime   = dprime;
         CR1.WinBeg   = WinBeg(ii);
@@ -201,7 +214,7 @@ for ii = 1:numel(WinEnds)
         CR1.conv     = {'exp'};
         CR1.tau      = tau;
         CR1.BsN      = BootstrapN;
-        CR1.ResEnv   = {E_AssMat};
+        CR1.ResEnv   = {E_AssMat_NC};
         CR1.PC_E     = muPC_E;
         CR1.dprime_E = dprime_E;
         
@@ -234,18 +247,28 @@ for ii = 1:numel(WinEnds)
         end
         
         
-%     end % iTrSh
+    end % nc
 end %vary classification parameter
 
 
 keyboard
 
 
+% Plot min max PC as a function of N cells
+pcr_skip_minmaxPC
+
+
+% Plot SU dprime vs N spikes
+pcr_SUdpFR
+
+
+
+
 % AnDur
 dpe = [CR.dprime_E];
 dpe(isinf(dpe)) = 6;
 
-figure; 
+figure;
 set(gcf,'Position',smallscreen)
 
 subplot(2,1,1);

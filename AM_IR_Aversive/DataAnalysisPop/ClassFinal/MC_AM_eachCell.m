@@ -1,4 +1,4 @@
-function MC_AM_varPar
+function MC_AM_eachCell
 % MasterClass (all parameters defined at top of file)
 %
 %  SVM classifier for segments of Pdc and Irr stimuli.
@@ -13,14 +13,14 @@ function MC_AM_varPar
 
 close all
 
-varPar       = 'AnDur';
+varPar       = 'Full';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'NS'; 
+whichCells   = 'each'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
-Dur          = [10:20:150 200 300 400 500];
+Dur          = 500;%[10:20:150 200 300 400 500];
 WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -30,7 +30,7 @@ PickTrials  = 'rand';
 % STIM
 whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 50;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -102,31 +102,29 @@ iRS = find(UnitInfo.TroughPeak>0.43);
 iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
 
 
-%++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-%##########################################################################
-%++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 for ii = 1:numel(WinEnds)
     
     AnWin = WinBeg(ii):WinEnds(ii);
     fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
     
-%     for iTrSh = 1:numel(PickTrialss)
-%         
-%         PickTrials = PickTrialss{iTrSh};
+    % Define cells and stimuli
+    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+        whichCells, nTrialMat, UnitData,...
+        theseStim, iRS, iNS, minTrs, convwin, AnWin );
+    
+    ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
+    
+    
+    % Step through each unit
+    for iUn = 139:size(CTTS,1)
         
-        % Define cells and stimuli
-        [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-            whichCells, nTrialMat, UnitData,...
-            theseStim, iRS, iNS, minTrs, convwin, AnWin );
-        
-        ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
+        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        %##########################################################################
+        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         
         % Train and test classifier
-        [S_AssMat,E_AssMat] = runSVMclass_SnE( CTTS, ETTS, ...
-            BootstrapN, nStim, Dur, nUns, PickTrials,TrainSize, TestSize, KernelType );
-%             Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim),...
-            
-        
+        [S_AssMat,E_AssMat] = runSVMclass_SnE( CTTS(iUn,:,:,:), ETTS(iUn,:,:,:), ...
+            BootstrapN, nStim, Dur, 1, PickTrials,TrainSize, TestSize, KernelType );
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %##########################################################################
@@ -147,7 +145,7 @@ for ii = 1:numel(WinEnds)
         imagesc(ConfMat)
         axis square
         caxis([-1 1])
-%         cmocean('ice') %ice
+        %         cmocean('ice') %ice
         cmocean('curl','pivot',0)
         colorbar
         ylabel('True stim')
@@ -159,22 +157,19 @@ for ii = 1:numel(WinEnds)
         
         
         % Save figure
-        savedir = fullfile(fn.figs,'ClassAM',whichStim,varPar);
+        savedir = fullfile(fn.figs,'ClassAM',whichStim,varPar,whichCells);
         if ~exist(fullfile(savedir,'backupTables'),'dir')
             mkdir(fullfile(savedir,'backupTables'))
         end
         
-%         savename = sprintf('Res_v%s_Train%i_%s_%s_%s',varPar,...
-%             TrainSize,whichIrr,whichCells,PickTrials);
-        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,whichCells);
+        savename = sprintf('Res_%s-%i_Train%i_conv%i_%s',whichCells,iUn,TrainSize,tau,whichStim);
         
-%         print(hf(ii),fullfile(savedir,savename),'-dpdf')
+        print(hf(ii),fullfile(savedir,savename),'-dpdf')
         
         
         %% Save results to master table
         
-        mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
-%         mastertablesavename = sprintf('CR_v%s_%s',varPar,whichIrr);
+        mastertablesavename = sprintf('CR_%s',whichCells);
         thistablesavename   = savename;
         
         % Calculate performance for Env data
@@ -182,12 +177,12 @@ for ii = 1:numel(WinEnds)
         muPC_E   = mean(diag(ConfMat))*100;
         dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
         
-        
+        % Load data into table
         CR1 = table;
         CR1.figname  = {savename};
         CR1.Stim     = {whichStim};
         CR1.Cells    = {whichCells};
-        CR1.iC       = 0;
+        CR1.iC       = iUn;
         CR1.Results  = {S_AssMat};
         CR1.PC       = muPC;
         CR1.dprime   = dprime;
@@ -233,12 +228,21 @@ for ii = 1:numel(WinEnds)
             save(fullfile(savedir,'backupTables',thistablesavename),'CR1','-v7.3')
         end
         
-        
-%     end % iTrSh
+        if mod(iUn,20)==0
+            close all
+        end
+    end %iUn
 end %vary classification parameter
 
 
 keyboard
+
+
+figure;
+set(gcf,'Position',smallscreen)
+plotSpread([CR.PC])
+
+
 
 
 % AnDur
