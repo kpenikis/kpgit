@@ -55,7 +55,7 @@ psthlinewidth  = 4;
 
 
 %%
-for iUn = numel(Clusters)
+for iUn = 1:numel(Clusters)
     
     close all
     
