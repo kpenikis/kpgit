@@ -8,7 +8,7 @@ function gatherCellTimeTrialStim_Speech
 
 global fn trN Duration Stimuli spkshift
 
-trN      = 100;
+trN      = 120;
 Duration = 500;
 Stimuli  = 1:6;
 
@@ -41,12 +41,12 @@ for iUn = 1:numel(UnitData)
     
 end
 
-savedir = fullfile(fn.figs,'SpeechClass');
+savedir = fullfile(fn.figs,'ClassSpeech','RawData');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-save(fullfile(savedir,'CTTS_Speech'),'Cell_Time_Trial_Stim','Env_Time_Trial_Stim','Un_Indices','-v7.3')
+save(fullfile(savedir,'CTTS_Speech_nonSim'),'Cell_Time_Trial_Stim','Env_Time_Trial_Stim','Un_Indices','-v7.3')
 
 
 

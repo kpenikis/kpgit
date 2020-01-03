@@ -49,12 +49,13 @@ StimTrials    = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+2);
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
-[all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,unique(vertcat(Info.artifact(:).trials)),UnitData(iUn).spl,UnitData(iUn).lpn,1);
+% [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,unique(vertcat(Info.artifact(:).trials)),UnitData(iUn).spl,UnitData(iUn).lpn,1);
+[all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(UnitData(iUn).Channel).trials,UnitData(iUn).spl,UnitData(iUn).lpn,1);
 
 allStim = unique(TrialData.trID(all_TDidx))';
-if numel(allStim)<6
-    keyboard
-end
+% if numel(allStim)<6
+%     return
+% end
 
 for ist = 1:numel(Stimuli)
     

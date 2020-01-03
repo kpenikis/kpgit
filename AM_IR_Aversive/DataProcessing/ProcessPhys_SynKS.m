@@ -173,9 +173,9 @@ end
 fprintf(' saving Info struct and Trial data...')
 
 % Save Info structure
-savename = sprintf('%s_sess-%s_Info',SUBJECT,SESS_LABEL);
-save(fullfile( saveDir, savename),'Info','-v7.3');
-
+% savename = sprintf('%s_sess-%s_Info',SUBJECT,SESS_LABEL);
+% save(fullfile( saveDir, savename),'Info','-v7.3');
+% 
 % if exist('TrialData','var') && strcmp(BlockType,'behavior')
 %     savename = sprintf('%s_sess-%s_TrialData',SUBJECT,SESS_LABEL);
 %     save(fullfile(saveDir, savename),'TrialData','SpoutStream','SoundStream','RateStream','Phase0','-v7.3');
