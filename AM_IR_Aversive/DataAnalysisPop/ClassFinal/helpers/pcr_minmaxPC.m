@@ -52,7 +52,7 @@ title('Adding cells, from best SU d''')
 
 
 
-print_eps_kp(gcf,fullfile(savedir,'Full',[whichCells 'RS'],'PC_MinMax'))
+print_eps_kp(gcf,fullfile(figsavedir,'Full',[whichCells 'RS_2'],'PC_MinMax'))
 
 
 

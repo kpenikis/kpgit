@@ -6,6 +6,7 @@ function [S_AssMat,E_AssMat] = runSVMclass_SnE(CTTS,ETTS,BSN,nSt,Dur,nUn,PickTri
 % 
 
 S_AssMat = nan(nSt,nSt,BSN);
+E_AssMat = [];
 
 h=waitbar(0);
 
@@ -212,19 +213,19 @@ for iBS = 1:BSN
     %####  ENVELOPE  
     
     % Finish preparing input data
-    InputData = [];
-    InputData = [EnvTrain TrueTrain];
-    
-    % - - - - - - - - - 
-    % Train classifier 
-    trainedClass = trainSVMClass(InputData,KernelType);
-    
-    % - - - - - - - - - - - - - 
-    % Test on held out data
-    Test_FitStim  = trainedClass.predictFcn(EnvTest);
-    
-    confMat = confusionmat(TrueTest, Test_FitStim);
-    E_AssMat(:,:,iBS) = confMat./sum(confMat,2);
+% % %     InputData = [];
+% % %     InputData = [EnvTrain TrueTrain];
+% % %     
+% % %     % - - - - - - - - - 
+% % %     % Train classifier 
+% % %     trainedClass = trainSVMClass(InputData,KernelType);
+% % %     
+% % %     % - - - - - - - - - - - - - 
+% % %     % Test on held out data
+% % %     Test_FitStim  = trainedClass.predictFcn(EnvTest);
+% % %     
+% % %     confMat = confusionmat(TrueTest, Test_FitStim);
+% % %     E_AssMat(:,:,iBS) = confMat./sum(confMat,2);
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     

@@ -26,12 +26,12 @@ WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
-PickTrials  = 'rand';
+PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 100;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -44,7 +44,7 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-Skip2Cell    = [30 50];
+Skip2Cell    = [0 1 2 3 4 5 7 10 20 30 40];
 
 rng('shuffle')
 
@@ -52,21 +52,41 @@ rng('shuffle')
 %% Load data
 
 fn = set_paths_directories('','',1);
-savedir = fullfile(fn.figs,'ClassAM','RawData');
-
-% Load Unit data files
-q = load(fullfile(fn.processed,'Units'));
-UnitData = q.UnitData;
-UnitInfo = q.UnitInfo;
-clear q
+switch whichStim
+    case {'AC' 'DB'}
+        savedir = fullfile(fn.figs,'ClassAM');
+        rawdata = 'CTTS_AM';
+        
+        % Load Unit data files
+        q = load(fullfile(fn.processed,'Units'));
+        UnitData = q.UnitData;
+        UnitInfo = q.UnitInfo;
+        clear q
+        
+    case 'Speech'
+        savedir = fullfile(fn.figs,'ClassSpeech');
+        rawdata = 'CTTS_Speech_nonSim';
+        
+        % Load Unit data files
+        q = load(fullfile(fn.processed,'UnitsVS'));
+        UnitData = q.UnitData;
+        UnitInfo = q.UnitInfo;
+        clear q
+        
+end
 
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
-q=load(fullfile(savedir,'CTTS_AM')); %Cell_Time_Trial_Stim
+q=load(fullfile(savedir,'RawData',rawdata)); %Cell_Time_Trial_Stim
 Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
+% Check that correct UnitData file was imported
+if size(Cell_Time_Trial_Stim,1)~=numel(UnitData)
+    keyboard
+end
+
 % Load SU classification results
-q = load(fullfile(fn.figs,'ClassAM',whichStim,varPar,'each','CR_each.mat'));
+q = load(fullfile(savedir,whichStim,varPar,'each','CR_each.mat'));
 CReach = q.CR;
 clear q
 
@@ -134,7 +154,7 @@ for ii = 1:numel(WinEnds)
         [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
         UseCells = iRS(iSUdps((nSub+1):end));
             
-        % Find indices of loudest N cells (iRS)
+        % Find indices of Loudest N cells (iRS)
 %         nSpkRS = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
 %         [FRs,iSUFR] = sort(nSpkRS,'descend');
 %         UseCells = iRS(iSUFR((nSub+1):end));
@@ -163,7 +183,7 @@ for ii = 1:numel(WinEnds)
         imagesc(ConfMat)
         axis square
         caxis([-1 1])
-        %         cmocean('ice') %ice
+%         cmocean('ice') %ice
         cmocean('curl','pivot',0)
         colorbar
         ylabel('True stim')
@@ -175,14 +195,14 @@ for ii = 1:numel(WinEnds)
         
         
         % Save figure
-        savedir = fullfile(fn.figs,'ClassAM',whichStim,varPar,whichCells);
-        if ~exist(fullfile(savedir,'backupTables'),'dir')
-            mkdir(fullfile(savedir,'backupTables'))
+        figsavedir = fullfile(savedir,whichStim,varPar,whichCells);
+        if ~exist(fullfile(figsavedir,'backupTables'),'dir')
+            mkdir(fullfile(figsavedir,'backupTables'))
         end
         
-        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,'Loudest',nSub);
+        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,'Best',length(UseCells));
         
-        print(hf(ii),fullfile(savedir,savename),'-dpdf')
+        print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
         
         
         %% Save results to master table
@@ -222,7 +242,7 @@ for ii = 1:numel(WinEnds)
         % Load saved table
         clear q;
         try
-            q=load(fullfile(savedir,mastertablesavename));
+            q=load(fullfile(figsavedir,mastertablesavename));
         end
         
         if ii>1 && ~exist('q','var')
@@ -233,8 +253,8 @@ for ii = 1:numel(WinEnds)
             
             % Save new table
             CR = CR1;
-            save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(savedir,'backupTables',thistablesavename),'CR1','-v7.3')
+            save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
+            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
             
         else % Save updated table
             
@@ -242,8 +262,8 @@ for ii = 1:numel(WinEnds)
             CR = q.CR;
             CR = [CR; CR1];
             
-            save(fullfile(savedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(savedir,'backupTables',thistablesavename),'CR1','-v7.3')
+            save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
+            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
         end
         
         
@@ -284,7 +304,7 @@ xlabel('Time from onset (ms)')
 ylabel('d'' Neural-Env')
 ylim([-5 0])
 
-print_eps_kp(gcf,fullfile(savedir,mastertablesavename))
+print_eps_kp(gcf,fullfile(figsavedir,mastertablesavename))
 
 
 
@@ -301,7 +321,7 @@ xlabel('Analysis window end')
 ylabel('d''')
 legend({'shuffled' 'sim.'},'Location','southeast')
 title(whichCells)
-print_eps_kp(gcf,fullfile(savedir,mastertablesavename))
+print_eps_kp(gcf,fullfile(figsavedir,mastertablesavename))
 
 
 % Shuffled vs sim trials
@@ -313,7 +333,7 @@ xlabel('d'' simultaneous trials')
 ylabel('d'' shuffled trials')
 axis square
 
-print_eps_kp(gcf,fullfile(savedir,mastertablesavename))
+print_eps_kp(gcf,fullfile(figsavedir,mastertablesavename))
 
 
 keyboard
