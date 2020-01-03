@@ -1,9 +1,13 @@
 
-if ~exist('CR','var')
-    tablesavename = sprintf('CR_v%s_%s.mat',varPar,whichCells);
-    q=load(fullfile(figsavedir,tablesavename));
-    CR = q.CR;
-end
+whichCells = 'Best';
+
+fn = set_paths_directories('','',1);
+savedir = fullfile(fn.figs,'ClassAM','AC');
+
+
+% Results: adding Loudest cells
+q=load(fullfile(savedir,'Full',[whichCells 'RS'],['CR_vFull_' whichCells 'RS.mat']));
+CR = q.CR;
 
 pcStim  = nan(8,size(CR,1));
 dpStim  = nan(8,size(CR,1));
@@ -33,7 +37,7 @@ set(gca,'Color','none')
 
 
 % Add point for All cells
-q=load(fullfile(figsavedir,'AnDur','CR_vAnDur_RS.mat'));
+q=load(fullfile(savedir,'AnDur','CR_vAnDur_RS.mat'));
 CRallRS = q.CR(q.CR.WinEnd==1000,:);
 
 ConfMat = mean(CRallRS.Results{:},3);
@@ -49,7 +53,5 @@ title('Adding cells, from best SU d''')
 
 
 print_eps_kp(gcf,fullfile(figsavedir,'Full',[whichCells 'RS_2'],'PC_MinMax'))
-
-
 
 
