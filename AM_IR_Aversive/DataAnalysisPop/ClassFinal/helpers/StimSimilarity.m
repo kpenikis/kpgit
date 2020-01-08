@@ -28,6 +28,7 @@ set(0,'DefaultAxesFontSize',18)
 scrsz = get(0,'ScreenSize');     %[left bottom width height]
 fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
 smallscreen = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
+tallscreen  = [1 scrsz(4) scrsz(3)/4 scrsz(4)];
 
 
 %% Load data
@@ -36,10 +37,10 @@ fn = set_paths_directories('','',1);
 
 % AM DATA
 
-savedir = fullfile(fn.figs,'ClassAM');
+savedir_AM = fullfile(fn.figs,'ClassAM');
 rawdata = 'CTTS_AM';
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
-q=load(fullfile(savedir,'RawData',rawdata)); %Cell_Time_Trial_Stim
+q=load(fullfile(savedir_AM,'RawData',rawdata)); %Cell_Time_Trial_Stim
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
 % FILTER AM
@@ -58,6 +59,36 @@ Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 % FILTER SPEECH
 ETTS_Sp = Env_Time_Trial_Stim(:,AnWin,:,SpStim);
 clear q Env_Time_Trial_Stim
+
+
+%% Plot each stimulus
+
+% AM
+yspace = 0.8;
+hfAM = figure;
+set(hfAM,'Position',tallscreen)
+hold on
+for is = 1:size(ETTS_AM,4)
+    plot((is-1)*yspace+mean(mean(ETTS_AM(:,:,:,is),3,'omitnan'),1,'omitnan'),...
+        'Color',0.03*[1 1 1],'LineWidth',4)
+end
+set(gca,'ytick',0:yspace:(yspace*7),'yticklabel',1:8,'xlim',[0 500],'ylim',[0 yspace*8])
+
+print_eps_kp(hfAM,fullfile(savedir_AM,'StimEnvs'))
+
+
+% Speech
+yspace = 0.025;
+hfSp = figure;
+set(hfSp,'Position',tallscreen)
+hold on
+for is = 1:size(ETTS_Sp,4)
+    plot((is-1)*yspace+mean(mean(ETTS_Sp(:,:,:,is),3,'omitnan'),1,'omitnan'),...
+        'Color',0.03*[1 1 1],'LineWidth',4)
+end
+set(gca,'ytick',0:yspace:(yspace*7),'yticklabel',1:8,'xlim',[0 500],'ylim',[0 yspace*8])
+
+print_eps_kp(hfSp,fullfile(savedir,'StimEnvs'))
 
 
 %% Correlations between stimuli

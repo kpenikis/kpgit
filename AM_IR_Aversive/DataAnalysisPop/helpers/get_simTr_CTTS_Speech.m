@@ -14,7 +14,7 @@ padPreT0 = 500;
 padPost  = 500;
 
 if ~exist('Stimuli','var')
-    Stimuli   = 1:6;
+    Stimuli   = 2:6;
 end
 if ~exist('Duration','var')
     Duration  = 1000;
@@ -43,14 +43,14 @@ end
 %%
 try
     
-SpikesTrials  = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+2);
-StimTrials    = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+2);
+SpikesTrials  = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+3);
+StimTrials    = nan(1,Duration+padPreT0+padPost,trN,numel(Stimuli)+3);
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
-% [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,unique(vertcat(Info.artifact(:).trials)),UnitData(iUn).spl,UnitData(iUn).lpn,1);
-[all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(UnitData(iUn).Channel).trials,UnitData(iUn).spl,UnitData(iUn).lpn,1);
+[all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,unique(vertcat(Info.artifact(:).trials)),UnitData(iUn).spl,UnitData(iUn).lpn,1);
+% [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(UnitData(iUn).Channel).trials,UnitData(iUn).spl,UnitData(iUn).lpn,1);
 
 allStim = unique(TrialData.trID(all_TDidx))';
 % if numel(allStim)<6
@@ -91,13 +91,14 @@ for ist = 1:numel(Stimuli)
     
     
     %% Get spiking activity for each trial
+    
 %     figure; hold on
 %     title(stid)
     for it = 1:min(numel(TDidx),trN)
         
-        istid = stid;
-        if stid==4
-            istid = 5; %advance one slot for DB
+        istid = stid-1;%[ 1  2  3  4  5  6  7  8 ]
+        if stid==4     %[ 2 3a 3b 4a 4b 4c  5  6 ]
+            istid = 4; %advance one slot for DB
         end
         if stid>4
             istid = stid+2; %advance one slot for DB
@@ -120,7 +121,7 @@ for ist = 1:numel(Stimuli)
         if stid==3
             istid = istid+1;
             
-            s2 = t2(it) + 650;
+            s2 = t2(it) + 630;
             
             WinBeg = s2-padPreT0;
             WinEnd = s2+Duration+padPost;
@@ -135,7 +136,7 @@ for ist = 1:numel(Stimuli)
         end
         
         
-        % Add another segment from sentence STIMULUS 4
+        % Add first segment from sentence STIMULUS 4
         if stid==4 
             istid = istid+1;
             
@@ -151,11 +152,29 @@ for ist = 1:numel(Stimuli)
             SpikesTrials(1,sp,it,istid) = 1;
             
             StimTrials(1,:,it,istid) = SoundStream((WinBeg+1):WinEnd);
+            
+            
+        % Add second segment from sentence STIMULUS 4
+            istid = istid+1;
+            
+            s2 = t2(it) + 3482;   % 1720
+            
+            WinBeg = s2-padPreT0;
+            WinEnd = s2+Duration+padPost;
+            
+            sp=[]; sp = spiketimes( spiketimes>WinBeg ...
+                & spiketimes<=WinEnd ) - WinBeg;
+            
+            SpikesTrials(1,:,it,istid)  = 0;
+            SpikesTrials(1,sp,it,istid) = 1;
+            
+            StimTrials(1,:,it,istid) = SoundStream((WinBeg+1):WinEnd);
+            
         end
         
         % Plot stim to check
 %         figure; hold on
-%         plot(t2(it)+(0:2000)-t2(it),SoundStream(t2(it)+(0:2000)))
+%         plot(t2(it)+(0:6000)-t2(it),SoundStream(t2(it)+(0:6000)))
 %         plot([t2(it) t2(it)]-t2(it),[0 0.03],'k','LineWidth',2)
 %         plot([t2(it) t2(it)]+Duration-t2(it),[0 0.03],'LineWidth',2)
 %         plot([s2 s2]-t2(it),[0 0.03],'k','LineWidth',2)
@@ -168,6 +187,10 @@ end %ist
 catch
     keyboard
 end
+
+% figure; 
+% plot(permute(mean(StimTrials(1,501:1000,:,1:8),3,'omitnan'),[2 4 1 3]),...
+%     'LineWidth',3)
 
 includethiscell = 1;
 

@@ -1,12 +1,13 @@
-function [S_AssMat,E_AssMat] = runSVMclass_SnE(CTTS,ETTS,BSN,nSt,Dur,nUn,PickTrials,TrainSize,TestSize,KernelType)
+function [S_AssMat,E_AssMat,TrialResults] = runSVMclass_SnE(CTTS,ETTS,BSN,nSt,Dur,nUn,PickTrials,TrainSize,TestSize,KernelType)
 % AssMat = runSVMclass(Cell_Time_Trial_Stim,BootstrapN,...
 %    nStim,Dur,nUns,TrainSize,TestSize,convwin,KernelType)
 %
 %  Called by MasterClass
 % 
 
-S_AssMat = nan(nSt,nSt,BSN);
-E_AssMat = [];
+S_AssMat      = nan(nSt,nSt,BSN);
+E_AssMat     = [];
+TrialResults = [];
 
 h=waitbar(0);
 
@@ -201,12 +202,20 @@ for iBS = 1:BSN
     % Train classifier 
     trainedClass = trainSVMClass(InputData,KernelType);
     
+    % to get weights (for each learner, one-vs-all)
+    % trainedClass.ClassificationSVM.BinaryLearners{1}.Beta
+    
     % - - - - - - - - - - - - - 
     % Test on held out data
     Test_FitStim  = trainedClass.predictFcn(DataTest);
     
     confMat = confusionmat(TrueTest, Test_FitStim);
     S_AssMat(:,:,iBS) = confMat./sum(confMat,2);
+    
+    % - - - - - - - - - - - - - 
+    % Save stimulus, trial number, and outcome
+    TrialResults = [TrialResults; [TrueTest Test_FitStim Test_trs] ];
+    
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

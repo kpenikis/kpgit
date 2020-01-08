@@ -3,6 +3,8 @@ function [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_St
 % Gets only those values of CTTS to classify.
 % KP, 2019-12 
 
+
+
 switch whichCells
     case {'all' 'RSNS' 'each'}                                         % All Cells
         theseCells = find(all(nTrialMat(:,theseStim)>=minTrs,2));
@@ -17,7 +19,8 @@ switch whichCells
             [~,NS_CTTS] = intersect(theseCells,iiNS);
         end
         
-    case {'Mar28-AM' 'Mar30-AM' 'Apr02-AM' 'Apr11-AM' 'Jan17-AM' 'Oct26-AM' 'Mar26-AM' 'Jan25-AM' 'Jan21-AM'}            % Session
+%     case {'Mar28-AM' 'Mar30-AM' 'Apr02-AM' 'Apr11-AM' 'Jan17-AM' 'Oct26-AM' 'Mar26-AM' 'Jan25-AM' 'Jan21-AM'}
+    case unique({UnitData.Session})
         theseCells = find( strcmp({UnitData.Session}',whichCells) & all(nTrialMat(:,theseStim)>=minTrs,2) );
         
     case 'select'                                  % One or subset of cells

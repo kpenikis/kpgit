@@ -36,9 +36,9 @@ ylim([0 1])
 % plot([70; 70],[min(pcStimAll,[],1); max(pcStimAll,[],1)],'-k','LineWidth',4)
 % plot(70,median(pcStimAll,1),'.k','MarkerSize',40)
 
-set(gca,'xtick',[[CR.iC]' 70],'xticklabel',[cellstr(num2str([CR.iC]))' 'all'])
+set(gca,'xtick',[CR.iC]','xticklabel',cellstr(num2str([CR.iC]))')
 
-title('Removing cells, from best SU d''')
+title([whichStim ', ' whichCells])
 
 
 keyboard

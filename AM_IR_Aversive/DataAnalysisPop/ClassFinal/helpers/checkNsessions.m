@@ -1,39 +1,51 @@
-function MC_subpop
-% MasterClass (all parameters defined at top of file)
-%  Can process AM or Speech data.
-% 
-%  MUST RE-RUN SPEECH!! wrong units labeled RS first time around
-%
-%  SVM classifier for segments of Pdc and Irr stimuli.
-%  Instead of feeding spiking data into SVM (or whatever classifier), input
-%  just a scalar for each class comparison. This allows for independent
-%  information from many neurons, without a drastic increase of
-%  dimensionality.
-%
-%
-%  KP, 2019-01
-%
 
-close all
 
-varPar       = 'Full';
+crAmt = 0.0001;
+
+% Data settings
+% fn = set_paths_directories('','',1);
+% savedir = fullfile(fn.figs,'ClassSpeech',whichStim,'Full','SessSubpops');
+
+% Sessions = {...
+%     'Mid10RS_Apr02';...
+%     'Mid10RS_Apr11';...
+%     'Mid10RS_Mar26';...
+%     'Mid10RS_Mar28';...
+%     'Mid10RS_Mar30';...
+%     'Mid10RS_Jan17';...
+%     'Mid10RS_Jan21';...
+%     };
+
+Sessions = {...
+    'Mid10RS_Mar29-VS' ;...
+    'Mid10RS_Apr14-VS' ;...
+    'Mid10RS_Mar28-VS' ;...
+    'Mid10RS_Apr11-VS' ;...
+    'Mid10RS_Mar30-VS' ;...
+    'Mid10RS_Apr07-VS' ;...
+    'Mid10RS_Apr10-VS' ;...
+    'Mid10RS_Apr15-VS' ;...
+    'Mid10RS_Apr09-VS' };
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+varPar       = 'Full';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'Mid10RS'; % BestRS SkipBestRS 
+% whichCells   = 'Mid10RS_Mar28'; % BestRS SkipBestRS 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
 WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
+AnWin        = WinBeg:WinEnds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
-PickTrials   = 'rand';
+PickTrials   = 'sim';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
 whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 500;
+BootstrapN   = 1000;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -46,9 +58,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-SubpopStart  = [71 81 91];
-
-rng('shuffle')
+SubpopSize   = [10];
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 %% Load data
@@ -67,7 +78,7 @@ switch whichStim
         
     case 'Speech'
         rootdir = fullfile(fn.figs,'ClassSpeech');
-        rawdata = 'CTTS_Speech_nonSim';
+        rawdata = 'CTTS_Speech';
         
         % Load Unit data files
         q = load(fullfile(fn.processed,'UnitsVS'));
@@ -109,10 +120,10 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
-if ~exist(fullfile(figsavedir,'backupTables'),'dir')
-    mkdir(fullfile(figsavedir,'backupTables'))
-end
+% figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
+% if ~exist(fullfile(figsavedir,'backupTables'),'dir')
+%     mkdir(fullfile(figsavedir,'backupTables'))
+% end
 
 
 %% Prepare to parse data
@@ -140,14 +151,13 @@ iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-for ii = 1:numel(WinEnds)
+for ii = 1:numel(Sessions)
     
-    AnWin = WinBeg(ii):WinEnds(ii);
-    fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
+    whichCells = Sessions{ii};
     
-    for nc = 1:numel(SubpopStart)
+    for nc = 1:numel(SubpopSize)
         
-        nCell = SubpopStart(nc);
+        nCell = SubpopSize(nc);
         
         % Define cells and stimuli
         [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
@@ -174,10 +184,6 @@ for ii = 1:numel(WinEnds)
             case 'Mid20RS'
                 [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
                 UseCells   = iRS(iSUdps(nCell+(0:19)));
-            case 'Mid10RS'
-                [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                UseCells   = iRS(iSUdps(nCell+(0:9)));
-                SUdps      = dps(nCell+(0:9));
             
             % Individual sessions
             case 'Mid10RS_Apr02'
@@ -258,191 +264,68 @@ for ii = 1:numel(WinEnds)
                 keyboard
                 [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
                 UseCells   = iRS(iSUdps((nCell+1):end));
+               
+                
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %%%   Speech
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            case 'Mid10RS_Mar29-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Mar29-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Apr14-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Apr14-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Mar28-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Mar28-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Apr11-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Apr11-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Mar30-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Mar30-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Apr07-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Apr07-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Apr10-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Apr10-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Apr15-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Apr15-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            case 'Mid10RS_Apr09-VS'
+                isess = find(strcmp({UnitData(theseCells).Session},'Apr09-VS'));
+                idxC  = intersect(isess',iRS);
+                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend')
+%                 UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
+%                 SUdps    = dps(find(dps<1,1,'first')+(0:9))
         end
         
-        % Train and test classifier
-        [S_AssMat_NC,~,TrialResults] = runSVMclass_SnE( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
-            BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType ); 
-        
-        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        %##########################################################################
-        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        
-        
-        %% Plot NEURAL results
-        
-        ConfMat = mean(S_AssMat_NC,3);
-        
-        muPC    = mean(diag(ConfMat))*100;
-        dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
-        
-        ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
-        
-        % Plot
-        hf(ii) = figure;
-        imagesc(ConfMat)
-        axis square
-        caxis([-1 1])
-        cmocean('curl','pivot',0)
-        colorbar
-        ylabel('True stim')
-        xlabel('Assigned')
-        set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
-        
-        title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
-            muPC,dprime,KernelType,whichStim,whichCells,nCell))
-        
-        
-        % Save figure
-        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s_%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,whichCells,nCell);
-        
-        print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
-        
-        
-        %% Save results to master table
-        
-        mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
-        thistablesavename   = savename;
-        
-        % Calculate performance for Env data
-%         ConfMat  = mean(E_AssMat_NC,3);
-%         muPC_E   = mean(diag(ConfMat))*100;
-%         dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
-        
-        
-        CR1 = table;
-        CR1.figname  = {savename};
-        CR1.Stim     = {whichStim};
-        CR1.Cells    = {whichCells};
-        CR1.iC       = nCell;
-        CR1.Results  = {S_AssMat_NC};
-        CR1.PC       = muPC;
-        CR1.dprime   = dprime;
-        CR1.WinBeg   = WinBeg(ii);
-        CR1.WinEnd   = WinEnds(ii);
-        CR1.trials   = {PickTrials};
-        CR1.rcorrOpt = {'norm'};
-        CR1.nTemp    = {PSTHsize};
-        CR1.nTrain   = TrainSize;
-        CR1.nTest    = TestSize;
-        CR1.conv     = {'exp'};
-        CR1.tau      = tau;
-        CR1.SUids    = {UseCells};
-        CR1.SUdps    = {SUdps};
-        CR1.TrRes    = {TrialResults};
-        
-        
-        % Load saved table
-        clear q;
-        if ~exist('CR','var')
-        try
-            q=load(fullfile(figsavedir,mastertablesavename));
-            CR = q.CR;
-        end
-        end
-        
-        if ~exist('CR','var')
-            
-            % Save new table
-            CR = CR1;
-            save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
-            
-        else % Save updated table
-            
-            % Concatenate new data
-            CR = [CR; CR1];
-            save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
-        end
-        
-    end % nc
-end %vary classification parameter
-
-
-keyboard
-
-% Plot ranked SU vs subpops
-pcr_SUvPools
-
-% Plot min max PC and d' as a function of N cells
-pcr_minmaxPC
-
-% Plot PC and d' for each stimulus as a function of N cells
-pcr_byStim
-
-% Plot SU dprime vs N spikes
-pcr_SUdpFR
-
-
-
-
-% AnDur
-dpe = [CR.dprime_E];
-dpe(isinf(dpe)) = 6;
-
-figure;
-set(gcf,'Position',tallsmall)
-
-subplot(2,1,1);
-plot([CR.WinEnd]-500,dpe,'-m','LineWidth',2)
-hold on
-plot([CR.WinEnd]-500,[CR.dprime],'-k','LineWidth',2)
-xlabel('Time from onset (ms)')
-ylabel('d''')
-
-subplot(2,1,2);
-plot([CR.WinEnd]-500,[CR.dprime]-dpe,'-k','LineWidth',2)
-xlabel('Time from onset (ms)')
-ylabel('d'' Neural-Env')
-ylim([-5 0])
-
-print_eps_kp(gcf,fullfile(figsavedir,mastertablesavename))
-
-
-
-
-% Shuffled vs sim trials, vary AnDur
-figure;
-hold on
-ishf = find(strcmp(CR.trials,'rand'));
-isim = find(strcmp(CR.trials,'sim'));
-[~,iCR]=sort([CR.WinEnd]);
-ip(1)=plot(CR.WinEnd(iCR(ismember(iCR,ishf)))-500,[CR.dprime(iCR(ismember(iCR,ishf)))],'o-r');
-ip(2)=plot(CR.WinEnd(iCR(ismember(iCR,isim)))-500,[CR.dprime(iCR(ismember(iCR,isim)))],'o-k');
-xlabel('Analysis window end')
-ylabel('d''')
-legend({'shuffled' 'sim.'},'Location','southeast')
-title(whichCells)
-print_eps_kp(gcf,fullfile(figsavedir,mastertablesavename))
-
-
-% Shuffled vs sim trials
-figure;
-plot([0 3],[0 3],'-k')
-hold on
-scatter([CR.dprime(2:2:end)],[CR.dprime(1:2:end)],10.*[26 25 17 17 17 13],'k','filled')
-xlabel('d'' simultaneous trials')
-ylabel('d'' shuffled trials')
-axis square
-
-print_eps_kp(gcf,fullfile(figsavedir,mastertablesavename))
-
-
-keyboard
-
-figure; hold on
-[~,iCR]=sort([CR.WinEnd]);
-[~,iCRFR]=sort([CRFR.WinEnd]);
-ip(1)=plot(CR.WinEnd(iCR)-500,[CR.dprime(iCR)],'o-b');
-ip(2)=plot([CRFR.WinEnd(iCRFR)]-500,[CRFR.dprime(iCRFR)],'o-k');
-xlabel('Analysis window end (ms)')
-ylabel('d''')
-legend(ip,{'temporal' 'rate'})
-title('Classification in increasing windows')
-
-fn = set_paths_directories('','',1);
-rootdir = fullfile(fn.figs,'StimClassRcorr');
-print_eps_kp(gcf,fullfile(rootdir,'CR_vAnWin_50_TemporalRate'))
-
+    end
 end
+keyboard
+

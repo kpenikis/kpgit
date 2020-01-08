@@ -4,11 +4,6 @@ dbstop in MC_subpop.m at 155
 MC_subpop
 
 
-
-
-
-
-
 if ~exist('CR','var')
     fprintf('no Results table in workspace, so loading it..\n')
     tablesavename = sprintf('CR_v%s_%s.mat',varPar,whichCells);
@@ -16,6 +11,8 @@ if ~exist('CR','var')
     CR = q.CR;
 end
 
+
+% Get results by stimulus
 pcStim  = nan(8,size(CR,1));
 dpStim  = nan(8,size(CR,1));
 for inc = 1:size(CR,1)
@@ -33,34 +30,46 @@ for inc = 1:size(CR,1)
 end
 
 
+% Set stimulus order in terms of "uniqueness" 
+switch whichStim
+    case 'AC'
+        StimOrder = [8 3 2 5 6 7 4 1];
+    case 'Speech'
+        StimOrder = [4 3 6 1 2 5 7 8];
+end
+newcolors = cmocean('thermal',8);
+
+
+% Make figure
 hf=figure; 
 set(hf,'Position',widesmall)
 
 subplot(1,2,1)
+set(gca,'ColorOrder',newcolors);
 hold on
-plot([[CR.iC]'; [CR.iC]'],[min(pcStim,[],1); max(pcStim,[],1)],'-r','LineWidth',2)
-plot([CR.iC],median(pcStim,1),'.r','MarkerSize',20)
-
+plot(repmat([CR.iC]',[size(pcStim,1) 1])',pcStim(StimOrder,:)','LineWidth',3)
 xlabel('N cells')
-ylabel('min, max, median PC across stimuli')
+ylabel('PC')
 grid on
 set(gca,'Color','none')
 xlim([0 max(CR.iC)])
 ylim([0 1])
+% legend(cellstr(num2str(StimOrder'))','Location','eastoutside')
+% legend(cellstr(num2str(StimOrder'))','Location','southeast')
 title([whichStim ', ' whichCells])
 
-
 subplot(1,2,2)
+set(gca,'ColorOrder',newcolors);
 hold on
-plot([[CR.iC]'; [CR.iC]'],[min(dpStim,[],1); max(dpStim,[],1)],'-r','LineWidth',2)
-plot([CR.iC],median(dpStim,1),'.r','MarkerSize',20)
-
+plot(repmat([CR.iC]',[size(dpStim,1) 1])',dpStim(StimOrder,:)','LineWidth',3)
 xlabel('N cells')
-ylabel('min, max, median d'' across stimuli')
+ylabel('d''')
 grid on
 set(gca,'Color','none')
 xlim([0 max(CR.iC)])
 ylim([0 5.5])
+legend(cellstr(num2str(StimOrder'))','Location','south')
+
 
 % Add point for All cells
 % q=load(fullfile(fn.figs,'ClassAM','AC','AnDur','CR_vAnDur_RS.mat'));
@@ -75,10 +84,10 @@ ylim([0 5.5])
 
 % set(gca,'xtick',[CR.iC]','xticklabel',cellstr(num2str([CR.iC]))')
 
-% suptitle([whichStim ', ' whichCells])
+% title([whichStim ', ' whichCells])
 
 
 keyboard
-print_eps_kp(gcf,fullfile(figsavedir,'PC_MinMax'))
+print_eps_kp(hf,fullfile(figsavedir,'PC_byStim'))
 
 

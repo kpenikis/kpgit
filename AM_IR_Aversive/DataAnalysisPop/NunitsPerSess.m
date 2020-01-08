@@ -1,7 +1,17 @@
+function NunitsPerSess(SessType)
+
+if nargin<1
+    SessType = 'AM';
+end
 
 fn = set_paths_directories;
 
-q = load(fullfile(fn.processed,'Units'));
+switch SessType
+    case 'AM'
+        q = load(fullfile(fn.processed,'Units'));
+    case 'VS'
+        q = load(fullfile(fn.processed,'UnitsVS'));
+end
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
@@ -26,12 +36,13 @@ xlim([0 numel(Nuns)+1])
 xlabel('Session')
 ylabel('Number of SUs')
 grid on
+ylim([0 30])
 
 
 subplot(1,6,6)
 plot([0 1 1 0 0],[0 0 1 1 0],'b')
-text(0.1,0.5,Sessions(iss(1:20),:).Session)
+text(0.1,0.5,Sessions(iss(1:min(20,numel(iss))),:).Session)
 set(gca,'xtick',[],'ytick',[])
 
 
-print_eps_kp(gcf,fullfile(fn.figs,'Nunits_per_sess'))
+print_eps_kp(gcf,fullfile(fn.figs,['Nunits_per_sess_' SessType]))
