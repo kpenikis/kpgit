@@ -51,9 +51,6 @@ end
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
 q=load(fullfile(fullfile(fn.figs,'StimClass'),'Cell_Time_Trial_Stim_simtrs'));
 Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
-if size(Cell_Time_Trial_Stim,1)==257 && ~exist('Un_Indices','var')
-    Un_Indices = 1:257;
-end
 
 
 %% Data settings

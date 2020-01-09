@@ -1,5 +1,5 @@
 
-% close all
+close all
 whichStim = 'AC'; %finish generalizing
 
 crAmt = 0.0001;
@@ -7,6 +7,15 @@ crAmt = 0.0001;
 % Data settings
 fn = set_paths_directories('','',1);
 savedir = fullfile(fn.figs,'ClassAM',whichStim,'Full','SessSubpops');
+
+% Fig settings
+set(groot,'DefaultTextInterpreter','none')
+set(groot,'DefaultAxesFontSize',18)
+set(groot,'defaultAxesTickDir', 'out');
+set(groot,'defaultAxesTickDirMode', 'manual');
+
+keyboard
+
 
 Sessions = {...
     'Mid10RS_Apr02';...
@@ -28,13 +37,7 @@ clear q
 % Load CTTS data
 [CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams(whichStim,'each');
 
-
-% Fig settings
-set(groot,'DefaultTextInterpreter','none')
-set(groot,'DefaultAxesFontSize',18)
-set(groot,'defaultAxesTickDir', 'out');
-set(groot,'defaultAxesTickDirMode', 'manual');
-
+keyboard
 
 %% By session, load data 
 
@@ -213,6 +216,24 @@ for is = 1:numel(Sessions)
 end
 
 keyboard
+
+
+%% Noise corr 2
+
+% Load CTTS data
+[CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams(whichStim,'Mar28-AM');
+
+% Get CR table
+datadir = fullfile(fn.figs,'ClassAM','AC','Pairs','Mar28-AM');
+tabsavename = 'CR_vPairs_Mar28-AM.mat';
+q=load(fullfile(datadir,tabsavename));
+
+checkNoiseCorr2(CTTS,q.CR);
+
+
+
+%%
+
 
 
 % %     

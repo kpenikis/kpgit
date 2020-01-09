@@ -24,18 +24,15 @@ end
 
 pcStim  = nan(8,size(CR,1));
 dpStim  = nan(8,size(CR,1));
+dpStim2  = nan(8,size(CR,1));
 for inc = 1:size(CR,1)
     
     ConfMat = mean(CR(inc,:).Results{:},3);
     
     pcStim(:,inc)  = diag(ConfMat);
     
-    ConfMat(ConfMat==0) = 0.01;
-    ConfMat(ConfMat==1) = 0.99;
-    for ist = 1:size(ConfMat,1)
-        othSt = 1:size(ConfMat,1);
-        dpStim(ist,inc) =  norminv(ConfMat(ist,ist),0,1) - norminv(mean(ConfMat(othSt~=ist,ist)),0,1);
-    end
+    dpStim(:,inc) = dp_from_ConfMat(ConfMat,0.001);
+    
 end
 
 

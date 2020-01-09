@@ -26,7 +26,7 @@ UnitInfo = q.UnitInfo;
 clear q
 
 % Load PopMPH data
-savedir = fullfile(fn.figs,'PopMPH');
+savedir = fullfile([fn.figs '_v1'],'PopMPH');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end

@@ -1,35 +1,27 @@
 
 close all
 
-varPar       = 'Sess';
-whichCells   = 'Mid5RS'; 
-whichStim    = 'AC';
-
-fn = set_paths_directories('','',1);
-switch whichStim
-    case {'AC' 'DB'}
-        rootdir = fullfile(fn.figs,'ClassAM');
-    case 'Speech'
-        rootdir = fullfile(fn.figs,'ClassSpeech');
-end
-figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
-
-q=load(fullfile(figsavedir,'CR_vSess.mat'));
-CR = q.CR;
-clear q
-% Filter to only sim trials at first
-CR = CR(strcmp(CR.trials,'sim'),:);
-
-nSess = size(CR,1);
-sizePop = CR.iC(1);
 crAmt = 0.001;
 
+% Data settings
+fn = set_paths_directories('','',1);
+savedir = fullfile(fn.figs,'ClassAM','AC','Full','SessSubpops');
 
-% Load SU results table
-q=load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
-CReach = q.CR;
-clear q
+Sessions = {...
+    'Mid10RS_Apr02';...
+    'Mid10RS_Apr11';...
+    'Mid10RS_Mar26';...
+    'Mid10RS_Mar28';...
+    'Mid10RS_Mar30';...
+    'Mid10RS_Jan17';...
+    'Mid10RS_Jan21';...
+    };
 
+% Load SU data
+datadir = fullfile(fn.figs,'ClassAM','AC','Full','each');
+tabsavename = sprintf('CR_%s.mat','each');
+q=load(fullfile(datadir,tabsavename));
+CR_SU = q.CR;
 
 % Fig settings
 set(groot,'DefaultTextInterpreter','none')
@@ -37,8 +29,8 @@ set(groot,'DefaultAxesFontSize',18)
 set(groot,'defaultAxesTickDir', 'out');
 set(groot,'defaultAxesTickDirMode', 'manual');
 
-% StimOrder = [8 3 2 5 6 7 4 1];
-% newcolors = cmocean('thermal',length(StimOrder));
+StimOrder = [8 3 2 5 6 7 4 1];
+newcolors = cmocean('thermal',length(StimOrder));
 
 
 %% Total for stimulus set
@@ -46,10 +38,18 @@ set(groot,'defaultAxesTickDirMode', 'manual');
 figure;
 hold on
 
-for isess = 1:nSess
-    plot(CR(isess,:).SUdps{:},repmat(CR(isess,:).dprime,[1 sizePop]),...
+for is = 1:numel(Sessions)
+    
+    datadir = fullfile(fn.figs,'ClassAM','AC','Full',Sessions{is});
+    tabsavename = sprintf('CR_vFull_%s.mat',Sessions{is});
+    
+    q=load(fullfile(datadir,tabsavename));
+    CR=q.CR;
+    
+    plot(CR.SUdps{:}',repmat(CR.dprime,[1 CR.iC]),...
         '+-','LineWidth',2,'Color',[0.1 0.1 0.1],...
         'MarkerSize',20)
+    
 end
 
 plot([-0.2 2],[-0.2 2],':k')
@@ -60,9 +60,9 @@ axis square
 xlabel('d'' of individual SU')
 ylabel('d'' of subpopulation')
 
-title([num2str(nSess) ' sessions, ' num2str(sizePop) ' mediocre SUs'])
+title('7 sessions, 10 mediocre SUs')
 
-print_eps_kp(gcf,fullfile(figsavedir,'dp_SU_vs_Subpop'));
+% print_eps_kp(gcf,fullfile(savedir,'dp_SU_vs_Subpop'));
 
 
 % % 
@@ -172,19 +172,28 @@ hold on
 plot([0.5 8.5],[0 0],':k')
 
 threshDP=1;
-nStClassified = nan(nSess,2);
+nStClassified = nan(numel(Sessions),2);
 
-for isess = 1:nSess
+for is = 1:numel(Sessions)
     
-    ConfMat = mean(CR(isess,:).Results{:},3);
+    % Get Subpop data
+    datadir = fullfile(fn.figs,'ClassAM','AC','Full',Sessions{is});
+    tabsavename = sprintf('CR_vFull_%s.mat',Sessions{is});
+    q=load(fullfile(datadir,tabsavename));
+    if size(q.CR,1)>1
+        keyboard
+    end
+    
+    ConfMat = mean(q.CR.Results{:},3);
     dpSP    = dp_from_ConfMat(ConfMat,crAmt);
     
-    % Get indices of these SUs in CReach table
-    UnitIdx = CR(isess,:).SUids{:};
     
-    dpSU = nan(numel(UnitIdx),8);
+    % Get SU data
+    UnitIdx = q.CR.SUids{:};
+    
+    dpSU = nan(numel(UnitIdx),length(StimOrder));
     for iu = 1:numel(UnitIdx)
-        ConfMat  = mean(CReach(UnitIdx(iu),:).Results{:},3);
+        ConfMat  = mean(CR_SU(UnitIdx(iu),:).Results{:},3);
         dpSU(iu,:) = dp_from_ConfMat(ConfMat,crAmt);
     end
     
@@ -192,8 +201,8 @@ for isess = 1:nSess
     plot(1:8,dpSP-max(dpSU,[],1),'.','Color',[1 1 1]*0.12,'MarkerSize',20)
     
     % Save nStim > threshold 
-    nStClassified(isess,1) = sum(max(dpSU,[],1)>threshDP);
-    nStClassified(isess,2) = sum(dpSP>threshDP);
+    nStClassified(is,1) = sum(max(dpSU,[],1)>threshDP);
+    nStClassified(is,2) = sum(dpSP>threshDP);
     
 end
 
@@ -202,7 +211,7 @@ xlabel('Stimulus')
 ylabel('d'' Pop - best SU')
 
 
-print_eps_kp(hf3,fullfile(figsavedir,'BestSU_eachStim'));
+% print_eps_kp(hf3,fullfile(savedir,'BestSU_eachStim'));
 
 
 
@@ -224,7 +233,7 @@ xlabel('SUs')
 ylabel('Subpop')
 title(['N stimuli d''>' num2str(threshDP)])
 
-print_eps_kp(hf4,fullfile(figsavedir,'NStim_thresh1'));
+% print_eps_kp(hf4,fullfile(savedir,'NStim_thresh1'));
 
 
 keyboard
