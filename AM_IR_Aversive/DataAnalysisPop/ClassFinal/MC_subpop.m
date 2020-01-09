@@ -31,7 +31,7 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'Speech';
+whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 BootstrapN   = 500;
 KernelType   = 'linear';
@@ -46,7 +46,7 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-SubpopStart  = [71 81 91];
+SubpopStart  = [1 11 21 31 41 51 71 91 121 151];
 
 rng('shuffle')
 

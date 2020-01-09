@@ -1,5 +1,5 @@
 
-CellMin = 3;
+CellMin = 2;
 
 CRplot = CR(CR.iC>CellMin,:);
 
