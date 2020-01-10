@@ -12,13 +12,13 @@ function MC_sessMids
 %  KP, 2019-01
 %
 
-close all
+% close all
 
 varPar       = 'Sess';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'Mid7RS'; 
+whichCells   = 'Mid8RS'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -44,7 +44,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-ncsp         = 7;
+ncsp         = 8;
+dpthresh     = 1;
 
 rng('shuffle')
 
@@ -144,39 +145,46 @@ iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-for isess = 1:numel(AllSessions)
+% Define cells and stimuli
+
+% [~,CReachCells] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+%     'each', nTrialMat, UnitData,...
+%     theseStim, iRS, iNS, minTrs, convwin, AnWin );
+
+for iss = 4:numel(AllSessions)
     
-    if NcellSess(isess)<ncsp
+    if NcellSess(iss)<ncsp
         continue
     end
-    whichSess = AllSessions{isess};
+    whichSess = AllSessions{iss};
     fprintf('session %s...\n',whichSess)
     
     % Define cells and stimuli
-    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-        whichSess, nTrialMat, UnitData,...
+    [CTTS,idxAllCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+        'each', nTrialMat, UnitData,...
         theseStim, iRS, iNS, minTrs, convwin, AnWin );
     
-    ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
+    ETTS = Env_Time_Trial_Stim(idxAllCells,AnWin,:,theseStim);
     
     % Get indices of RS//NS cells (from just "theseCells")
-    iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
-    iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
+    iRS = find(UnitInfo(idxAllCells,:).TroughPeak>0.43);
+    iNS = find(UnitInfo(idxAllCells,:).TroughPeak<0.43 & [UnitData(idxAllCells).BaseFR]'>2);
     
     
     % Set the subpopulation of cells to use
-    isess = find(strcmp({UnitData(theseCells).Session},whichSess));
-    idxC  = intersect(isess',iRS);
-    [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
+    isess = find(strcmp({UnitData(idxAllCells).Session},whichSess));
+    idxCRe  = intersect(isess',iRS);
+    [dps,iSUdps] = sort(CReach(idxCRe,:).dprime,'descend');
     dps
+    
     % Check if there are enough RS units to run
-    if sum(dps<1)<ncsp
+    if sum(dps<dpthresh)<ncsp
         continue
     end
     
-    UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:(ncsp-1))));
-    SUdps    = dps(find(dps<1,1,'first')+(0:(ncsp-1)));
-    
+    UseCells = idxCRe(iSUdps(find(dps<dpthresh,1,'first')+(0:(ncsp-1))));
+    SUdps    = dps(find(dps<dpthresh,1,'first')+(0:(ncsp-1)));
+    CReach(UseCells,:).dprime;
     
     for TrM = 1:numel(PickTrials)
         
