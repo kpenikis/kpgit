@@ -18,7 +18,7 @@ varPar       = 'Sess';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'Mid8RS'; 
+whichCells   = 'Mid10RS'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -30,7 +30,7 @@ AnWin        = WinBeg:WinEnds;
 PickTrials   = {'sim'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'Speech';
+whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 BootstrapN   = 500;
 KernelType   = 'linear';
@@ -44,7 +44,7 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-ncsp         = 8;
+ncsp         = 10;
 dpthresh     = 1;
 
 rng('shuffle')
@@ -151,7 +151,7 @@ iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
 %     'each', nTrialMat, UnitData,...
 %     theseStim, iRS, iNS, minTrs, convwin, AnWin );
 
-for iss = 4:numel(AllSessions)
+for iss = 1:numel(AllSessions)
     
     if NcellSess(iss)<ncsp
         continue
