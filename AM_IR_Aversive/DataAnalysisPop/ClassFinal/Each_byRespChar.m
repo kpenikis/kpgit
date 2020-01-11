@@ -1,7 +1,7 @@
-close all
+% close all
 crAmt = 0.001;
 
-whichStim = 'AC'; %finish generalizing
+whichStim = 'Speech'; %finish generalizing
 
 
 % Data settings
@@ -12,10 +12,18 @@ switch whichStim
         datadir = fullfile(fn.figs,'ClassAM',whichStim,'Full','each');
         savedir = fullfile(fn.figs,'ClassAM',whichStim,'Full','each','byRespChar');
         
+        q = load(fullfile(fn.processed,'Units'));
     case 'Speech'
         datadir = fullfile(fn.figs,'ClassSpeech',whichStim,'Full','each');
         savedir = fullfile(fn.figs,'ClassSpeech',whichStim,'Full','each','byRespChar');
+        
+        q = load(fullfile(fn.processed,'UnitsVS'));
 end
+
+% Unit data files
+UnitData = q.UnitData;
+UnitInfo = q.UnitInfo;
+clear q
 
 % Load SU data
 tabsavename = sprintf('CR_%s.mat','each');
@@ -37,15 +45,39 @@ set(groot,'defaultAxesTickDirMode', 'manual');
 
 %%
 
+% iSigUns = identifyResponsiveUnits(UnitData(theseCells));
+% iNSuns  = 1:length(theseCells);
+% iNSuns(iSigUns) = [];
+% 
+% figure;
+% plotSpread(CR_SU(iSigUns,:).dprime,'distributionIdx',ones(size(CR_SU(iSigUns,:).dprime)))
+% hold on
+% plotSpread(CR_SU(iNSuns,:).dprime,'distributionIdx',1+ones(size(CR_SU(iNSuns,:).dprime)))
+
+
+%%
+
 % Plot peak FR by d'
 
-% Each stim 
-stim_pks=nan(size(CTTS,1),8);
-for iUn = 1:size(CTTS,1)
-    stim_pks(iUn,:) = permute( 1000.*max(mean(CTTS(iUn,:,:,:),3,'omitnan'),[],2) ,[3 4 1 2]);
-end
+[pkFRsort,ipkFR] = rankPeakFR(CTTS);
 
-% overall, avg across stim
+figure; hold on
+
+yyaxis right
+plot(1:length(ipkFR),CR_SU.dprime(ipkFR),'.')
+ylabel('d'', median across stimuli')
+ylim([-0.2 3.5])
+
+yyaxis left
+plot(1:length(ipkFR),pkFRsort,'.')
+ylabel('peak FR, median across stimuli')
+xlim([0 numel(pkFRsort)+1])
+
+print_eps_kp(gcf,fullfile(datadir,'dp_peakFR'))
+
+keyboard
+
+% Correlation: overall, avg across stim
 figure;
 plot(median(stim_pks,2),CR_SU.dprime,'.')
 hold on

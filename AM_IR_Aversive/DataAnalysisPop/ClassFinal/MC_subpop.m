@@ -16,11 +16,11 @@ function MC_subpop
 
 close all
 
-varPar       = 'Full';
+varPar       = 'PoolAll';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'Mid10RS'; % BestRS SkipBestRS 
+whichCells   = 'pkFR_RS'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -33,7 +33,7 @@ PickTrials   = 'rand';
 % STIM
 whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 500;
+BootstrapN   = 100;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -46,7 +46,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-SubpopStart  = [1 11 21 31 41 51 71 91 121 151];
+PoolStart    = [91];
+PoolSize     = [70 90];
 
 rng('shuffle')
 
@@ -83,7 +84,7 @@ Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
 % Load SU classification results
-q = load(fullfile(rootdir,whichStim,varPar,'each','CR_each.mat'));
+q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
 CReach = q.CR;
 clear q
 
@@ -145,218 +146,158 @@ for ii = 1:numel(WinEnds)
     AnWin = WinBeg(ii):WinEnds(ii);
     fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
     
-    for nc = 1:numel(SubpopStart)
+    for fc = 1:numel(PoolStart) %PoolStart
         
-        nCell = SubpopStart(nc);
+        FirstCell = PoolStart(fc);
         
-        % Define cells and stimuli
-        [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-            'each', nTrialMat, UnitData,...
-            theseStim, iRS, iNS, minTrs, convwin, AnWin );
-        
-        ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
-        
-        % Get indices of RS//NS cells (from just "theseCells")
-        iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
-        iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
-        
-        
-        % Set the subpopulation of cells to use
-        switch whichCells
+        for nc = 1:numel(PoolSize)
             
-            case 'BestRS'
-                [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                UseCells   = iRS(iSUdps(1:nCell));
-            case 'SkipBestRS'
-                [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                UseCells   = iRS(iSUdps((nCell+1):end));
+            NumCells = PoolSize(nc);
+            
+            % Define cells and stimuli
+            [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+                'each', nTrialMat, UnitData,...
+                theseStim, iRS, iNS, minTrs, convwin, AnWin );
+            
+            ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
+            
+            % Get indices of RS//NS cells (from just "theseCells")
+            iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
+            iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
+            
+            
+            % Set the subpopulation of cells to use
+            switch whichCells
                 
-            case 'Mid20RS'
-                [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                UseCells   = iRS(iSUdps(nCell+(0:19)));
-            case 'Mid10RS'
-                [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                UseCells   = iRS(iSUdps(nCell+(0:9)));
-                SUdps      = dps(nCell+(0:9));
+                case 'pkFR_RS'
+                    [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
+                    UseCells   = iRS(ipkFR(FirstCell+(0:(NumCells-1))));
+                    SUdps      = CReach(UseCells,:).dprime
+                    
+                case 'Mid20RS'
+                    keyboard
+                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+                    UseCells   = iRS(iSUdps(FirstCell+(0:19)));
+                case 'Mid10RS'
+                    keyboard
+                    [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+                    UseCells   = iRS(iSUdps(FirstCell+(0:9)));
+                    SUdps      = dps(FirstCell+(0:9));
+                    
+                case 'BestRS'
+                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+                    UseCells   = iRS(iSUdps(1:FirstCell));
+                case 'SkipBestRS'
+                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+                    UseCells   = iRS(iSUdps((FirstCell+1):end));
+                    
+                case 'LoudestRS'
+                    nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
+                    [~,iSUFR]  = sort(nSpkRS,'descend');
+                    UseCells   = iRS(iSUFR(1:FirstCell));
+                case 'SkipLoudestRS'
+                    nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
+                    [~,iSUFR]  = sort(nSpkRS,'descend');
+                    UseCells   = iRS(iSUFR((FirstCell+1):end));
+                case 'LowFFRS'
+                    keyboard
+                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+                    UseCells   = iRS(iSUdps((FirstCell+1):end));
+            end
             
-            % Individual sessions
-            case 'Mid10RS_Apr02'
-                isess = find(strcmp({UnitData(theseCells).Session},'Apr02-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Apr11'
-                isess = find(strcmp({UnitData(theseCells).Session},'Apr11-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Apr15'
-                % probably were'nt enough trials to run SU d'
-                return
-            case 'Mid10RS_Oct26'
-                % only 8 RS cells
-                if nCell>8
-                    error('not enough cells')
+            % Train and test classifier
+            [S_AssMat_NC,~,~] = runSVMclass_SnE( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+                BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType );
+            
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %##########################################################################
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            
+            
+            %% Plot NEURAL results
+            
+            ConfMat = mean(S_AssMat_NC,3);
+            
+            muPC    = mean(diag(ConfMat))*100;
+            dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
+            
+            ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
+            
+            % Plot
+            hf(ii) = figure;
+            imagesc(ConfMat)
+            axis square
+            caxis([-1 1])
+            cmocean('curl','pivot',0)
+            colorbar
+            ylabel('True stim')
+            xlabel('Assigned')
+            set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
+            
+            title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
+                muPC,dprime,KernelType,whichStim,whichCells,FirstCell))
+            
+            
+            % Save figure
+            savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s_%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,whichCells,FirstCell);
+            
+            print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
+            
+            
+            %% Save results to master table
+            
+            mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
+            thistablesavename   = savename;
+            
+            CR1 = table;
+            CR1.figname  = {savename};
+            CR1.Stim     = {whichStim};
+            CR1.Cells    = {whichCells};
+            CR1.iC       = FirstCell;
+            CR1.nC       = NumCells;
+            CR1.Results  = {S_AssMat_NC};
+            CR1.PC       = muPC;
+            CR1.dprime   = dprime;
+            CR1.WinBeg   = WinBeg(ii);
+            CR1.WinEnd   = WinEnds(ii);
+            CR1.trials   = {PickTrials};
+            CR1.rcorrOpt = {'norm'};
+            CR1.nTemp    = {PSTHsize};
+            CR1.nTrain   = TrainSize;
+            CR1.nTest    = TestSize;
+            CR1.conv     = {'exp'};
+            CR1.tau      = tau;
+            CR1.SUids    = {UseCells};
+            CR1.SUdps    = {SUdps};
+%             CR1.TrRes    = {TrialResults};
+            
+            
+            % Load saved table
+            clear q;
+            if ~exist('CR','var')
+                try
+                    q=load(fullfile(figsavedir,mastertablesavename));
+                    CR = q.CR;
                 end
-                isess = find(strcmp({UnitData(theseCells).Session},'Oct26-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Mar26'
-                isess = find(strcmp({UnitData(theseCells).Session},'Mar26-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Mar28'
-                isess = find(strcmp({UnitData(theseCells).Session},'Mar28-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Mar30'
-                isess = find(strcmp({UnitData(theseCells).Session},'Mar30-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Jan17'
-                isess = find(strcmp({UnitData(theseCells).Session},'Jan17-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Jan21'
-                isess = find(strcmp({UnitData(theseCells).Session},'Jan21-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            case 'Mid10RS_Jan25'
-                % only 8 RS cells
-                if nCell>8
-                    error('not enough cells')
-                end
-                isess = find(strcmp({UnitData(theseCells).Session},'Jan25-AM'));
-                idxC  = intersect(isess',iRS);
-                [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-                UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-                SUdps    = dps(find(dps<1,1,'first')+(0:9))
+            end
+            
+            if ~exist('CR','var')
                 
-            case 'LoudestRS'
-                nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
-                [~,iSUFR]  = sort(nSpkRS,'descend');
-                UseCells   = iRS(iSUFR(1:nCell));
-            case 'SkipLoudestRS'
-                nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
-                [~,iSUFR]  = sort(nSpkRS,'descend');
-                UseCells   = iRS(iSUFR((nCell+1):end));
-            case 'LowFFRS'
-                keyboard
-                [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                UseCells   = iRS(iSUdps((nCell+1):end));
-        end
-        
-        % Train and test classifier
-        [S_AssMat_NC,~,TrialResults] = runSVMclass_SnE( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
-            BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType ); 
-        
-        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        %##########################################################################
-        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        
-        
-        %% Plot NEURAL results
-        
-        ConfMat = mean(S_AssMat_NC,3);
-        
-        muPC    = mean(diag(ConfMat))*100;
-        dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
-        
-        ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
-        
-        % Plot
-        hf(ii) = figure;
-        imagesc(ConfMat)
-        axis square
-        caxis([-1 1])
-        cmocean('curl','pivot',0)
-        colorbar
-        ylabel('True stim')
-        xlabel('Assigned')
-        set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
-        
-        title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
-            muPC,dprime,KernelType,whichStim,whichCells,nCell))
-        
-        
-        % Save figure
-        savename = sprintf('Res_v%s-%i_Train%i_conv%i_%s_%s_%i',varPar,WinEnds(ii)-WinBeg(ii)+1,TrainSize,tau,whichStim,whichCells,nCell);
-        
-        print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
-        
-        
-        %% Save results to master table
-        
-        mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
-        thistablesavename   = savename;
-        
-        % Calculate performance for Env data
-%         ConfMat  = mean(E_AssMat_NC,3);
-%         muPC_E   = mean(diag(ConfMat))*100;
-%         dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
-        
-        
-        CR1 = table;
-        CR1.figname  = {savename};
-        CR1.Stim     = {whichStim};
-        CR1.Cells    = {whichCells};
-        CR1.iC       = nCell;
-        CR1.Results  = {S_AssMat_NC};
-        CR1.PC       = muPC;
-        CR1.dprime   = dprime;
-        CR1.WinBeg   = WinBeg(ii);
-        CR1.WinEnd   = WinEnds(ii);
-        CR1.trials   = {PickTrials};
-        CR1.rcorrOpt = {'norm'};
-        CR1.nTemp    = {PSTHsize};
-        CR1.nTrain   = TrainSize;
-        CR1.nTest    = TestSize;
-        CR1.conv     = {'exp'};
-        CR1.tau      = tau;
-        CR1.SUids    = {UseCells};
-        CR1.SUdps    = {SUdps};
-        CR1.TrRes    = {TrialResults};
-        
-        
-        % Load saved table
-        clear q;
-        if ~exist('CR','var')
-        try
-            q=load(fullfile(figsavedir,mastertablesavename));
-            CR = q.CR;
-        end
-        end
-        
-        if ~exist('CR','var')
+                % Save new table
+                CR = CR1;
+                save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
+                save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
+                
+            else % Save updated table
+                
+                % Concatenate new data
+                CR = [CR; CR1];
+                save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
+                save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
+            end
             
-            % Save new table
-            CR = CR1;
-            save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
-            
-        else % Save updated table
-            
-            % Concatenate new data
-            CR = [CR; CR1];
-            save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
-        end
-        
-    end % nc
+        end % nc
+    end % fc
 end %vary classification parameter
 
 

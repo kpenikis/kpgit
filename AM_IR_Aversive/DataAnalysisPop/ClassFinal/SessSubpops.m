@@ -1,9 +1,9 @@
 
-close all
+% close all
 
 varPar       = 'Sess';
-whichCells   = 'Mid5RS'; 
-whichStim    = 'AC';
+whichCells   = 'Mid8RS'; 
+whichStim    = 'Speech';
 
 fn = set_paths_directories('','',1);
 switch whichStim
@@ -52,9 +52,10 @@ for isess = 1:nSess
         'MarkerSize',20)
 end
 
-plot([-0.2 2],[-0.2 2],':k')
-xlim([-0.2 2])
-ylim([-0.2 2])
+ymax = 2;
+plot([-0.2 ymax],[-0.2 ymax],':k')
+xlim([-0.2 ymax])
+ylim([-0.2 ymax])
 axis square
 
 xlabel('d'' of individual SU')
@@ -172,6 +173,7 @@ hold on
 plot([0.5 8.5],[0 0],':k')
 
 threshDP=1;
+dpDiffsStim   = nan(nSess,8);
 nStClassified = nan(nSess,2);
 
 for isess = 1:nSess
@@ -191,11 +193,17 @@ for isess = 1:nSess
     % Plot f3
     plot(1:8,dpSP-max(dpSU,[],1),'.','Color',[1 1 1]*0.12,'MarkerSize',20)
     
+    % Save diff for adding mean
+    dpDiffsStim(isess,:) = dpSP-max(dpSU,[],1);
+    
     % Save nStim > threshold 
     nStClassified(isess,1) = sum(max(dpSU,[],1)>threshDP);
     nStClassified(isess,2) = sum(dpSP>threshDP);
     
 end
+
+% Add mean of points
+plot(1:8,mean(dpDiffsStim,1),'og','MarkerSize',10)
 
 xlim([0.5 8.5])
 xlabel('Stimulus')
@@ -222,7 +230,7 @@ xlim([0 8])
 ylim([0 8])
 xlabel('SUs')
 ylabel('Subpop')
-title(['N stimuli d''>' num2str(threshDP)])
+title(['N stimuli d''<' num2str(threshDP)])
 
 print_eps_kp(hf4,fullfile(figsavedir,'NStim_thresh1'));
 

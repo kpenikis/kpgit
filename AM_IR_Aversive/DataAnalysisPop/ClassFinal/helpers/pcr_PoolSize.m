@@ -23,19 +23,16 @@ end
 
 %%
 
+% Calculate basic reults measures
 pcStim  = nan(8,size(CR,1));
 dpStim  = nan(8,size(CR,1));
-dpStim2  = nan(8,size(CR,1));
+Spsns   = nan(1,size(CR,1));
 for inc = 1:size(CR,1)
-    
     ConfMat = mean(CR(inc,:).Results{:},3);
-    
     pcStim(:,inc)  = diag(ConfMat);
-    
     dpStim(:,inc) = dp_from_ConfMat(ConfMat,0.001);
-    
+    Spsns(inc) = calculateSparseness(dpStim(:,inc));
 end
-
 
 % CellTypes
 iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
@@ -47,42 +44,51 @@ iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
 plotDPs = CReach(iRS(ipkFR),:).dprime;
 
 
+
 % plot
 hf=figure; 
-set(hf,'Position',widesmall)
-
-subplot(1,2,1)
+set(hf,'Position',tallsmall)
 hold on
-% plot([[CR.iC]'; [CR.iC]'],[min(pcStim,[],1); max(pcStim,[],1)],'-r','LineWidth',2)
-% plot([CR.iC],median(pcStim,1),'.r','MarkerSize',20)
-plot(CR.iC,CR.PC./100,'.m','MarkerSize',20)
 
-xlabel('N cells')
-ylabel('min, max, median PC across stimuli')
-grid on
+% Get parameter values
+PoolParams = unique([CR.iC CR.nC],'rows');
+[nOccs,FirstCells] = histcounts(PoolParams(:,1),unique(PoolParams(:,1)));
+FirstCells = FirstCells(nOccs>3)';
+
+for FC = FirstCells
+    
+    % Sort and get indices
+    thisCRidx = find(CR.iC==FC);
+    [PoolSizes,sortCRidx] = sort(CR.nC(thisCRidx));
+    sortCRidx = thisCRidx(sortCRidx);
+    
+    subplot(2,1,1)
+    hold on
+    plot(PoolSizes,CR.dprime(sortCRidx),'LineWidth',3)
+    
+    subplot(2,1,2)
+    hold on
+    plot(PoolSizes,Spsns(sortCRidx),'LineWidth',3)
+    
+end
+
+ylabel('Sparseness')
+xlabel('N cells in pool')
 set(gca,'Color','none')
-xlim([0 numel(iRS)])
-ylim([0 1])
-title([whichStim ', ' whichCells])
 
 
-subplot(1,2,2)
-plot(1:length(plotDPs),plotDPs,'.k','MarkerSize',15)
-hold on
-% plot([[CR.iC]'; [CR.iC]'],[min(dpStim,[],1); max(dpStim,[],1)],'-r','LineWidth',2)
-% plot([CR.iC CR.iC+CR.nC-1]',[median(dpStim,1); median(dpStim,1)],'>r','MarkerSize',20)
-% plot([CR.iC CR.iC+CR.nC-1]',[median(dpStim,1); median(dpStim,1)],'-r','LineWidth',2)
-plot([CR.iC CR.iC+CR.nC-1]',[CR.dprime'; CR.dprime'],'-m','LineWidth',2)
-
-xlabel('N cells')
-ylabel('d'' across stimuli')
-grid on
+subplot(2,1,1)
+ylabel('d''')
 set(gca,'Color','none')
-xlim([0 numel(iRS)])
-ylim([-0.1 5])
 
 
 keyboard
-print_eps_kp(gcf,fullfile(figsavedir,'PC_SUvPools'))
+print_eps_kp(gcf,fullfile(figsavedir,'PC_PoolSize'))
+
+
+% translate N cells to N spikes
+
+
+
 
 
