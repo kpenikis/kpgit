@@ -1,5 +1,5 @@
 function [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,SmoothType,SmoothWin,REFERENCE)
-% [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,bs_rect,bs_gaus,REFERENCE)
+% [Stream_FRsmooth,Stream_zscore,Stream_Spks,ymaxval] = convertSpiketimesToFR(spiketimes,StreamNSamples,msStart,msSilEnd,SmoothType,SmoothWin,REFERENCE)
 %
 % For use with the long stream stimulus. Bins and smooths spiketimes to
 % extract continuous firing rate throughout the session. Also calculates

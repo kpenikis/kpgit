@@ -85,7 +85,7 @@ if ~exist(savedir,'dir')
 end
 
 % Save MPH data
-save(fullfile(savedir,'MPHdata_noshift'),'zFR_vec','zFR_Warn','FR_vec','FR_Warn','sp_trs','-v7.3')
+save(fullfile(savedir,'MPHdata_gauss'),'zFR_vec','zFR_Warn','FR_vec','FR_Warn','sp_trs','-v7.3')
 
 clear binsmth
 end

@@ -19,7 +19,7 @@ spks     =    0;
 whichCells = 'NS'; 'AAB_265054'; 'WWWlf_253395'; 'AAB_265058'; 'WWWf_253400'; 'Jan25'; 'all'; 
 %~~~~~~~~~~~~~~~~~~~~~
 sortHere = 1;
-sortBy   = 'tMax4'; 'baseFR'; 'FF4'; 
+sortBy   = 'peakFRquant_Lat'; 'tMax4'; 'baseFR'; 'FF4'; 
 %~~~~~~~~~~~~~~~~~~~~~
 labelNS  = 0;
 %~~~~~~~~~~~~~~~~~~~~~
@@ -42,15 +42,15 @@ if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-load(fullfile(savedir,'MPHdata_noshift.mat'))
+load(fullfile(savedir,'MPHdata_gauss.mat'))
 
 if size(UnitInfo,1) ~= size(FR_vec,1)
     keyboard
 end
 
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
-q=load(fullfile(fullfile(fn.figs,'StimClass'),'Cell_Time_Trial_Stim_simtrs'));
-Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
+% q=load(fullfile(fullfile(fn.figs,'StimClass'),'Cell_Time_Trial_Stim_simtrs'));
+% Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 
 
 %% Data settings
@@ -67,24 +67,9 @@ end
 
 
 % Label NS cells
-flagNS = UnitInfo.TroughPeak<0.43;
-
-switch whichCells
-    case 'NS'
-        theseCells = find(flagNS);
-    case 'RS'
-        theseCells = find(~flagNS);
-    case 'all'
-        theseCells = 1:size(ThisData,1);
-    case {'Apr02' 'Apr07' 'Apr09' 'Apr11' 'Apr15' 'Mar28' 'Mar30' 'Jan17' 'Jan21' 'Jan25'} 
-        theseCells = find(strcmp({UnitData.Session},[whichCells '-AM']));
-    case {'AAB_265054' 'WWWf_253400' 'AAB_265058' 'WWWlf_253395'}
-        theseCells = find(strcmp({UnitData.Subject},whichCells));
-end
-
-convwin = 10;
-convwin = ones(1,convwin).*(1/convwin);
-
+flagNS = find(UnitInfo.TroughPeak<=0.43);
+flagRS = find(UnitInfo.TroughPeak>0.43);
+theseCells = 1:numel(UnitData);
 
 %% Fig settings
 
@@ -93,18 +78,6 @@ set(0,'DefaultAxesFontSize',14)
 
 scrsz = get(0,'ScreenSize');   %[left bottom width height]
 fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
-
-
-%% Filter data to just one session
-
-% keyboard
-% SUBJ = 'AAB_265054';
-% SESS = 'Apr02-AM';
-% 
-% theseUnits = find(strcmp(UnitInfo.Subject,SUBJ) & strcmp(UnitInfo.Session,SESS));
-% 
-% ThisData = ThisData(theseUnits,:,:);
-% FR_Warn  = FR_Warn(theseUnits,:);
 
 
 %%
@@ -120,14 +93,52 @@ if plMPH
 %         [i_sorted,sortdata] = sort_thLat(ThisData(theseCells,:,2));
         switch sortBy
             case 'baseFR'
+                keyboard
                 [sortdata,i_sorted] = sort([UnitData(theseCells).BaseFR]);
             case 'tMax4'
-                [pk,ipk] = max(ThisData(theseCells,1:250,2),[],2);
-                [sortdata,i_sorted] = sortrows([ipk pk],[-1 2]);
+                [pkRS,ipkRS]   = max(ThisData(flagRS,1:250,2),[],2);
+                [dataRS,iRS] = sortrows([ipkRS pkRS],[-1 2]);
+                [pk2,ipk2]   = max(ThisData(flagNS,1:250,2),[],2);
+                [dataNS,iNS] = sortrows([ipk2 pk2],[-1 2]);
+                sortdata     = [dataRS; dataNS];
+                i_sorted     = [flagRS(iRS); flagNS(iNS)];
+                
             case 'FF4'
+                keyboard
                 FF = var(permute(sum(Cell_Time_Trial_Stim(theseCells,1:250,:,3),2),[1 3 2 4]),[],2,'omitnan') ...
                     ./ mean(permute(sum(Cell_Time_Trial_Stim(theseCells,1:250,:,3),2),[1 3 2 4]),2,'omitnan');
                 [sortdata,i_sorted] = sort(FF);
+                
+            case 'peakFRquant_Lat'
+                
+                % RS cells
+                [pkRS,ipkRS] = max(ThisData(flagRS,1:250,2),[],2);
+                Qbounds      = quantile(pkRS,[0 0.2 0.4 0.6 0.8 1]);
+                
+                dataRS = [];
+                iRS = [];
+                for iq=1:5
+                    idx = find(pkRS>=Qbounds(iq) & pkRS<=Qbounds(iq+1));
+                    [lats,idx_sort] = sort(ipkRS(idx),'descend');
+                    iRS    = [iRS; idx(idx_sort)];
+                    dataRS = [dataRS; pkRS(idx(idx_sort)) ipkRS(idx(idx_sort))];
+                end
+                
+                % NS cells
+                [pkNS,ipkNS] = max(ThisData(flagNS,1:250,2),[],2);
+                Qbounds      = [0 1];
+                
+                dataNS = [];
+                iNS = [];
+                for iq=1
+                    idx = find(pkNS>=Qbounds(iq) & pkNS<=Qbounds(iq+1));
+                    [lats,idx_sort] = sort(ipkNS(idx),'descend');
+                    iNS    = [iNS; idx(idx_sort)];
+                    dataNS = [dataNS; pkNS(idx(idx_sort)) ipkNS(idx(idx_sort))];
+                end
+                
+                sortdata     = [dataRS; dataNS];
+                i_sorted     = [flagRS(iRS); flagNS(iNS)];
         end
     end
     
@@ -147,8 +158,10 @@ if plMPH
         plotThisMPH  %_2pd
     end
     
+    
+    
     % Save figure
-    savedir = fullfile(fn.figs,'PopMPH','Dec2019');
+    savedir = fullfile(fn.figs,'PopMPH','Jan2020');
     if ~exist(savedir,'dir')
         mkdir(savedir)
     end

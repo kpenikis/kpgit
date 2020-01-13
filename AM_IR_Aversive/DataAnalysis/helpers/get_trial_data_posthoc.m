@@ -104,8 +104,8 @@ for ist = 1:numel(Stimuli)
     else
         trLim = min(Ntrials(Ntrials>0));
     end
-    kt     = randperm(length(t2),trLim);
-%     kt     = 1:length(t2);
+%     kt     = randperm(length(t2),trLim);
+    kt     = 1:length(t2);
     t2     = t2(kt);
     TDidx  = TDidx(kt);
     
@@ -144,7 +144,7 @@ end
 %% Also get response from beginning of Warn stimulus
 
 [Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),...
-    TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),[],binsmth,'silence');
+    TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),'gauss',binsmth,'silence');
 
 clear t2 t3 t_win
 WarnDur = 500;

@@ -20,7 +20,7 @@ end
 
 
 % 
-[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),[],binsmth,'silence');
+[Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(round(spiketimes),TrialData.offset(end)+1,TrialData.onset(1),TrialData.offset(1),'gauss',binsmth,'silence');
 
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
