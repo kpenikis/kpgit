@@ -28,7 +28,7 @@ clear q
 % Load SU data
 tabsavename = sprintf('CR_%s.mat','each');
 q=load(fullfile(datadir,tabsavename));
-CR_SU = q.CR;
+CReach = q.CR;
 clear q
 
 % Also get CTTS
@@ -40,6 +40,11 @@ set(groot,'DefaultTextInterpreter','none')
 set(groot,'DefaultAxesFontSize',18)
 set(groot,'defaultAxesTickDir', 'out');
 set(groot,'defaultAxesTickDirMode', 'manual');
+
+scrsz = get(0,'ScreenSize');     %[left bottom width height]
+% fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
+tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
+widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % keyboard
 
@@ -64,7 +69,7 @@ set(groot,'defaultAxesTickDirMode', 'manual');
 figure; hold on
 
 yyaxis right
-plot(1:length(ipkFR),CR_SU.dprime(ipkFR),'.')
+plot(1:length(ipkFR),CReach.dprime(ipkFR),'.')
 ylabel('d'', median across stimuli')
 ylim([-0.2 3.5])
 
@@ -75,13 +80,54 @@ xlim([0 numel(pkFRsort)+1])
 
 print_eps_kp(gcf,fullfile(datadir,'dp_peakFR'))
 
+[r,p] = corr(pkFRsort,CReach.dprime(ipkFR),'type','Spearman')
+
+figure; 
+plot(pkFRsort,CReach.dprime(ipkFR),'k.')
+
 keyboard
+
+
+%% d' and sparseness, distributions for AM and Speech, iRS and iNS 
+
+% Calculate basic reults measures
+pcStim  = nan(8,size(CReach,1));
+dpStim  = nan(8,size(CReach,1));
+Spsns   = nan(1,size(CReach,1));
+for icr = 1:size(CReach,1)
+    ConfMat = mean(CReach(icr,:).Results{:},3);
+    pcStim(:,icr)  = diag(ConfMat);
+    dpStim(:,icr) = dp_from_ConfMat(ConfMat,0.001);
+    Spsns(icr) = calculateSparseness(dpStim(:,icr));
+end
+
+iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
+iNS = find(UnitInfo(theseCells,:).TroughPeak<=0.43);
+
+figure;
+set(gcf,'Position',widesmall)
+
+subplot(1,2,1)
+hold on
+plotSpread(CReach.dprime(iRS),'distributionIdx',ones(1,length(iRS)),'showMM',3)
+plotSpread(CReach.dprime(iNS),'distributionIdx',4+ones(1,length(iNS)),'showMM',3)
+ylabel('d''')
+
+subplot(1,2,2)
+hold on
+plotSpread(Spsns(iRS),'distributionIdx',ones(1,length(iRS)),'showMM',3)
+plotSpread(Spsns(iNS),'distributionIdx',4+ones(1,length(iNS)),'showMM',3)
+ylabel('Sparseness')
+
+
+
+%%
 
 % Correlation: overall, avg across stim
 figure;
-plot(median(stim_pks,2),CR_SU.dprime,'.')
+plot(median(stim_pks,2),CReach.dprime,'.')
 hold on
-plot(max(stim_pks,[],2),CR_SU.dprime,'.','MarkerSize',20)
+plot(max(stim_pks,[],2),CReach.dprime,'.','MarkerSize',20)
 
 xlim([5 1000])
 ylim([-0.2 2.5])
@@ -90,16 +136,16 @@ set(gca,'xscale','log','Color','none')
 xlabel('max (+median) of peak FR across stimuli')
 ylabel('SU d''')
 
-[rmed,pmed] = corr(median(stim_pks,2),CR_SU.dprime);
-[rmax,pmax] = corr(max(stim_pks,[],2),CR_SU.dprime);
-[rmax,pmax] = corr(log(max(stim_pks,[],2)),real(log(CR_SU.dprime)));
+[rmed,pmed] = corr(median(stim_pks,2),CReach.dprime);
+[rmax,pmax] = corr(max(stim_pks,[],2),CReach.dprime);
+[rmax,pmax] = corr(log(max(stim_pks,[],2)),real(log(CReach.dprime)));
 
 
 % each stimulus (must re-calc d') 
-pcStim = nan(size(CR_SU,1),8);
-dpStim = nan(size(CR_SU,1),8);
-for iu = 1:size(CR_SU,1)
-    ConfMat = mean(CR_SU(iu,:).Results{:},3);
+pcStim = nan(size(CReach,1),8);
+dpStim = nan(size(CReach,1),8);
+for iu = 1:size(CReach,1)
+    ConfMat = mean(CReach(iu,:).Results{:},3);
     pcStim(iu,:)  = diag(ConfMat)';
     dpStim(iu,:) = dp_from_ConfMat(ConfMat,0.001);
 end
@@ -138,7 +184,7 @@ ylim([0 1400])
 
 
 figure;
-scatter(mean(stim_mus,2),mean(stim_var,2),40,CR_SU.dprime,'filled')
+scatter(mean(stim_mus,2),mean(stim_var,2),40,CReach.dprime,'filled')
 xlim([0 600])
 ylim([0 600])
 axis square

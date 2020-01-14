@@ -2,7 +2,7 @@
 % close all
 
 varPar       = 'Sess';
-whichCells   = 'Mid8RS'; 
+whichCells   = 'Best8RS'; 
 whichStim    = 'Speech';
 
 fn = set_paths_directories('','',1);
@@ -20,16 +20,10 @@ clear q
 % Filter to only sim trials at first
 CR = CR(strcmp(CR.trials,'sim'),:);
 
-nSess = size(CR,1);
-sizePop = CR.iC(1);
-crAmt = 0.001;
-
-
 % Load SU results table
 q=load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
 CReach = q.CR;
 clear q
-
 
 % Fig settings
 set(groot,'DefaultTextInterpreter','none')
@@ -43,6 +37,11 @@ set(groot,'defaultAxesTickDirMode', 'manual');
 
 %% Total for stimulus set
 
+
+nSess = size(CR,1);
+sizePop = CR.iC(1);
+crAmt = 0.001;
+
 figure;
 hold on
 
@@ -52,7 +51,7 @@ for isess = 1:nSess
         'MarkerSize',20)
 end
 
-ymax = 2;
+ymax = 3;
 plot([-0.2 ymax],[-0.2 ymax],':k')
 xlim([-0.2 ymax])
 ylim([-0.2 ymax])

@@ -55,6 +55,8 @@ PoolParams = unique([CR.iC CR.nC],'rows');
 [nOccs,FirstCells] = histcounts(PoolParams(:,1),unique(PoolParams(:,1)));
 FirstCells = FirstCells(nOccs>3)';
 
+FirstCells = [1 36 91];
+
 for FC = FirstCells
     
     % Sort and get indices
@@ -75,15 +77,19 @@ end
 ylabel('Sparseness')
 xlabel('N cells in pool')
 set(gca,'Color','none')
+ylim([0 1])
+
+legend(cellstr(num2str(FirstCells')),'Location','northeast')
 
 
 subplot(2,1,1)
 ylabel('d''')
 set(gca,'Color','none')
+ylim([0 4.5])
 
 
 keyboard
-print_eps_kp(gcf,fullfile(figsavedir,'PC_PoolSize'))
+print_eps_kp(gcf,fullfile(figsavedir,'PC_PoolSize_1-36-91'))
 
 
 % translate N cells to N spikes

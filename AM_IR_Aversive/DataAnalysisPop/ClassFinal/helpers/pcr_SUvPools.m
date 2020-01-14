@@ -41,7 +41,7 @@ end
 iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
 
 % Sort units by: 
-[pkFRsort,ipkFR] = rankPeakFR(Cell_Time_Trial_Stim(theseCells(iRS),AnWin,:,theseStim));
+[pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
 [dps,iSUdps]     = sort(CReach(iRS,:).dprime,'descend');
 
 plotDPs = CReach(iRS(ipkFR),:).dprime;
@@ -57,10 +57,11 @@ hold on
 % plot([CR.iC],median(pcStim,1),'.r','MarkerSize',20)
 plot(CR.iC,CR.PC./100,'.m','MarkerSize',20)
 
-xlabel('N cells')
+xlabel('Cell N')
 ylabel('min, max, median PC across stimuli')
 grid on
-set(gca,'Color','none')
+box off
+set(gca,'Color','none','xtick',round(linspace(0,length(plotDPs),6)))
 xlim([0 numel(iRS)])
 ylim([0 1])
 title([whichStim ', ' whichCells])
@@ -72,14 +73,16 @@ hold on
 % plot([[CR.iC]'; [CR.iC]'],[min(dpStim,[],1); max(dpStim,[],1)],'-r','LineWidth',2)
 % plot([CR.iC CR.iC+CR.nC-1]',[median(dpStim,1); median(dpStim,1)],'>r','MarkerSize',20)
 % plot([CR.iC CR.iC+CR.nC-1]',[median(dpStim,1); median(dpStim,1)],'-r','LineWidth',2)
-plot([CR.iC CR.iC+CR.nC-1]',[CR.dprime'; CR.dprime'],'-m','LineWidth',2)
+% plot([CR.iC CR.iC+CR.nC-1]',[CR.dprime'; CR.dprime'],'-m','LineWidth',2)
+plot(CR.iC,CR.dprime,'.m','MarkerSize',25)
 
-xlabel('N cells')
+xlabel('Cell N')
 ylabel('d'' across stimuli')
 grid on
-set(gca,'Color','none')
+box off
+set(gca,'Color','none','xtick',round(linspace(0,length(plotDPs),6)))
 xlim([0 numel(iRS)])
-ylim([-0.1 5])
+ylim([-0.1 4.5])
 
 
 keyboard

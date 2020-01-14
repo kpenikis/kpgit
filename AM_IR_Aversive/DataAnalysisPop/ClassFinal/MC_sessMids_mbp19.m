@@ -12,14 +12,13 @@ function MC_sessMids
 %  KP, 2019-01
 %
 
-close all
+% close all
 
 varPar       = 'Sess';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-% whichCells   = 'pkFR_8RS'; 
-whichCells   = 'Best5RS'; 
+whichCells   = 'Mid10RS'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -31,9 +30,9 @@ AnWin        = WinBeg:WinEnds;
 PickTrials   = {'sim'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'Speech';
+whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 100;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -45,8 +44,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-ncsp         = 5;
-dpthresh     = 100;
+ncsp         = 10;
+dpthresh     = 1;
 
 rng('shuffle')
 

@@ -1,4 +1,4 @@
-function MC_subpop
+function MC_RandSubpop
 % MasterClass (all parameters defined at top of file)
 %  Can process AM or Speech data.
 % 
@@ -16,11 +16,11 @@ function MC_subpop
 
 close all
 
-varPar       = 'PoolAll';
+varPar       = 'PoolRand';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'pkFR_RS'; 
+whichCells   = 'RS'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -31,9 +31,9 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'Speech';
+whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 150;
+BootstrapN   = 100;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -46,8 +46,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-PoolStart    = [1 36 91];
-PoolSize     = [1 2 3 5 10 20 30 50 70 90];
+nPools       = 30;
+PoolSize     = 15;
 
 rng('shuffle')
 
@@ -146,9 +146,9 @@ for ii = 1:numel(WinEnds)
     AnWin = WinBeg(ii):WinEnds(ii);
     fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
     
-    for fc = 1:numel(PoolStart) %PoolStart
+    for fc = (1:nPools)+30 %PoolStart
         
-        FirstCell = PoolStart(fc);
+        FirstCell = fc;
         
         for nc = 1:numel(PoolSize)
             
@@ -169,6 +169,12 @@ for ii = 1:numel(WinEnds)
             % Set the subpopulation of cells to use
             switch whichCells
                 
+                case 'RS'
+                    [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
+                    iRands     = ipkFR(randperm(size(ipkFR,1),NumCells));
+                    UseCells   = iRS(iRands);
+                    SUdps      = CReach(UseCells,:).dprime
+                    
                 case 'pkFR_RS'
                     [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
                     UseCells   = iRS(ipkFR(FirstCell+(0:(NumCells-1))));
