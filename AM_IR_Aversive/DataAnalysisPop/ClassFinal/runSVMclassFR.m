@@ -1,7 +1,6 @@
 function AssMat = runSVMclassFR(CTTS,BSN,nSt,Dur,nUn,PickTrials,TrainSize,TestSize,KernelType)
 % AssMat = runSVMclass(Cell_Time_Trial_Stim,BootstrapN,...
 %    nStim,Dur,nUns,TrainSize,TestSize,convwin,KernelType)
-%
 %  Called by MasterClass
 % 
 
@@ -43,10 +42,6 @@ for iBS = 1:BSN
     
     
     %% Preallocate
-    
-    % Data -- 40 x 2056
-    %  observations: trials x stim
-    %  predictors: templates x cells
     
     DataTrain   = [];
     DataTest    = [];

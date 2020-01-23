@@ -84,32 +84,14 @@ fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
 
 if plMPH
     
-    hf1 = figure;
-    set(gcf,'Position',fullscreen)
-    hold on
-    
     clear i_sorted
     if sortHere
 %         [i_sorted,sortdata] = sort_thLat(ThisData(theseCells,:,2));
         switch sortBy
-            case 'baseFR'
-                keyboard
-                [sortdata,i_sorted] = sort([UnitData(theseCells).BaseFR]);
-            case 'tMax4'
-                [pkRS,ipkRS]   = max(ThisData(flagRS,1:250,2),[],2);
-                [dataRS,iRS] = sortrows([ipkRS pkRS],[-1 2]);
-                [pk2,ipk2]   = max(ThisData(flagNS,1:250,2),[],2);
-                [dataNS,iNS] = sortrows([ipk2 pk2],[-1 2]);
-                sortdata     = [dataRS; dataNS];
-                i_sorted     = [flagRS(iRS); flagNS(iNS)];
-                
-            case 'FF4'
-                keyboard
-                FF = var(permute(sum(Cell_Time_Trial_Stim(theseCells,1:250,:,3),2),[1 3 2 4]),[],2,'omitnan') ...
-                    ./ mean(permute(sum(Cell_Time_Trial_Stim(theseCells,1:250,:,3),2),[1 3 2 4]),2,'omitnan');
-                [sortdata,i_sorted] = sort(FF);
-                
             case 'peakFRquant_Lat'
+                
+                ytickset = 0;
+                yticklab = {''};
                 
                 % RS cells
                 [pkRS,ipkRS] = max(ThisData(flagRS,1:250,2),[],2);
@@ -120,27 +102,39 @@ if plMPH
                 for iq=1:5
                     idx = find(pkRS>=Qbounds(iq) & pkRS<=Qbounds(iq+1));
                     [lats,idx_sort] = sort(ipkRS(idx),'descend');
-                    iRS    = [iRS; idx(idx_sort)];
-                    dataRS = [dataRS; pkRS(idx(idx_sort)) ipkRS(idx(idx_sort))];
+                    iRS      = [iRS; idx(idx_sort)];
+                    dataRS   = [dataRS; pkRS(idx(idx_sort)) ipkRS(idx(idx_sort))];
+                    ytickset = [ytickset size(lats,1)];
+                    yticklab = [yticklab ['RS' num2str(iq)]];
                 end
                 
                 % NS cells
                 [pkNS,ipkNS] = max(ThisData(flagNS,1:250,2),[],2);
-                Qbounds      = [0 1];
+                Qbounds      = quantile(pkNS,[0 1]);
                 
                 dataNS = [];
                 iNS = [];
                 for iq=1
                     idx = find(pkNS>=Qbounds(iq) & pkNS<=Qbounds(iq+1));
                     [lats,idx_sort] = sort(ipkNS(idx),'descend');
-                    iNS    = [iNS; idx(idx_sort)];
-                    dataNS = [dataNS; pkNS(idx(idx_sort)) ipkNS(idx(idx_sort))];
+                    iNS      = [iNS; idx(idx_sort)];
+                    dataNS   = [dataNS; pkNS(idx(idx_sort)) ipkNS(idx(idx_sort))];
+                    ytickset = [ytickset size(lats,1)];
+                    yticklab = [yticklab 'NS'];
                 end
                 
                 sortdata     = [dataRS; dataNS];
                 i_sorted     = [flagRS(iRS); flagNS(iNS)];
+                ytickset     = cumsum(ytickset);
         end
     end
+    
+    
+    %% Plot
+    
+    hf1 = figure;
+    set(gcf,'Position',fullscreen)
+    hold on
     
     % Warn
     subplot(1,6,1);
@@ -166,7 +160,7 @@ if plMPH
         mkdir(savedir)
     end
     
-    savename = sprintf('PopMPH_%s_%s_%s',useFR,whichCells,sortBy);
+    savename = sprintf('PopMPH_%s_%s_%s',useFR,'gauss',sortBy);
     if clipZ>0
         savename = [savename '-clipZ' num2str(10*clipZ)];
     end

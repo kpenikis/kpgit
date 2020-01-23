@@ -1,26 +1,28 @@
-function MC_subpop
+function MCC_subpop
 % MasterClass (all parameters defined at top of file)
-%  Can process AM or Speech data.
-% 
+%
+%  CONTEXT CLASSIFICATION
+%
+%  SVM classifier for segments of Pdc and Irr stimuli.
 %  Instead of feeding spiking data into SVM (or whatever classifier), input
 %  just a scalar for each class comparison. This allows for independent
 %  information from many neurons, without a drastic increase of
 %  dimensionality.
 %
 %
-%  KP, 2019-01
+%  KP, 2020-01
 %
 
-% close all
+close all
 
 varPar       = 'PoolAll';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'pkFR_RS'; 
+whichCells   = 'pkFR_RS';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
-Dur          = 500;
+Dur          = 500;%[10:20:150 200 300 400 500];
 WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -28,23 +30,24 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 150;
+BootstrapN   = 250;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
 lambda       = 1/tau;
-% winlen       = 500;
-convwin      = exp(-lambda*(1:500));
+winlen       = 500;
+convwin      = exp(-lambda*(1:winlen));
+convwin      = convwin./sum(convwin);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PSTHsize     = 'Train-1';
 TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-PoolStart    = [1 36 91];
-PoolSize     = [1 2 3 5 10 20 30 50 70 90];
+PoolStart    = [0.01 0.2 0.5];
+PoolSize     = [5 15 30];
 
 rng('shuffle')
 
@@ -54,8 +57,8 @@ rng('shuffle')
 fn = set_paths_directories('','',1);
 switch whichStim
     case {'AC' 'DB'}
-        rootdir = fullfile(fn.figs,'ClassAM');
-        rawdata = 'CTTS_AM';
+        rootdir = fullfile(fn.figs,'ClassContext','AM');
+        rawdata = 'CTTSC_AM_sim.mat';
         
         % Load Unit data files
         q = load(fullfile(fn.processed,'Units'));
@@ -64,14 +67,18 @@ switch whichStim
         clear q
         
     case 'Speech'
-        rootdir = fullfile(fn.figs,'ClassSpeech');
-        rawdata = 'CTTS_Speech_nonSim';
+        rootdir = fullfile(fn.figs,'ClassContext','Speech');
+        rawdata = 'CTTSC_Speech_sim.mat';
         
         % Load Unit data files
         q = load(fullfile(fn.processed,'UnitsVS'));
         UnitData = q.UnitData;
         UnitInfo = q.UnitInfo;
         clear q
+        
+        k=load(fullfile(fn.stim,'SpeechStim','RepeatedSpeechTemplates'));
+        kfns = fieldnames(k);
+        SegDurs  = structfun(@length,k);
         
 end
 
@@ -81,17 +88,9 @@ Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
 % Load SU classification results
-q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
+q = load(fullfile(rootdir,'Full','each','CR_each.mat'));
 CReach = q.CR;
 clear q
-
-% Check that matching data files were imported
-if size(Cell_Time_Trial_Stim,1)~=numel(UnitData)
-    keyboard
-end
-if size(Cell_Time_Trial_Stim,1)<size(CReach,1)
-    keyboard
-end
 
 
 %%
@@ -101,13 +100,14 @@ set(groot,'DefaultAxesFontSize',18)
 set(groot,'defaultAxesTickDir', 'out');
 set(groot,'defaultAxesTickDirMode', 'manual');
 
+
 scrsz = get(0,'ScreenSize');     %[left bottom width height]
 % fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
 tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
+figsavedir = fullfile(rootdir,varPar,whichCells);
 if ~exist(fullfile(figsavedir,'backupTables'),'dir')
     mkdir(fullfile(figsavedir,'backupTables'))
 end
@@ -115,149 +115,142 @@ end
 
 %% Prepare to parse data
 
-nTrialMat = nan(size(Cell_Time_Trial_Stim,1),size(Cell_Time_Trial_Stim,4));
-for ist = 1:size(Cell_Time_Trial_Stim,4)
-    CT  = permute(sum(Cell_Time_Trial_Stim(:,:,:,ist),2),[1 3 2]);
-    nTrialMat(:,ist) = sum(~isnan(CT),2);
-end
-
-switch whichStim
-    case 'AC'
-        theseStim  = 1:8;
-    case 'DB'
-        theseStim  = [1:6 9:10];
-    case 'Speech'
-        theseStim  = 1:size(Cell_Time_Trial_Stim,4);
-end
+theseStim  = 1:size(Cell_Time_Trial_Stim,5);
 
 % CellTypes
 iRS = find(UnitInfo.TroughPeak>0.43);
-iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
+iNS = find(UnitInfo.TroughPeak<=0.43);
 
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-for ii = 1:numel(WinEnds)
+for iSeg = 1:size(Cell_Time_Trial_Stim,4)
     
-    AnWin = WinBeg(ii):WinEnds(ii);
-    fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
+    AnWin = 1:SegDurs(iSeg);
+    fprintf('%s\n',kfns{iSeg})
+    
+    nTrialMat = nan(size(Cell_Time_Trial_Stim,1),size(Cell_Time_Trial_Stim,5));
+    for ist = 1:size(Cell_Time_Trial_Stim,5)
+        CT  = permute(sum(Cell_Time_Trial_Stim(:,AnWin,:,iSeg,ist),2),[1 3 5 2 4]);
+        nTrialMat(:,ist) = sum(~isnan(CT),2);
+    end
+    
+    
+    % Define cells and stimuli
+    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( permute(Cell_Time_Trial_Stim(:,AnWin,:,iSeg,:),[1 2 3 5 4]), ...
+        'each', nTrialMat, UnitData,theseStim, iRS, iNS, minTrs, convwin, AnWin );
+    
     
     for fc = 1:numel(PoolStart) %PoolStart
+                
+        % Get indices of RS//NS cells (from just "theseCells")
+        iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
+        iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43);% & [UnitData(theseCells).BaseFR]'>2);
         
-        FirstCell = PoolStart(fc);
+        % Sort by peakFR
+        [~,ipkFR]  = rankPeakFR(CTTS(iRS,:,:,:));
+        % Sort by d'
+        [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+        
+        % Find closest cell to percentile
+        FirstCell = ceil(numel(ipkFR)*PoolStart(fc))
+        
         
         for nc = 1:numel(PoolSize)
             
             NumCells = PoolSize(nc);
             
-            % Define cells and stimuli
-            [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-                'each', nTrialMat, UnitData,...
-                theseStim, iRS, iNS, minTrs, convwin, AnWin );
-            
-            ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
-            
-            % Get indices of RS//NS cells (from just "theseCells")
-            iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
-            iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43);% & [UnitData(theseCells).BaseFR]'>2);
-            
-            
+
+            try
             % Set the subpopulation of cells to use
             switch whichCells
                 
                 case 'pkFR_RS'
-                    [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
                     UseCells   = iRS(ipkFR(FirstCell+(0:(NumCells-1))));
                     SUdps      = CReach(UseCells,:).dprime
                     
                 case 'Mid20RS'
                     keyboard
-                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+                    
                     UseCells   = iRS(iSUdps(FirstCell+(0:19)));
                 case 'Mid10RS'
                     keyboard
                     [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
                     UseCells   = iRS(iSUdps(FirstCell+(0:9)));
                     SUdps      = dps(FirstCell+(0:9));
-                    
-                case 'BestRS'
-                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                    UseCells   = iRS(iSUdps(1:FirstCell));
-                case 'SkipBestRS'
-                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                    UseCells   = iRS(iSUdps((FirstCell+1):end));
-                    
-                case 'LoudestRS'
-                    nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
-                    [~,iSUFR]  = sort(nSpkRS,'descend');
-                    UseCells   = iRS(iSUFR(1:FirstCell));
-                case 'SkipLoudestRS'
-                    nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
-                    [~,iSUFR]  = sort(nSpkRS,'descend');
-                    UseCells   = iRS(iSUFR((FirstCell+1):end));
-                case 'LowFFRS'
-                    keyboard
-                    [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                    UseCells   = iRS(iSUdps((FirstCell+1):end));
+            end
+            catch
+                keyboard
+                continue
             end
             
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            %##########################################################################
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            
+            DataIn = single(CTTS(UseCells,:,:,:));
+            
             % Train and test classifier
-            [S_AssMat_NC,~,~] = runSVMclass_SnE( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
-                BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType );
+            S_AssMat = runSVMclass_notNorm( DataIn, DataIn, ...
+                BootstrapN, nStim, Dur, size(DataIn,1), PickTrials, TrainSize, TestSize, KernelType );
+            
+            %         S_AssMat = runSVMclassFR( DataIn, BootstrapN, nStim, Dur, size(DataIn,1), PickTrials, TrainSize, TestSize, KernelType );
             
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %##########################################################################
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             
             
-            %% Plot NEURAL results
+            %% Plot NEURAL result
             
-            ConfMat = mean(S_AssMat_NC,3);
-            
+            ConfMat = mean(S_AssMat,3);
             muPC    = mean(diag(ConfMat))*100;
             dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
             
             ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
             
             % Plot
-            hf(ii) = figure;
+            hf = figure;
             imagesc(ConfMat)
             axis square
             caxis([-1 1])
+            %         cmocean('ice') %ice
             cmocean('curl','pivot',0)
             colorbar
-            ylabel('True stim')
+            ylabel('True Context')
             xlabel('Assigned')
             set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
             
-            title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i,%i)',...
-                muPC,dprime,KernelType,whichStim,whichCells,NumCells,FirstCell))
+            title(sprintf('%0.1f%%, d''=%0.2f\n%s  |  %s (N=%i,%i)',...
+                muPC,dprime,kfns{iSeg},whichCells,NumCells,FirstCell))
             
             
             % Save figure
-            savename = sprintf('Res_v%s-%i_%s_%s_%i_%i',...
-                varPar,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,NumCells,FirstCell);
             
-            print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
+            savename = sprintf('ResContext_%s_%s-%i_%i',kfns{iSeg},whichCells,NumCells,FirstCell);
+            
+            print(hf,fullfile(figsavedir,savename),'-dpdf')
             
             
             %% Save results to master table
             
-            mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
+            mastertablesavename = sprintf('CR_%s',whichCells);
             thistablesavename   = savename;
+            
+            % Load data into table
             
             CR1 = table;
             CR1.figname  = {savename};
             CR1.Stim     = {whichStim};
             CR1.Cells    = {whichCells};
+            CR1.Seg      = iSeg;
+            CR1.SegStr   = kfns(iSeg);
             CR1.iC       = FirstCell;
             CR1.nC       = NumCells;
-            CR1.Results  = {S_AssMat_NC};
+            CR1.Results  = {S_AssMat};
             CR1.PC       = muPC;
             CR1.dprime   = dprime;
-            CR1.WinBeg   = WinBeg(ii);
-            CR1.WinEnd   = WinEnds(ii);
             CR1.trials   = {PickTrials};
             CR1.rcorrOpt = {'norm'};
             CR1.nTemp    = {PSTHsize};
@@ -265,9 +258,10 @@ for ii = 1:numel(WinEnds)
             CR1.nTest    = TestSize;
             CR1.conv     = {'exp'};
             CR1.tau      = tau;
+            CR1.BsN      = BootstrapN;
+            CR1.UnIDs    = {theseCells(UseCells)};
             CR1.SUids    = {UseCells};
             CR1.SUdps    = {SUdps};
-%             CR1.TrRes    = {TrialResults};
             
             
             % Load saved table
@@ -294,25 +288,65 @@ for ii = 1:numel(WinEnds)
                 save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
             end
             
-        end % nc
-    end % fc
+        end %PoolSize
+        close all
+    end %FirstCell
 end %vary classification parameter
 
 
 keyboard
 
-% Plot ranked SU vs subpops
-pcr_SUvPools
 
-% Plot min max PC and d' as a function of N cells
-pcr_minmaxPC
 
-% Plot PC and d' for each stimulus as a function of N cells
-pcr_byStim
+figure;
+plot(CReach.dprime,CR.dprime,'k.')
+hold on
+plot([0 3],[0 3])
+axis square
 
-% Plot SU dprime vs N spikes
+signrank(CReach.dprime,CR.dprime)
+median(CReach.dprime-CR.dprime)
+
+
+iUns = unique(CReach.iC);
+
+dpHat_temp = nan(numel(iUns),1);
+for iiu = 1:numel(iUns)
+    icr = CR.iC==iUns(iiu);
+    dpHat_temp(iiu) = mean(CR.dprime(icr));
+end
+
+
+iUns = unique(CReach.iC);
+
+dpHat_full = nan(numel(iUns),1);
+for iiu = 1:numel(iUns)
+    icr = CReach.iC==iUns(iiu);
+    dpHat_full(iiu) = mean(CReach.dprime(icr));
+end
+
+
+dpContext = sort(dpHat_full,'descend');
+figure;
+plot(1:numel(dpContext),dpContext,'.k')
+hold on
+
+CReach = load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassSpeech/Speech/Full/each/CR_each.mat');
+CReach = CReach.CR;
+
+dpShape = sort(CReach.dprime,'descend');
+
+plot(1:numel(dpShape),dpShape,'.b')
+
+
+
+keyboard
+
+
 pcr_SUdpFR
 
+
+keyboard
 
 
 
@@ -321,7 +355,7 @@ dpe = [CR.dprime_E];
 dpe(isinf(dpe)) = 6;
 
 figure;
-set(gcf,'Position',tallsmall)
+set(gcf,'Position',smallscreen)
 
 subplot(2,1,1);
 plot([CR.WinEnd]-500,dpe,'-m','LineWidth',2)
@@ -381,7 +415,7 @@ legend(ip,{'temporal' 'rate'})
 title('Classification in increasing windows')
 
 fn = set_paths_directories('','',1);
-rootdir = fullfile(fn.figs,'StimClassRcorr');
-print_eps_kp(gcf,fullfile(rootdir,'CR_vAnWin_50_TemporalRate'))
+figsavedir = fullfile(fn.figs,'StimClassRcorr');
+print_eps_kp(gcf,fullfile(figsavedir,'CR_vAnWin_50_TemporalRate'))
 
 end

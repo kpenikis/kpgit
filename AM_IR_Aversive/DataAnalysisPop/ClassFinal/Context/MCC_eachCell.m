@@ -1,5 +1,7 @@
-function MC_eachCell
+function MCC_eachCell
 % MasterClass (all parameters defined at top of file)
+%
+%  CONTEXT CLASSIFICATION
 %
 %  SVM classifier for segments of Pdc and Irr stimuli.
 %  Instead of feeding spiking data into SVM (or whatever classifier), input
@@ -8,12 +10,12 @@ function MC_eachCell
 %  dimensionality. 
 %
 %
-%  KP, 2019-12
+%  KP, 2020-01
 %
 
 close all
 
-varPar       = 'Full_notNorm';
+varPar       = 'FullNorm';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
@@ -30,7 +32,7 @@ PickTrials   = 'rand';
 % STIM
 whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 100;
+BootstrapN   = 300;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -52,8 +54,8 @@ rng('shuffle')
 fn = set_paths_directories('','',1);
 switch whichStim
     case {'AC' 'DB'}
-        rootdir = fullfile(fn.figs,'ClassAM');
-        rawdata = 'CTTS_AM';
+        rootdir = fullfile(fn.figs,'ClassContext','AM');
+        rawdata = 'CTTSC_AM_sim.mat';
         
         % Load Unit data files
         q = load(fullfile(fn.processed,'Units'));
@@ -62,14 +64,18 @@ switch whichStim
         clear q
         
     case 'Speech'
-        rootdir = fullfile(fn.figs,'ClassSpeech');
-        rawdata = 'CTTS_Speech_nonSim';
+        rootdir = fullfile(fn.figs,'ClassContext','Speech');
+        rawdata = 'CTTSC_Speech_sim.mat';
         
         % Load Unit data files
         q = load(fullfile(fn.processed,'UnitsVS'));
         UnitData = q.UnitData;
         UnitInfo = q.UnitInfo;
         clear q
+        
+        k=load(fullfile(fn.stim,'SpeechStim','RepeatedSpeechTemplates'));
+        kfns = fieldnames(k);
+        SegDurs  = structfun(@length,k);
         
 end
 
@@ -93,7 +99,7 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
+figsavedir = fullfile(rootdir,varPar,whichCells);
 if ~exist(fullfile(figsavedir,'backupTables'),'dir')
     mkdir(fullfile(figsavedir,'backupTables'))
 end
@@ -101,63 +107,51 @@ end
 
 %% Prepare to parse data
 
-nTrialMat = nan(size(Cell_Time_Trial_Stim,1),size(Cell_Time_Trial_Stim,4));
-for ist = 1:size(Cell_Time_Trial_Stim,4)
-    CT  = permute(sum(Cell_Time_Trial_Stim(:,:,:,ist),2),[1 3 2]);
-    nTrialMat(:,ist) = sum(~isnan(CT),2);
-end
-
-
-switch whichStim
-    case 'AC'
-        theseStim  = 1:8;
-    case 'DB'
-        theseStim  = [1:6 9:10];
-    case 'Speech'
-        theseStim  = 1:size(Cell_Time_Trial_Stim,4);
-%         MinStim  = find(min(nTrialMat,[],1)>=minTrs);
-    case 'U2'
-        theseStim  = 1:2;
-end
+theseStim  = 1:size(Cell_Time_Trial_Stim,5);
 
 % CellTypes
 iRS = find(UnitInfo.TroughPeak>0.43);
-iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
+iNS = find(UnitInfo.TroughPeak<=0.43);
 
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-for ii = 1:numel(WinEnds)
+for iSeg = 1:size(Cell_Time_Trial_Stim,4)
     
-    AnWin = WinBeg(ii):WinEnds(ii);
-    fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
+    AnWin = 1:SegDurs(iSeg);
+    fprintf('%s\n',kfns{iSeg})
+    
+    nTrialMat = nan(size(Cell_Time_Trial_Stim,1),size(Cell_Time_Trial_Stim,5));
+    for ist = 1:size(Cell_Time_Trial_Stim,5)
+        CT  = permute(sum(Cell_Time_Trial_Stim(:,AnWin,:,iSeg,ist),2),[1 3 5 2 4]);
+        nTrialMat(:,ist) = sum(~isnan(CT),2);
+    end
     
     % Define cells and stimuli
-    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-        whichCells, nTrialMat, UnitData,...
-        theseStim, iRS, iNS, minTrs, convwin, AnWin );
-    
-%     ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
-    
-    
+    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim(:,AnWin,:,iSeg,:), ...
+        whichCells, nTrialMat, UnitData,theseStim, iRS, iNS, minTrs, convwin, AnWin );
+        
     % Step through each unit
-    for iUn = 1:size(CTTS,1)
+    for ii = 1:numel(theseCells)
+        
+        iUn = theseCells(ii);
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %##########################################################################
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         
-        DataIn = CTTS(iUn,:,:,:);
+        DataIn = single(CTTS(ii,:,:,:));
         
         % Train and test classifier
-        [S_AssMat,E_AssMat] = runSVMclass_notNorm( DataIn, DataIn, ...
+        S_AssMat = runSVMclass_SnE( DataIn, DataIn, ...
             BootstrapN, nStim, Dur, size(DataIn,1), PickTrials, TrainSize, TestSize, KernelType );
+        
+%         S_AssMat = runSVMclassFR( DataIn, BootstrapN, nStim, Dur, size(DataIn,1), PickTrials, TrainSize, TestSize, KernelType );
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %##########################################################################
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        
         
         
         %% Plot NEURAL result
@@ -176,17 +170,17 @@ for ii = 1:numel(WinEnds)
         %         cmocean('ice') %ice
         cmocean('curl','pivot',0)
         colorbar
-        ylabel('True stim')
+        ylabel('True Context')
         xlabel('Assigned')
         set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
         
-        title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
-            muPC,dprime,KernelType,whichStim,whichCells,nUns))
+        title(sprintf('%0.1f%%, d''=%0.2f\n%s  |  %s (iUn=%i)',...
+            muPC,dprime,kfns{iSeg},whichCells,iUn))
         
         
         % Save figure
         
-        savename = sprintf('Res_%s-%i_Train%i_conv%i_%s',whichCells,iUn,TrainSize,tau,whichStim);
+        savename = sprintf('ResContext_%s_%s-%i_Train%i_conv%i_%s',kfns{iSeg},whichCells,iUn,TrainSize,tau,whichStim);
         
         print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
         
@@ -196,22 +190,17 @@ for ii = 1:numel(WinEnds)
         mastertablesavename = sprintf('CR_%s',whichCells);
         thistablesavename   = savename;
         
-        % Calculate performance for Env data
-        ConfMat  = mean(E_AssMat,3);
-        muPC_E   = mean(diag(ConfMat))*100;
-        dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
-        
         % Load data into table
         CR1 = table;
         CR1.figname  = {savename};
         CR1.Stim     = {whichStim};
         CR1.Cells    = {whichCells};
         CR1.iC       = iUn;
+        CR1.Seg      = iSeg;
+        CR1.SegStr   = kfns(iSeg);
         CR1.Results  = {S_AssMat};
         CR1.PC       = muPC;
         CR1.dprime   = dprime;
-        CR1.WinBeg   = WinBeg(ii);
-        CR1.WinEnd   = WinEnds(ii);
         CR1.trials   = {PickTrials};
         CR1.rcorrOpt = {'norm'};
         CR1.nTemp    = {PSTHsize};
@@ -220,9 +209,6 @@ for ii = 1:numel(WinEnds)
         CR1.conv     = {'exp'};
         CR1.tau      = tau;
         CR1.BsN      = BootstrapN;
-        CR1.ResEnv   = {E_AssMat};
-        CR1.PC_E     = muPC_E;
-        CR1.dprime_E = dprime_E;
         
         
         % Load saved table
@@ -249,11 +235,57 @@ for ii = 1:numel(WinEnds)
             save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
         end
         
-%         if mod(iUn,10)==0
+        if mod(iUn,10)==0
             close all
-%         end
+        end
     end %iUn
 end %vary classification parameter
+
+
+keyboard
+
+
+
+figure;
+plot(CReach.dprime,CR.dprime,'k.')
+hold on
+plot([0 3],[0 3])
+axis square
+
+signrank(CReach.dprime,CR.dprime)
+median(CReach.dprime-CR.dprime)
+
+
+iUns = unique(CReach.iC);
+
+dpHat_temp = nan(numel(iUns),1);
+for iiu = 1:numel(iUns)
+    icr = CR.iC==iUns(iiu);
+    dpHat_temp(iiu) = mean(CR.dprime(icr));
+end
+
+
+iUns = unique(CReach.iC);
+
+dpHat_full = nan(numel(iUns),1);
+for iiu = 1:numel(iUns)
+    icr = CReach.iC==iUns(iiu);
+    dpHat_full(iiu) = mean(CReach.dprime(icr));
+end
+
+
+dpContext = sort(dpHat_full,'descend');
+figure;
+plot(1:numel(dpContext),dpContext,'.k')
+hold on
+
+CReach = load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassSpeech/Speech/Full/each/CR_each.mat');
+CReach = CReach.CR;
+
+dpShape = sort(CReach.dprime,'descend');
+
+plot(1:numel(dpShape),dpShape,'.b')
+
 
 
 keyboard

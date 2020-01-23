@@ -1,11 +1,15 @@
 function [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-    whichCells, nTrialMat, UnitData, theseStim, iRS, iNS, minTrs, convwin, AnWin )
+    whichCells, nTrialMat, UnitData, theseStim, iRS, iNS, minTrs, convwin, AnWin, convtype )
 % Gets only those values of CTTS to classify.
 % KP, 2019-12 
 
 
 
 switch whichCells
+    
+    case 'PopResp'
+        theseCells = 1:size(Cell_Time_Trial_Stim,1);
+        
     case {'all' 'RSNS' 'each'}                                         % All Cells
         theseCells = find(all(nTrialMat(:,theseStim)>=minTrs,2));
         
@@ -57,11 +61,23 @@ nStim     = size(CTTS,4);
 
 
 % Convolve now, so don't have to do it within the bootstrapping loop
-for i1 = 1:size(CTTS,1)
-    for i3 = 1:size(CTTS,3)
-        for i4 = 1:size(CTTS,4)
-            conv_data = conv(CTTS(i1,:,i3,i4),convwin);
-            CTTS(i1,:,i3,i4) = conv_data(1:Dur);
+if exist('convtype','var') && strcmp(convtype,'gauss')
+    for i1 = 1:size(CTTS,1)
+        for i3 = 1:size(CTTS,3)
+            for i4 = 1:size(CTTS,4)
+                conv_data = conv(CTTS(i1,:,i3,i4),convwin,'same');
+                CTTS(i1,:,i3,i4) = conv_data(1:Dur);
+            end
+        end
+    end
+    
+else % exponential window
+    for i1 = 1:size(CTTS,1)
+        for i3 = 1:size(CTTS,3)
+            for i4 = 1:size(CTTS,4)
+                conv_data = conv(CTTS(i1,:,i3,i4),convwin);
+                CTTS(i1,:,i3,i4) = conv_data(1:Dur);
+            end
         end
     end
 end

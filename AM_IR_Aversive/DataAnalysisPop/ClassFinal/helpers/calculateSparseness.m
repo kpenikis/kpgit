@@ -1,4 +1,5 @@
 function S = calculateSparseness(TuningCurve)
+% Input data should be [Nx1]
 
 nStim = size(TuningCurve,1);
 

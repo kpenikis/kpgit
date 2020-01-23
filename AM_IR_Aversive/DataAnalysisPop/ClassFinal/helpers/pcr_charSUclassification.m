@@ -1,6 +1,6 @@
 
-% run MC_eachCell to line 137
-dbstop in MC_eachCell.m at 137
+% run MC_eachCell to line 140
+dbstop in MC_eachCell.m at 140
 MC_eachCell
 
 if ~exist('CReach','var')
@@ -23,6 +23,24 @@ iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR
 
 
 [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
+
+iRS(iSUdps)
+
+maxdps = max(dpStim,[],2);
+[maxdps_pl,imaxdps] = sort(maxdps,'descend');
+
+figure;
+plot(1:length(dps),dps,'.k','MarkerSize',15)
+hold on
+plot(1:numel(maxdps_pl),maxdps_pl,'.m','MarkerSize',15)
+xlim([0 length(dps)])
+ylim([-0.1 5])
+set(gca,'Color','none')
+grid on
+
+print_eps_kp(gcf,fullfile(figsavedir,'SUdps_sort'))
+
+
 
 % figure;
 % % set(gcf,'Position',widesmall)
@@ -95,9 +113,9 @@ for ist = StimOrder
 end
 
 
+
+
 %% Compare d' to FF 
-
-
 
 
 

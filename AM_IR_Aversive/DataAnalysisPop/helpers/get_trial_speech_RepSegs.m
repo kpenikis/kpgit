@@ -1,4 +1,7 @@
+% called by PopRespSpeech_RepSegs
 
+
+clear iu_FRvec 
 
 % Load data files
 try
@@ -17,33 +20,35 @@ iClu = find([Clusters.maxChannel] == UnitData(iUn).Channel & [Clusters.clusterID
 spiketimes = unique(round(Clusters(iClu).spikeTimes * 1000 )');
 
 % Calculate zFR
-keyboard
+
 [Stream_FRsmooth,Stream_zscore] = convertSpiketimesToFR(spiketimes,...
-    TrialData.offset(end)+100,TrialData.onset(1),TrialData.offset(1),bin_smooth,bin_smooth,'silence');
+    TrialData.offset(end)+100,TrialData.onset(1),TrialData.offset(1),'gauss',bin_smooth,'silence');
 
 
 catch
     keyboard
 end
 
-
-Stimuli = [1 5 6 2];
-
-iu_FRvec   = nan(1,Duration,numel(Stimuli));
-iu_zFRvec  = nan(1,Duration,numel(Stimuli));
-RMS        = nan(numel(Stimuli),Duration);
-
-thisRaster = nan(1,Duration,numel(Stimuli),10);
-
 % Get all stimuli presented with these parameters, given a
 % sufficient number of trials without diruptive artifact
 % while the animal was drinking
 [all_TDidx,Ntrials,minDur] = get_clean_trials(TrialData,Info.artifact(UnitData(iUn).Channel).trials,UnitData(iUn).spl,UnitData(iUn).lpn,1);
-allStim = unique(TrialData.trID(all_TDidx))';
+unStim = unique(TrialData.trID(all_TDidx))';
 
-for ist = 1:numel(Stimuli)
+Stimuli = [1 5 6 2];
+theseStim = intersect(Stimuli,unStim,'stable');
+
+% Preallocate
+iu_FRvec   = nan(1,Duration,numel(Stimuli));
+iu_zFRvec  = nan(1,Duration,numelw(Stimuli));
+RMS        = nan(numel(Stimuli),Duration);
+
+thisRaster = nan(1,Duration,numel(Stimuli),10);
+
+for ii = 1:numel(theseStim)
     
-    stid = Stimuli(ist);
+    stid = theseStim(ii);
+    ist = find(stid==Stimuli);
     
     SegTemplate = getfield(k,kfns{ist});
     

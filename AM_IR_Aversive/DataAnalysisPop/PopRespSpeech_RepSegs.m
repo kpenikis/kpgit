@@ -1,4 +1,4 @@
-function PopRespSpeech
+function PopRespSpeech_RepSegs
 % 
 % PopRespSpeech
 % 
@@ -25,11 +25,11 @@ function PopRespSpeech
 % 
 % plot(SSseg./max(SSseg),'LineWidth',2)
 
-close all
+% close all
 
-RERUN = 0;
+RERUN = 1;
 
-bin_smooth = 20;
+bin_smooth  = 20;
 convwin     = 10;
 convwin     = ones(1,convwin).*(1/convwin);
 
@@ -40,7 +40,7 @@ UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
 %-------
-% spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+spkshift = 0; %mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
 % Load RepSpeech templates
@@ -70,6 +70,10 @@ if RERUN
         % - - - -   Collect data   - - - - -
         
         get_trial_speech_RepSegs
+        
+        if ~exist('iu_FRvec','var')
+            continue
+        end
         
         FR_vec(iUn,:,:)  = iu_FRvec;
         zFR_vec(iUn,:,:) = iu_zFRvec;
@@ -110,7 +114,7 @@ spwidth = [1 3 6 9 10];
 
 
 %%
-useFR = 'log';
+useFR = 'z';
 
 SortBy =  'zThLatAbv'; 'latency'; 'signsum'; 'mean'; 'range'; 
 thresh = 0.2;

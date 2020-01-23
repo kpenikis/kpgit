@@ -18,7 +18,7 @@ end
 plotdata  = data(i_sorted,:);
 xtickset  = [0 size(plotdata,2)];
 xticklabs = xtickset;
-ndp = sum(sum(isnan(plotdata),2)==0);
+ndp = size(plotdata,1); %sum(sum(isnan(plotdata),2)==0);
 
 if clipZ>0
     plotdata(plotdata>clipZ) = clipZ;
@@ -66,10 +66,10 @@ if ~sortHere
     end
     set(gca,'ytick',fliplr(ytplc),'yticklabel',fliplr(ytlab))
 else
-    set(gca,'ytick',[])
-    switch sortBy
-        case 'baseFR'
-            set(gca,'ytick',1:5:ndp,'yticklabel',round([UnitData(theseCells(i_sorted(1:5:ndp))).BaseFR]))
+    if exist('yticklab','var')
+        set(gca,'ytick',ytickset,'yticklabel',yticklab)
+    else
+        set(gca,'ytick',[])
     end
     ylabel(sortBy)
 end

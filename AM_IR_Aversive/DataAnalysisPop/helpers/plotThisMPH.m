@@ -13,7 +13,7 @@ end
 plotdata  = data(i_sorted,:);
 xtickset  = [0 ceil(1000/AMrates(ir))/2 ceil(1000/AMrates(ir))];
 xticklabs = {'0' 'pi' '2*pi'};
-ndp = sum(sum(isnan(plotdata),2)==0);
+ndp = size(plotdata,1); %sum(sum(isnan(plotdata),2)==0);
 
 if clipZ>0
     plotdata(plotdata>clipZ) = clipZ;
@@ -59,8 +59,13 @@ if ~sortHere
         end
     end
     set(gca,'ytick',fliplr(ytplc),'yticklabel',fliplr(ytlab))
+
 else 
-    set(gca,'ytick',[])
+    if exist('yticklab','var')
+        set(gca,'ytick',ytickset,'yticklabel',yticklab)
+    else
+        set(gca,'ytick',[])
+    end
 end
 
 % CluLabels = [UnitData(theseUnits(i_sorted)).Clu];

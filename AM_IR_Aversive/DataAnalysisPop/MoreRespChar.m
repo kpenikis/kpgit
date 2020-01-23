@@ -10,9 +10,9 @@ global AMrates useFR Boundaries
 %~~~~~~~~~~~~~~~~~~~~~
 plotF1   = 0;
 plotF2   = 0;
-plotF3   = 0;
+plotF3   = 1;
 plotF4   = 0;
-plotF5   = 1;
+plotF5   = 0;
 %~~~~~~~~~~~~~~~~~~~~~
 useFR    =   'log'; 
 useGrp   =   'peakFR'; 'dynRange'; 'tuning'; 'phase'; 
