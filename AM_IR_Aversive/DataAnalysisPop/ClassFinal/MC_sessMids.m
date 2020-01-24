@@ -28,7 +28,7 @@ WinEnds      = WinBeg+Dur-1;
 AnWin        = WinBeg:WinEnds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
-PickTrials   = {'sim'};
+PickTrials   = {'sim' 'rand'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
 whichStim    = 'Speech';

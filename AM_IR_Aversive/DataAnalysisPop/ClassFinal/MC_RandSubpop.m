@@ -33,7 +33,7 @@ PickTrials   = 'rand';
 % STIM
 whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 100;
+BootstrapN   = 250;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -46,8 +46,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-nPools       = 30;
-PoolSize     = 15;
+nPools       = 1000;
+PoolSize     = 10;
 
 rng('shuffle')
 
@@ -227,28 +227,28 @@ for ii = 1:numel(WinEnds)
             muPC    = mean(diag(ConfMat))*100;
             dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
             
-            ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
+%             ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
             
             % Plot
-            hf(ii) = figure;
-            imagesc(ConfMat)
-            axis square
-            caxis([-1 1])
-            cmocean('curl','pivot',0)
-            colorbar
-            ylabel('True stim')
-            xlabel('Assigned')
-            set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
-            
-            title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i,%i)',...
-                muPC,dprime,KernelType,whichStim,whichCells,NumCells,FirstCell))
+%             hf(ii) = figure;
+%             imagesc(ConfMat)
+%             axis square
+%             caxis([-1 1])
+%             cmocean('curl','pivot',0)
+%             colorbar
+%             ylabel('True stim')
+%             xlabel('Assigned')
+%             set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
+%             
+%             title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i,%i)',...
+%                 muPC,dprime,KernelType,whichStim,whichCells,NumCells,FirstCell))
             
             
             % Save figure
             savename = sprintf('Res_v%s-%i_%s_%s_%i_%i',...
                 varPar,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,NumCells,FirstCell);
             
-            print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
+%             print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
             
             
             %% Save results to master table

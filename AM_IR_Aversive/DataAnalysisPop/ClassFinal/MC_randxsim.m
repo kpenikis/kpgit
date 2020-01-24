@@ -14,7 +14,7 @@ function MC_randxsim
 
 close all
 
-varPar       = 'TrShuff';
+varPar       = 'TrShuff_Rate';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
@@ -30,9 +30,9 @@ AnWin        = WinBeg:WinEnds;
 PickTrials   = {'rand' 'sim'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 500;
+BootstrapN   = 300;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -81,7 +81,11 @@ Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
 % Load SU classification results
-q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
+if strcmp(varPar,'TrShuff_Rate')
+    q = load(fullfile(rootdir,whichStim,'OnlyRate','each','CR_each.mat'));
+else
+    q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
+end
 CReach = q.CR;
 clear q
 
@@ -113,7 +117,7 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,varPar,'SessionsMin3cells');
+figsavedir = fullfile(rootdir,whichStim,varPar,'SessionsMin2cells',whichCells);
 if ~exist(fullfile(figsavedir,'backupTables'),'dir')
     mkdir(fullfile(figsavedir,'backupTables'))
 end
@@ -137,14 +141,22 @@ switch whichStim
 end
 
 % CellTypes
-iRS = find(UnitInfo.TroughPeak>0.43);
-iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
+iRS_all = find(UnitInfo.TroughPeak>0.43);
+iNS_all = find(UnitInfo.TroughPeak<0.43);
 
+
+% Shuffle spike times, for rate info only
+if strcmp(varPar,'TrShuff_Rate')
+    Cell_Time_Trial_Stim = shuffleSpikeTimes(Cell_Time_Trial_Stim);
+end
+
+[~,CReach_theseCells,~,~,~] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+    'each', nTrialMat, UnitData,theseStim, iRS_all, iNS_all, minTrs, convwin, AnWin );
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-for isess = 1:numel(AllSessions)
+for isess = 7:numel(AllSessions)
     
     if NcellSess(isess)<2
         continue
@@ -154,121 +166,32 @@ for isess = 1:numel(AllSessions)
     % Define cells and stimuli
     [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
         whichSess, nTrialMat, UnitData,...
-        theseStim, iRS, iNS, minTrs, convwin, AnWin );
+        theseStim, iRS_all, iNS_all, minTrs, convwin, AnWin );
     
     ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
     
     % Get indices of RS//NS cells (from just "theseCells")
     iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
-    iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
+%     iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
     
+    if numel(iRS)<2
+        fprintf('skipping')
+        continue
+    end
     
     % Set the subpopulation of cells to use
-    UseCells = 1:numel(theseCells);
-    SUdps    = CReach.dprime;
-    
     switch whichCells
         
         case 'RS'
             UseCells   = iRS;
-            SUdps      = CReach(iRS,:).dprime;
-        
-        case 'BestRS'
-            [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-            UseCells   = iRS(iSUdps(1:SubpopStart));
-        case 'SkipBestRS'
-            [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-            UseCells   = iRS(iSUdps((SubpopStart+1):end));
+            SUdps      = CReach((ismember(CReach_theseCells,theseCells(iRS))),:).dprime
             
-        case 'Mid20RS'
-            [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-            UseCells   = iRS(iSUdps(SubpopStart+(0:19)));
-        case 'Mid10RS'
-            [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-            UseCells   = iRS(iSUdps(SubpopStart+(0:9)));
-            SUdps      = dps(SubpopStart+(0:9));
-            
-            % Individual sessions
-        case 'Mid10RS_Apr02'
-            isess = find(strcmp({UnitData(theseCells).Session},'Apr02-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Apr11'
-            isess = find(strcmp({UnitData(theseCells).Session},'Apr11-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Apr15'
-            % probably were'nt enough trials to run SU d'
-            return
-        case 'Mid10RS_Oct26'
-            % only 8 RS cells
-            if SubpopStart>8
-                error('not enough cells')
-            end
-            isess = find(strcmp({UnitData(theseCells).Session},'Oct26-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Mar26'
-            isess = find(strcmp({UnitData(theseCells).Session},'Mar26-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Mar28'
-            isess = find(strcmp({UnitData(theseCells).Session},'Mar28-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Mar30'
-            isess = find(strcmp({UnitData(theseCells).Session},'Mar30-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Jan17'
-            isess = find(strcmp({UnitData(theseCells).Session},'Jan17-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Jan21'
-            isess = find(strcmp({UnitData(theseCells).Session},'Jan21-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-        case 'Mid10RS_Jan25'
-            % only 8 RS cells
-            if SubpopStart>8
-                error('not enough cells')
-            end
-            isess = find(strcmp({UnitData(theseCells).Session},'Jan25-AM'));
-            idxC  = intersect(isess',iRS);
-            [dps,iSUdps] = sort(CReach(idxC,:).dprime,'descend');
-            UseCells = idxC(iSUdps(find(dps<1,1,'first')+(0:9)));
-            SUdps    = dps(find(dps<1,1,'first')+(0:9))
-            
-        case 'LoudestRS'
-            nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
-            [~,iSUFR]  = sort(nSpkRS,'descend');
-            UseCells   = iRS(iSUFR(1:SubpopStart));
-        case 'SkipLoudestRS'
-            nSpkRS     = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
-            [~,iSUFR]  = sort(nSpkRS,'descend');
-            UseCells   = iRS(iSUFR((SubpopStart+1):end));
-        case 'LowFFRS'
-            keyboard
-            [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-            UseCells   = iRS(iSUdps((SubpopStart+1):end));
+        case 'RSunder1'
+            SUdps      = CReach((ismember(CReach_theseCells,theseCells(iRS))),:).dprime;
+            ii         = find(SUdps<1);
+            UseCells   = iRS(ii);
+            SUdps      = SUdps(ii)
     end
-    
     
     if length(UseCells)<2
         continue

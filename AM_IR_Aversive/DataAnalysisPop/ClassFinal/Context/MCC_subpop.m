@@ -46,8 +46,8 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-PoolStart    = [0.01 0.2 0.5];
-PoolSize     = [5 15 30];
+PoolStart    = [0.05 0.1 0.3 0.4 0.7];
+PoolSize     = [15];
 
 rng('shuffle')
 
