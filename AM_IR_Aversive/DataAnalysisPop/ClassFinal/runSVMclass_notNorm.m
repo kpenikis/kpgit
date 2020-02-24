@@ -1,20 +1,23 @@
-function [S_AssMat,E_AssMat,TrialResults] = runSVMclass_notNorm(CTTS,ETTS,BSN,nSt,Dur,nUn,PickTrials,TrainSize,TestSize,KernelType)
+function [S_AssMat,E_AssMat,TrialResults] = runSVMclass_notNorm(CTTS,ETTS,BSN,nSt,Dur,nUn,PickTrials,TrainSize,TestSize,KernelType,ShuffOpt)
 % AssMat = runSVMclass(Cell_Time_Trial_Stim,BootstrapN,...
 %    nStim,Dur,nUns,TrainSize,TestSize,convwin,KernelType)
 %
 %  Called by MasterClass
 % 
 
-S_AssMat      = nan(nSt,nSt,BSN);
+S_AssMat     = nan(nSt,nSt,BSN);
 E_AssMat     = [];
 TrialResults = [];
 
-h=waitbar(0);
+h=waitbar(0); 
 
 for iBS = 1:BSN
     
     waitbar(iBS/BSN,h,'Bootstrapping sets of training and testing trials...')
     
+    if ShuffOpt
+        CTTS = shuffleSpikeTimes(CTTS);
+    end
     
     %% If want all cells to have simultaneous trials, define all sets here
     
@@ -97,6 +100,7 @@ for iBS = 1:BSN
             end
         end
         
+% % %         CTTS = shuffleSpikeTimes(CTTS);
         
         %=================
         %   TEMPLATES
@@ -147,7 +151,7 @@ for iBS = 1:BSN
                 end
                 Un_DataTrain  = [ Un_DataTrain;   R ];
                 Un_EnvTrain   = [ Un_EnvTrain;   RE ];
-                TrueTrain     = [ TrueTrain; ist ];
+                TrueTrain     = [ TrueTrain;    ist ];
             end
             
             %==================
@@ -174,7 +178,7 @@ for iBS = 1:BSN
                 
                 Un_DataTest  = [ Un_DataTest;   R ];
                 Un_EnvTest   = [ Un_EnvTest;   RE ];
-                TrueTest     = [ TrueTest; ist ];
+                TrueTest     = [ TrueTest;    ist ];
             end
             
         end %ist
@@ -183,9 +187,9 @@ for iBS = 1:BSN
             keyboard
         end
         DataTrain   = [ DataTrain Un_DataTrain];
-        DataTest    = [ DataTest  Un_DataTest];
-        EnvTrain    = [ EnvTrain  Un_EnvTrain];
-        EnvTest     = [ EnvTest   Un_EnvTest];
+        DataTest    = [ DataTest   Un_DataTest];
+        EnvTrain    = [ EnvTrain   Un_EnvTrain];
+        EnvTest     = [ EnvTest     Un_EnvTest];
         
     end %iUn
     
@@ -193,8 +197,11 @@ for iBS = 1:BSN
     %####  NEURAL
     
     % Finish preparing input data
-    TrueTrain = TrueTrain(1:size(DataTrain,1));
-    TrueTest  = TrueTest(1:size(DataTest,1));
+    DataTrain = single(round(DataTrain,5));
+    DataTest  = single(round(DataTest,5));
+    
+    TrueTrain = single(TrueTrain(1:size(DataTrain,1)));
+    TrueTest  = single(TrueTest(1:size(DataTest,1)));
     
     InputData = [DataTrain TrueTrain];
     
@@ -209,7 +216,7 @@ for iBS = 1:BSN
     % Test on held out data
     Test_FitStim  = trainedClass.predictFcn(DataTest);
     
-    confMat = confusionmat(TrueTest, Test_FitStim);
+    confMat = confusionmat(single(TrueTest), Test_FitStim);
     S_AssMat(:,:,iBS) = confMat./sum(confMat,2);
     
     % - - - - - - - - - - - - - 

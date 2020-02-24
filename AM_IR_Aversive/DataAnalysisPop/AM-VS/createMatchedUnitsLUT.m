@@ -2,7 +2,7 @@
 fn = set_paths_directories;
 
 MatchedUnits = readtable(fullfile(fn.processed,'UnMatchedLUT.xlsx'),...
-    'Range','B1:H20');
+    'Range','B1:H43');
 
 save(fullfile(fn.processed,'UnMatchedLUT'),'MatchedUnits','-v7.3')
 

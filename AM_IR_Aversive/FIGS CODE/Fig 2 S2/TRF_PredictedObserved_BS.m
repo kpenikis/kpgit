@@ -7,17 +7,17 @@ function TRF_PredictedObserved_BS
 %
 
 
-close all
+% close all
 
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-smth_win    = 5;
+smth_win    = 10;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 Irr         = [6 7];
 Pdc         = [1 2 3 4 5]; 
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 % TLAGS       = round(logspace(log10(20),log10(500),10));
 TLAGS       = 500;
-d_tlag      = [];%100;
+d_tlag      = 100;
 TLAGS       = sort([TLAGS d_tlag]);
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 exclOnset   = 0; 
@@ -25,9 +25,6 @@ exclOnset   = 0;
 PlotEx      = 0;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 minIrrTr    = 20;
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-nBS         = 50;
-%!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 %% Load Unit data files
 
@@ -44,21 +41,17 @@ spkshift = 0; %mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 
 %% Figure settings
 
-savedir = fullfile(fn.figs,'TRF','Feb2020');
+savedir = fullfile(fn.figs,'TRF');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-set(groot,'DefaultTextInterpreter','none')
-set(groot,'DefaultAxesFontSize',18)
-set(groot,'defaultAxesTickDir', 'out');
-set(groot,'defaultAxesTickDirMode', 'manual');
+set(0,'DefaultTextInterpreter','none')
+set(0,'DefaultAxesFontSize',18)
 
 scrsz = get(0,'ScreenSize');   %[left bottom width height]
 fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
-tallrect    = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
-
-dotSize = 30;
+twothirds   = [1 scrsz(4) scrsz(3)/3*2 scrsz(4)];
 
 % Set colors
 subjcolors = cmocean('phase',1+numel(unique({UnitData.Subject})));
@@ -98,7 +91,7 @@ Imax_ALL =[];
 STRF_corr=[];
 
 
-for iUn = 32:numel(UnitData)
+for iUn = 1:numel(UnitData)
     
 %     if isempty([UnitData(iUn).iBMF_FR  UnitData(iUn).iBMF_VS])
 %         clear Phase0 Clusters Spikes
@@ -202,9 +195,7 @@ for iUn = 32:numel(UnitData)
     STIM_cell = cell(7,1);
     PSTH_cell = cell(7,1);
     
-    allStim = allStim(allStim>1)';
-     
-    for stid = allStim
+    for stid = allStim(allStim>1)'
         
         ist = find(stid==allStim);
         
@@ -254,8 +245,8 @@ for iUn = 32:numel(UnitData)
             
         end %it
         
-        STIM_cell{ist} = exp( stim_i );
-        PSTH_cell{ist} = psth_sm;
+        STIM_cell{ist-1} = exp( stim_i );
+        PSTH_cell{ist-1} = psth_sm;
         
     end %istim
     
@@ -281,6 +272,7 @@ for iUn = 32:numel(UnitData)
         set(hfex,'Position',fullscreen,'NextPlot','add')
     end
     
+    nBS = 200;
     
     STRF_Pdc      = nan(numel(TLAGS),max(TLAGS),nBS);
     STRF_Irr      = nan(numel(TLAGS),max(TLAGS),nBS);
@@ -288,10 +280,6 @@ for iUn = 32:numel(UnitData)
     coinc_Pdc_Irr = nan(numel(TLAGS),nBS);
     coinc_Irr_Pdc = nan(numel(TLAGS),nBS);
     coinc_Irr_Irr = nan(numel(TLAGS),nBS);
-    
-    rP_diff_SAVE = [];
-    rP_self_SAVE = [];
-    rObs_SAVE    = [];
     
     for iBS = 1:nBS
         
@@ -323,7 +311,6 @@ for iUn = 32:numel(UnitData)
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         psth_Irr1 = []; stim_Irr1 = [];
         psth_Irr2 = []; stim_Irr2 = [];
-        stim_plot = [];
         
         for st = Irr
             
@@ -343,17 +330,8 @@ for iUn = 32:numel(UnitData)
                         
             psth_Irr2  = [psth_Irr2 mean(PSTH_cell{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
             stim_Irr2  = [stim_Irr2 mean(STIM_cell{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
-            
-            stim_plot  = [stim_plot mean(STIM_cell{st}(allTrs,:),1)];
-        end 
         
-%         figure;
-%         subplot(4,1,1);
-%         hold on
-%         plot(stim_plot,'k','LineWidth',2)
-%         xlim([0 size(stim_plot,2)])
-%         print_eps_kp(gcf,fullfile(savedir,'ExPSTH_stim'))
-        
+        end
         if ~any(find(psth_Irr1)) || ~any(find(psth_Irr2))
             continue
         end
@@ -370,11 +348,13 @@ for iUn = 32:numel(UnitData)
             % Estimate STRF from PERIODIC stimuli
             
             %......................................
+            pred_response=[]; rP_norm=[]; rO_norm=[];
             STRF_Pdc(it,1:tlag,iBS) = sub_revCOR_AM(psth_Pdc1,stim_Pdc1,tlag);
             
             %......................................
             % Estimate STRF from IRREGULAR stimuli
             %......................................
+            pred_response=[]; rP_norm=[]; rO_norm=[];
             STRF_Irr(it,1:tlag,iBS) = sub_revCOR_AM(psth_Irr1,stim_Irr1,tlag);
             
             
@@ -386,18 +366,10 @@ for iUn = 32:numel(UnitData)
             %.......................................
             pred_response=[]; rP_norm=[]; rO_norm=[];
             pred_response = max(conv(stim_Irr2,STRF_Pdc(it,1:tlag,iBS),'full') ,0);
-            pred_response = pred_response(1:length(psth_Irr2));
             
             % Normalize responses
             rP_norm = pred_response/norm(pred_response);
             rO_norm = psth_Irr2/norm(psth_Irr2);
-            
-            % Save for plot later
-            try
-            rP_diff_SAVE = [rP_diff_SAVE; rP_norm];
-            catch
-                keyboard
-            end
             
             % Correlation between predicted and observed responses
             coinc_Pdc_Irr(it,iBS) = max( xcorr( rP_norm, rO_norm, 0) );
@@ -418,15 +390,10 @@ for iUn = 32:numel(UnitData)
             %.......................................
             pred_response=[]; rP_norm=[]; rO_norm=[];
             pred_response = max(conv(stim_Irr2,STRF_Irr(it,1:tlag,iBS),'full') ,0);
-            pred_response = pred_response(1:length(psth_Irr2));
             
             % Normalize responses
             rP_norm = pred_response/norm(pred_response);
             rO_norm = psth_Irr2/norm(psth_Irr2);
-            
-            % Save for plot later
-            rP_self_SAVE = [rP_self_SAVE; rP_norm];
-            rObs_SAVE = [rObs_SAVE; rO_norm];
             
             % Correlation between predicted and observed responses
             coinc_Irr_Irr(it,iBS) = xcorr( rP_norm, rO_norm, 0);
@@ -444,29 +411,6 @@ for iUn = 32:numel(UnitData)
             
         end %tlags
     end %iBS
-    
-        
-    figure;
-    
-    subplot(2,1,1);
-    hold on
-    plot(mean(rObs_SAVE,1),'k-')
-    plot(mean(rP_diff_SAVE,1),'r-','LineWidth',2)
-    xlim([0 length(rObs_SAVE)])
-    title(sprintf('Test Irr, train Pdc, coinc=%0.3f',mean(coinc_Pdc_Irr(it,:))))
-    
-    subplot(2,1,2);
-    hold on
-    plot(mean(rObs_SAVE,1),'k-')
-    plot(mean(rP_self_SAVE,1),'b-','LineWidth',2)
-    xlim([0 length(rObs_SAVE)])
-    title(sprintf('Test Irr, train self, coinc=%0.3f',mean(coinc_Irr_Irr(it,:))))
-    
-    keyboard
-    print_eps_kp(gcf,fullfile(savedir,sprintf('ExPSTH_%i',iUn)))
-    
-    
-    
     
     if mode(sum(isnan(coinc_Irr_Irr),2)/size(coinc_Irr_Irr,2)) > 0.5
         coinc_Irr_Irr = nan(size(coinc_Irr_Irr));
@@ -530,55 +474,6 @@ Results(1,:)=[];
 
 axmax = 1;
 
-iRS = UnitInfo(Results.iUn,:).TroughPeak>0.43;
-iNS = UnitInfo(Results.iUn,:).TroughPeak<=0.43;
-
-
-%.......................................
-
-hf=figure;
-set(hf,'Position',tallrect,'NextPlot','add')
-
-% AM
-hs(1)=subplot(2,2,1);
-hold on
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
-axis square; box on
-
-plot(C500_Irr(iRS),C500_Pdc(iRS),'.r','MarkerSize',dotSize)
-plot(C500_Irr(iNS),C500_Pdc(iNS),'.b','MarkerSize',dotSize)
-
-xlim([0 axmax])
-ylim([0 axmax])
-set(gca,'Color','none')
-title(sprintf('tlag=%i (N=%i)',500,size(Results,1)-max([ sum(isnan(C500_Irr)) sum(isnan(C500_Pdc)) ])))
-xlabel('Same Context (Irr)')
-ylabel('Opposite Context (Pdc)')
-
-
-% Stats
-ig = ~isnan(C500_Pdc) & ~isnan(C500_Irr);
-
-p_wsr = signrank(C500_Pdc(ig),C500_Irr(ig));
-avg_diff = mean(C500_Pdc(ig)-C500_Irr(ig),'omitnan');
-
-[r_c,p_c] = corr(C500_Pdc(ig),C500_Irr(ig));
-
-text(0.5,0.2,sprintf('signrank p=%0.2e\navg Cirr-pdc = %0.4f\nPearson r=%0.2f, p=%0.2e',p_wsr,avg_diff,r_c,p_c))
-
-% Save 
-savename = sprintf('Res_TRF_%i_PdcIrr_On-%i',500,sum(~exclOnset));
-print_eps_kp(hf,fullfile(savedir,savename));
-
-% Also save Pdata table
-save(fullfile(savedir,savename),'Results','-v7.3')
-
-
-
-keyboard
-
-
-%% old plot
 
 %.......................................
 % Focus on fixed tlag of 100
@@ -669,7 +564,7 @@ savename = sprintf('Pdata_TRF_wITIs_On%i_10tr',sum(~exclOnset));
 
 print_eps_kp(hf100,fullfile(savedir,savename));
 
-% Also save data table
+% Also save Pdata table
 save(fullfile(savedir,savename),'Results','-v7.3')
 
 

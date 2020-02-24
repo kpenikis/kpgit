@@ -15,7 +15,7 @@ function MCC_eachCell
 
 close all
 
-varPar       = 'FullNorm';
+varPar       = 'OnlyRate';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
@@ -128,9 +128,18 @@ for iSeg = 1:size(Cell_Time_Trial_Stim,4)
         nTrialMat(:,ist) = sum(~isnan(CT),2);
     end
     
+        
+    % For rate only classifier: shuffle spiketimes within trial
+    if strcmp(varPar,'OnlyRate')
+        CTTSC = shuffleSpikeTimes(Cell_Time_Trial_Stim(:,AnWin,:,iSeg,:));
+    else
+        CTTSC = Cell_Time_Trial_Stim(:,AnWin,:,iSeg,:);
+    end
+    
+    
     % Define cells and stimuli
-    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim(:,AnWin,:,iSeg,:), ...
-        whichCells, nTrialMat, UnitData,theseStim, iRS, iNS, minTrs, convwin, AnWin );
+    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( CTTSC, ...
+        whichCells, nTrialMat, UnitData,theseStim, iRS, iNS, minTrs, convwin, 1:size(CTTSC,2) );
         
     % Step through each unit
     for ii = 1:numel(theseCells)

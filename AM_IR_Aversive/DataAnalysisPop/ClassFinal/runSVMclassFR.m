@@ -176,10 +176,15 @@ for iBS = 1:BSN
     
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Finish preparing input data
-    TrueTrain = TrueTrain(1:size(DataTrain,1));
-    TrueTest  = TrueTest(1:size(DataTest,1));
+        % Finish preparing input data
+    DataTrain = single(round(DataTrain,2));
+    DataTest  = single(round(DataTest,2));
+    
+    TrueTrain = single(TrueTrain(1:size(DataTrain,1)));
+    TrueTest  = single(TrueTest(1:size(DataTest,1)));
     
     InputData = [DataTrain TrueTrain];
+    
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -189,7 +194,7 @@ for iBS = 1:BSN
     
     % - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     % Test on held out data
-    Test_FitStim  = trainedClass.predictFcn(DataTest);
+    Test_FitStim  = trainedClass.predictFcn(round(DataTest,2));
     
     confMat = confusionmat(TrueTest, Test_FitStim);
     AssMat(:,:,iBS) = confMat./sum(confMat,2);

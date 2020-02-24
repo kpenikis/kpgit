@@ -1,9 +1,11 @@
 
-% close all
+close all
 
-varPar       = 'Sess';
-whichCells   = 'Best8RS'; 
+whichClass   = 'Full';
+whichCells   = 'AllMidRS'; 
 whichStim    = 'Speech';
+
+minNcells    = 2;
 
 fn = set_paths_directories('','',1);
 switch whichStim
@@ -12,13 +14,11 @@ switch whichStim
     case 'Speech'
         rootdir = fullfile(fn.figs,'ClassSpeech');
 end
-figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
+datadir = fullfile(rootdir,whichStim,whichClass,'Sess',whichCells);
 
-q=load(fullfile(figsavedir,'CR_vSess.mat'));
+q=load(fullfile(datadir,sprintf('CR_%s_%s.mat',whichClass,whichCells)));
 CR = q.CR;
 clear q
-% Filter to only sim trials at first
-CR = CR(strcmp(CR.trials,'sim'),:);
 
 % Load SU results table
 q=load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
@@ -31,27 +31,67 @@ set(groot,'DefaultAxesFontSize',18)
 set(groot,'defaultAxesTickDir', 'out');
 set(groot,'defaultAxesTickDirMode', 'manual');
 
+figsavedir = fullfile(fn.figs,'ClassResults',whichClass,'Sess',[whichCells '_' num2str(minNcells)],whichStim);
+if ~exist(figsavedir,'dir')
+    mkdir(figsavedir)
+end
+
 % StimOrder = [8 3 2 5 6 7 4 1];
 % newcolors = cmocean('thermal',length(StimOrder));
 
 
+%% Simultaneous vs shuffled trials
+
+CR_sim = CR(strcmp(CR.trials,'sim'),:);
+CR_shf = CR(strcmp(CR.trials,'rand'),:);
+
+% Filter to sessions with a minimum number of cells
+CR_sim = CR_sim(CR_sim.nC>=minNcells,:);
+CR_shf = CR_shf(CR_shf.nC>=minNcells,:);
+
+
+ymax = 2.5;
+
+% Full (temporal + rate)
+hfs=figure;
+plot([0 ymax],[0 ymax],'-k')
+hold on
+scatter(CR_shf.dprime,CR_sim.dprime,20.*CR_shf.nC,'k','filled')
+xlabel('d'' shuffled trials')
+ylabel('d'' simultaneous trials')
+set(gca,'Color','none')
+axis square
+title(whichStim)
+
+print_eps_kp(hfs,fullfile(figsavedir,'Sim_v_Rand'))
+
+
+
+keyboard
+
+
 %% Total for stimulus set
 
+% Filter to only sim trials
+CR_sim = CR(strcmp(CR.trials,'sim'),:);
 
-nSess = size(CR,1);
-sizePop = CR.iC(1);
+% Filter to sessions with a minimum number of cells
+CR_sim = CR_sim(CR_sim.nC>=minNcells,:);
+
+
+nSess = size(CR_sim,1);
 crAmt = 0.001;
+ymax = 2.5;
 
 figure;
 hold on
 
 for isess = 1:nSess
-    plot(CR(isess,:).SUdps{:},repmat(CR(isess,:).dprime,[1 sizePop]),...
-        '+-','LineWidth',2,'Color',[0.1 0.1 0.1],...
+    sizePop = CR_sim.nC(isess);
+    plot(CR_sim(isess,:).SUdps{:},repmat(CR_sim(isess,:).dprime,[1 sizePop]),...
+        '+-','LineWidth',2,'Color',[0.06 0.06 0.1],'MarkerEdgeColor',[0.09 0.1 0.1],...
         'MarkerSize',20)
 end
-
-ymax = 3;
 plot([-0.2 ymax],[-0.2 ymax],':k')
 xlim([-0.2 ymax])
 ylim([-0.2 ymax])
@@ -60,7 +100,7 @@ axis square
 xlabel('d'' of individual SU')
 ylabel('d'' of subpopulation')
 
-title([num2str(nSess) ' sessions, ' num2str(sizePop) ' mediocre SUs'])
+title([num2str(nSess) ' sessions, all mediocre SUs'])
 
 print_eps_kp(gcf,fullfile(figsavedir,'dp_SU_vs_Subpop'));
 
@@ -119,9 +159,9 @@ print_eps_kp(gcf,fullfile(figsavedir,'dp_SU_vs_Subpop'));
 % %     print_eps_kp(hf(ist),fullfile(savedir,sprintf('dp_SU_vs_Subpop_st%i',ist)));
 % %     
 % % end
-% % 
-% % 
-% % 
+
+
+%%
 % % %% Within session d' tuning curves
 % % 
 % % for is = 1:numel(Sessions)
@@ -164,35 +204,41 @@ print_eps_kp(gcf,fullfile(figsavedir,'dp_SU_vs_Subpop'));
 % % end
 
 
-
 %% Max SU vs pop d' 
 
-hf3=figure; 
-hold on
-plot([0.5 8.5],[0 0],':k')
-
 threshDP=1;
+pcDiffsStim   = nan(nSess,8);
 dpDiffsStim   = nan(nSess,8);
 nStClassified = nan(nSess,2);
 
+
+hf2=figure; 
+hold on
+plot([0.5 8.5],[0 0],':k')
+
 for isess = 1:nSess
     
-    ConfMat = mean(CR(isess,:).Results{:},3);
-    dpSP    = dp_from_ConfMat(ConfMat,crAmt);
-    
     % Get indices of these SUs in CReach table
-    UnitIdx = CR(isess,:).SUids{:};
+    UnitIdx = CR_sim(isess,:).SUiCR{:};
     
+    pcSU = nan(numel(UnitIdx),8);
     dpSU = nan(numel(UnitIdx),8);
     for iu = 1:numel(UnitIdx)
         ConfMat  = mean(CReach(UnitIdx(iu),:).Results{:},3);
+        pcSU(iu,:) = diag(ConfMat)';
         dpSU(iu,:) = dp_from_ConfMat(ConfMat,crAmt);
     end
     
-    % Plot f3
+    % Get ensemble results
+    ConfMat = mean(CR_sim(isess,:).Results{:},3);
+    dpSP    = dp_from_ConfMat(ConfMat,crAmt);
+    
+    % Plot this session
+%     plot(1:8,100*(diag(ConfMat)'-max(pcSU,[],1)),'.','Color',[1 1 1]*0.12,'MarkerSize',20)
     plot(1:8,dpSP-max(dpSU,[],1),'.','Color',[1 1 1]*0.12,'MarkerSize',20)
     
     % Save diff for adding mean
+    pcDiffsStim(isess,:) = 100*(diag(ConfMat)'-max(pcSU,[],1));
     dpDiffsStim(isess,:) = dpSP-max(dpSU,[],1);
     
     % Save nStim > threshold 
@@ -202,14 +248,14 @@ for isess = 1:nSess
 end
 
 % Add mean of points
-plot(1:8,mean(dpDiffsStim,1),'og','MarkerSize',10)
+plot(1:8,median(dpDiffsStim,1),'-g','MarkerSize',10)
 
 xlim([0.5 8.5])
 xlabel('Stimulus')
 ylabel('d'' Pop - best SU')
 
 
-print_eps_kp(hf3,fullfile(figsavedir,'BestSU_eachStim'));
+print_eps_kp(hf2,fullfile(figsavedir,'BestSU_eachStim'));
 
 
 
@@ -234,5 +280,8 @@ title(['N stimuli d''<' num2str(threshDP)])
 print_eps_kp(hf4,fullfile(figsavedir,'NStim_thresh1'));
 
 
+
 keyboard
+
+
 

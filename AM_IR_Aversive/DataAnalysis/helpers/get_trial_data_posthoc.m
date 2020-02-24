@@ -41,7 +41,7 @@ end
 
 
 
-FRtrials      = nan(50,numel(Stimuli));
+FRtrials      = nan(250,numel(Stimuli));
 FFstim        = nan(1,numel(Stimuli));
 StimSpikeData = nan(numel(Stimuli),2);
 

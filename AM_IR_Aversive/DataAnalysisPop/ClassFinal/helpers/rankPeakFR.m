@@ -8,7 +8,7 @@ for iUn = 1:size(CTTS,1)
 end
 
 % Rank by median of peak FRs across all stimuli 
-[pkFRsort,ipkFR] = sort(median(stim_pks,2),'descend');
+[pkFRsort,ipkFR] = sort(mean(stim_pks,2),'descend');
 
 if any(isnan(pkFRsort))
     keyboard

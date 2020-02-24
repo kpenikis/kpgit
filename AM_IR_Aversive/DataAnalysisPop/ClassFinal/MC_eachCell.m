@@ -11,9 +11,9 @@ function MC_eachCell
 %  KP, 2019-12
 %
 
-close all
+% close all
 
-varPar       = 'Full_notNorm';
+whichClass   = 'Nspk';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
@@ -28,9 +28,9 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 500;
+BootstrapN   = 800;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -76,7 +76,8 @@ end
 % Load spikes data (created in gatherCellTimeTrialStim, used to be cumulativeSpikeCount)
 q=load(fullfile(rootdir,'RawData',rawdata)); %Cell_Time_Trial_Stim
 Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
-Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
+% Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
+clear q
 
 
 %%
@@ -93,7 +94,7 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
+figsavedir = fullfile(rootdir,whichStim,whichClass,whichCells);
 if ~exist(fullfile(figsavedir,'backupTables'),'dir')
     mkdir(fullfile(figsavedir,'backupTables'))
 end
@@ -106,7 +107,6 @@ for ist = 1:size(Cell_Time_Trial_Stim,4)
     CT  = permute(sum(Cell_Time_Trial_Stim(:,:,:,ist),2),[1 3 2]);
     nTrialMat(:,ist) = sum(~isnan(CT),2);
 end
-
 
 switch whichStim
     case 'AC'
@@ -122,8 +122,14 @@ end
 
 % CellTypes
 iRS = find(UnitInfo.TroughPeak>0.43);
-iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
+iNS = find(UnitInfo.TroughPeak<=0.43);
 
+ShuffOpt = 0;
+% For rate only classifier: shuffle spiketimes within trial
+if strcmp(whichClass,'OnlyRate')
+    ShuffOpt = 1;
+    convwin  = 1;
+end
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
@@ -133,6 +139,12 @@ for ii = 1:numel(WinEnds)
     AnWin = WinBeg(ii):WinEnds(ii);
     fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
     
+% %     % For rate only classifier: shuffle spiketimes within trial
+% %     if strcmp(whichClass,'OnlyRate')
+% %         ShuffOpt = 1;
+% %         Cell_Time_Trial_Stim(:,AnWin,:,:) = shuffleSpikeTimes(Cell_Time_Trial_Stim(:,AnWin,:,:));
+% %     end
+    
     % Define cells and stimuli
     [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
         whichCells, nTrialMat, UnitData,...
@@ -140,20 +152,19 @@ for ii = 1:numel(WinEnds)
     
 %     ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
     
-    
     % Step through each unit
-    for iUn = 160:size(CTTS,1)
+    for iUn = 1:size(CTTS,1)
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %##########################################################################
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        
-        DataIn = CTTS(iUn,:,:,:);
-        
-        % Train and test classifier
-        [S_AssMat,E_AssMat] = runSVMclass_notNorm( DataIn, DataIn, ...
-            BootstrapN, nStim, Dur, size(DataIn,1), PickTrials, TrainSize, TestSize, KernelType );
-        
+        if strcmp(whichClass,'Nspk')
+            S_AssMat = runSVMclassFR( CTTS(iUn,:,:,:), BootstrapN, nStim, Dur, 1, PickTrials, TrainSize, TestSize, KernelType );
+        else
+            % Train and test classifier
+            [S_AssMat,~] = runSVMclass_notNorm( CTTS(iUn,:,:,:), CTTS(iUn,:,:,:), ...
+                BootstrapN, nStim, Dur, 1, PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );
+        end
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %##########################################################################
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -180,8 +191,8 @@ for ii = 1:numel(WinEnds)
         xlabel('Assigned')
         set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
         
-        title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
-            muPC,dprime,KernelType,whichStim,whichCells,nUns))
+        title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (iUn=%i)',...
+            muPC,dprime,KernelType,whichStim,whichCells,iUn))
         
         
         % Save figure
@@ -197,9 +208,9 @@ for ii = 1:numel(WinEnds)
         thistablesavename   = savename;
         
         % Calculate performance for Env data
-        ConfMat  = mean(E_AssMat,3);
-        muPC_E   = mean(diag(ConfMat))*100;
-        dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
+%         ConfMat  = mean(E_AssMat,3);
+%         muPC_E   = mean(diag(ConfMat))*100;
+%         dprime_E = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
         
         % Load data into table
         CR1 = table;
@@ -220,9 +231,6 @@ for ii = 1:numel(WinEnds)
         CR1.conv     = {'exp'};
         CR1.tau      = tau;
         CR1.BsN      = BootstrapN;
-        CR1.ResEnv   = {E_AssMat};
-        CR1.PC_E     = muPC_E;
-        CR1.dprime_E = dprime_E;
         
         
         % Load saved table

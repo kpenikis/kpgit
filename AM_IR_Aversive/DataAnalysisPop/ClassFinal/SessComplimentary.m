@@ -35,7 +35,7 @@ CR_SU = q.CR;
 clear q
 
 % Load CTTS data
-[CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams(whichStim,'each');
+[CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams('Speech','each');
 
 keyboard
 

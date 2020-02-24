@@ -11,7 +11,7 @@ function PopulationTuning
 % [ ] mean percentage ?miss? trials as a function of stimulus (last 750 ms)
 
 
-alfaVS = 0.0002;
+alfaVS = 0.001;
 alfaFR = 0.05;
 
 minTrs  = 12;
@@ -43,7 +43,6 @@ clear q
 spkshift = 0; %mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
-[~,UnitData] = identifyResponsiveUnits(UnitData);
 
 %%
 

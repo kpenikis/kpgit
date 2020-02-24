@@ -32,7 +32,7 @@ PickTrials   = {'rand' 'sim'};
 % STIM
 whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 300;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -44,7 +44,6 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-SubpopStart  = 1;
 
 rng('shuffle')
 
@@ -156,7 +155,7 @@ end
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-for isess = 7:numel(AllSessions)
+for isess = 1:numel(AllSessions)
     
     if NcellSess(isess)<2
         continue
@@ -182,6 +181,14 @@ for isess = 7:numel(AllSessions)
     % Set the subpopulation of cells to use
     switch whichCells
         
+        case 'AllMidRS'
+            UnSig      = bootstrap4significance(CReach(idxCRe,:));
+            UseCells   = idxCRe(UnSig & CReach(idxCRe,:).dprime<dpthresh);
+            if numel(UseCells)<2
+                continue
+            end
+            [SUdps,~]  = sort(CReach(UseCells,:).dprime,'descend')
+        
         case 'RS'
             UseCells   = iRS;
             SUdps      = CReach((ismember(CReach_theseCells,theseCells(iRS))),:).dprime
@@ -203,7 +210,7 @@ for isess = 7:numel(AllSessions)
         TrMethod = PickTrials{TrM};
         
         % Train and test classifier
-        [S_AssMat_NC,~,~] = runSVMclass_SnE( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+        [S_AssMat_NC,~,~] = runSVMclass_notNorm( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
             BootstrapN, nStim, Dur, length(UseCells), TrMethod, TrainSize, TestSize, KernelType ); 
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -299,7 +306,7 @@ end %Session
 keyboard
 
 % Sessions: shuffled vs simultaneous
-pcr_ShuffRes
+pcr_ShuffSess
 
 % Plot ranked SU vs subpops
 pcr_SUvPools

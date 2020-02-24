@@ -42,7 +42,8 @@ for iUn = 1:numel(UnitData)
     if  KW && WX
         % BMF - Rate
         FRpdc_tr = UnitData(iUn).FR_raw_tr(:,2:6);
-        [~,UnitData(iUn).iBMF_FR] = max(mean(FRpdc_tr(sum(isnan(FRpdc_tr),2)==0,:),1));
+%         [~,UnitData(iUn).iBMF_FR] = max(mean(FRpdc_tr(sum(isnan(FRpdc_tr),2)==0,:),1));
+        [~,UnitData(iUn).iBMF_FR] = max(mean(FRpdc_tr,1,'omitnan'));
     end
     
     if VS

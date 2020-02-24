@@ -3,11 +3,11 @@ function PopResp_CTTS
 % PopResp_CTTS
 % 
 
-% close all
+close all
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SORT
-sortBy       = 'peakFRquant_Lat'; 
-sortStim     = 1;
+sortBy       = 'peakFRquant_Lat'; % 'FRrange'; 
+sortStim     = 3;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -19,19 +19,19 @@ AnWin        = WinBeg:WinEnds;
 whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SMOOTHING
-convtype     = 'gauss';
-tau          = 20;
-window       = gausswin(tau);
-window       = window-min(window);
-convwin      = window/sum(window);
+% convtype     = 'gauss';
+% tau          = 20;
+% window       = gausswin(tau);
+% window       = window-min(window);
+% convwin      = window/sum(window);
 
-% convtype     = 'exp';   
-% tau          = 5;
-% lambda       = 1/tau;
-% % winlen       = 500;
-% convwin      = exp(-lambda*(1:500));
+convtype     = 'exp';   
+tau          = 10;
+lambda       = 1/tau;
+% winlen       = 500;
+convwin      = exp(-lambda*(1:500));
+convwin      = convwin./sum(convwin);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-minTrs       = 5;
 
 
 %% Load data
@@ -66,10 +66,12 @@ Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
 % Load SU classification results
-% q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
-% CReach = q.CR;
-% clear q
-% 
+q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
+CReach = q.CR;
+clear q
+
+
+%%
 % % Check that matching data files were imported
 % if size(Cell_Time_Trial_Stim,1)~=numel(UnitData)
 %     keyboard
@@ -122,15 +124,53 @@ flagNS = find(UnitInfo.TroughPeak<=0.43);
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % Define cells and stimuli
-[CTTS,~,~,~,~] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-    'PopResp', nTrialMat, UnitData,theseStim, flagRS, flagNS, minTrs, convwin, AnWin, convtype );
-
-if size(CTTS,1) ~= size(Cell_Time_Trial_Stim,1)
-    keyboard
-end
-FR_vec = permute(mean(CTTS,3,'omitnan'),[1 2 4 3]);
+% [CTTS,theseUns,~,~,~] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+%     'PopResp', nTrialMat, UnitData,theseStim, flagRS, flagNS, minTrs, convwin, AnWin, convtype );
+% 
+% if size(CTTS,1) ~= size(Cell_Time_Trial_Stim,1)
+%     keyboard
+% end
+% FR_vec = permute(mean(CTTS,3,'omitnan'),[1 2 4 3]);
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+minTrs = 12;
+
+% Get UnitData indices for matching to CR each
+[CTTS,theseUns,~,~,~] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+    'each', nTrialMat, UnitData,theseStim, flagRS, flagNS, minTrs, convwin, AnWin, 'exp' );
+
+FR_vec = permute(mean(CTTS,3,'omitnan'),[1 2 4 3]);
+
+% Load encoding time estimation
+load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassSpeech/avgPropUp.mat')
+
+% New RS/NS labels
+flagRS = find(UnitInfo(theseUns,:).TroughPeak>0.43);
+flagNS = find(UnitInfo(theseUns,:).TroughPeak<=0.43);
+
+% Get envelope data
+ETTS = Env_Time_Trial_Stim(theseUns,AnWin,:,theseStim);
+
+
+%%
+% rangeFR = mean([max(FR_vec(:,:,2),[],2)-min(FR_vec(:,:,2),[],2) ...
+%     max(FR_vec(:,:,3),[],2)-min(FR_vec(:,:,3),[],2) ...
+%     max(FR_vec(:,:,4),[],2)-min(FR_vec(:,:,4),[],2) ],2);
+% figure;
+% plot(rangeFR(theseUns),CReach.dprime,'ok')
+% [r,p]=corr(rangeFR(theseUns),CReach.dprime)
+% 
+% 
+% peakFR = mean([max(FR_vec(:,:,2),[],2) ...
+%     max(FR_vec(:,:,3),[],2) ...
+%     max(FR_vec(:,:,4),[],2) ],2);
+% figure;
+% plot(peakFR(theseUns),CReach.dprime,'ok')
+% [r,p]=corr(peakFR(theseUns),CReach.dprime)
+% 
+% figure;
+% plot(peakFR,rangeFR,'ok')
+% [r,p]=corr(peakFR,rangeFR)
 
 
 %% Sort data
@@ -139,15 +179,84 @@ clear i_sorted
 ThisData = FR_vec;
 
 switch sortBy
+    case 'FRrange'
+        
+        ytickset = 0;
+        yticklab = {''};
+        
+        % RS cells
+        rangeFR    = mean([max(FR_vec(flagRS,:,2),[],2)-min(FR_vec(flagRS,:,2),[],2) ...
+            max(FR_vec(flagRS,:,3),[],2)-min(FR_vec(flagRS,:,3),[],2) ...
+            max(FR_vec(flagRS,:,4),[],2)-min(FR_vec(flagRS,:,4),[],2) ],2);
+        Qbounds    = quantile(rangeFR,[0 0.2 0.4 0.6 0.8 1]);
+        [~,ipkRS]  = max(ThisData(flagRS,:,sortStim),[],2);
+        
+        figure; hold on
+        
+        dataRS  = [];
+        isortRS = [];
+        for iq=1:5
+            idx = find(rangeFR>=Qbounds(iq) & rangeFR<=Qbounds(iq+1));
+            [lats,idx_sort] = sort(ipkRS(idx),'descend');
+            isortRS  = [isortRS; idx(idx_sort)];
+            dataRS   = [dataRS; rangeFR(idx(idx_sort)) ipkRS(idx(idx_sort))];
+            ytickset = [ytickset size(lats,1)];
+            yticklab = [yticklab ['RS' num2str(iq)]];
+            
+            subplot(2,3,iq)
+            plot(avgPropUp(intersect(theseUns,flagRS(idx)) ), ...
+                CReach.dprime( (ismember(theseUns,flagRS(idx))) ),'ok')
+            title(['Q' num2str(iq)])
+            ylim([-0.2 3])
+            xlim([0 0.7])
+            axis square
+            [r,p] = corr(avgPropUp(intersect(theseUns,flagRS(idx)) ), ...
+                CReach.dprime( (ismember(theseUns,flagRS(idx))) ))
+        end
+        
+        % NS cells
+        rangeFR    = mean([max(FR_vec(flagNS,:,2),[],2)-min(FR_vec(flagNS,:,2),[],2) ...
+            max(FR_vec(flagNS,:,3),[],2)-min(FR_vec(flagNS,:,3),[],2) ...
+            max(FR_vec(flagNS,:,4),[],2)-min(FR_vec(flagNS,:,4),[],2) ],2);
+        Qbounds    = quantile(rangeFR,[0 1]);
+        [~,ipkNS]  = max(ThisData(flagNS,:,sortStim),[],2);
+        
+        dataNS  = [];
+        isortNS = [];
+        for iq=1
+            idx = find(rangeFR>=Qbounds(iq) & rangeFR<=Qbounds(iq+1));
+            [lats,idx_sort] = sort(ipkNS(idx),'descend');
+            isortNS  = [isortNS; idx(idx_sort)];
+            dataNS   = [dataNS; rangeFR(idx(idx_sort)) ipkNS(idx(idx_sort))];
+            ytickset = [ytickset size(lats,1)];
+            yticklab = [yticklab 'NS'];
+        end
+        
+        sortdata     = [dataRS; dataNS];
+        i_sorted     = [flagRS(isortRS); flagNS(isortNS)];
+        ytickset     = cumsum(ytickset);
+        
+    
     case 'peakFRquant_Lat'
         
         ytickset = 0;
         yticklab = {''};
         
         % RS cells
-        [pkRS,ipkRS] = max(ThisData(flagRS,1:250,sortStim),[],2);
+%         [pkRS,ipkRS] = max(ThisData(flagRS,:,sortStim),[],2);
+        [pkRS,isort]  = rankPeakFR(ThisData(flagRS,:,:));        % to group
+        [~,isback] = sort(isort);
+        pkRS = pkRS(isback);
+        if strcmp(whichStim,'AC') && sortStim==3                 % to sort
+            [~,ipkRS] = max(ThisData(flagRS,1:250,sortStim),[],2);
+        elseif strcmp(whichStim,'Speech') && sortStim==2
+            [~,ipkRS] = max(ThisData(flagRS,1:350,sortStim),[],2);
+        else
+            [~,ipkRS] = max(ThisData(flagRS,:,sortStim),[],2);
+        end
         Qbounds      = quantile(pkRS,[0 0.2 0.4 0.6 0.8 1]);
         
+        lats_RS = nan(ceil(numel(flagRS)/5),5);
         dataRS  = [];
         isortRS = [];
         for iq=1:5
@@ -157,13 +266,26 @@ switch sortBy
             dataRS   = [dataRS; pkRS(idx(idx_sort)) ipkRS(idx(idx_sort))];
             ytickset = [ytickset size(lats,1)];
             yticklab = [yticklab ['RS' num2str(iq)]];
+            
+            lats_RS(1:size(lats,1),iq) = lats';
         end
         
         
         % NS cells
-        [pkNS,ipkNS] = max(ThisData(flagNS,1:250,sortStim),[],2);
+%         [pkNS,ipkNS] = max(ThisData(flagNS,:,sortStim),[],2);
+        [pkNS,isort]  = rankPeakFR(ThisData(flagNS,:,:));        % to group
+        [~,isback] = sort(isort);
+        pkNS = pkNS(isback);
+        if strcmp(whichStim,'AC') && sortStim==3                 % to sort
+            [~,ipkNS] = max(ThisData(flagNS,1:250,sortStim),[],2);
+        elseif strcmp(whichStim,'Speech') && sortStim==2
+            [~,ipkNS] = max(ThisData(flagNS,1:350,sortStim),[],2);
+        else
+            [~,ipkNS] = max(ThisData(flagNS,:,sortStim),[],2);
+        end
         Qbounds      = quantile(pkNS,[0 1]);
         
+        lats_NS = nan(numel(flagNS),1);
         dataNS  = [];
         isortNS = [];
         for iq=1
@@ -173,12 +295,53 @@ switch sortBy
             dataNS   = [dataNS; pkNS(idx(idx_sort)) ipkNS(idx(idx_sort))];
             ytickset = [ytickset size(lats,1)];
             yticklab = [yticklab 'NS'];
+            
+            lats_NS(1:size(lats,1),1) = lats';
         end
         
         sortdata     = [dataRS; dataNS];
         i_sorted     = [flagRS(isortRS); flagNS(isortNS)];
         ytickset     = cumsum(ytickset);
 end
+
+
+%% Plot latency distributions
+
+% % % set(gcf,'Position',tallhalf)
+% % if strcmp(whichStim,'AC')
+% %     set(gcf,'Position',fullscreen)
+% % elseif strcmp(whichStim,'Speech')
+% %     set(gcf,'Position',widehalf)
+% % else
+% %     keyboard
+% % end
+% % 
+% % 
+% % subplot(1,size(ThisData,3),sortStim)
+
+
+hf2 = figure;       
+set(gca,'ColorOrder',cmocean('thermal',6))
+hold on
+plot(nan,nan,'.')
+for iq = 1:size(lats_RS,2)
+    histogram(lats_RS(:,iq),0:500,'Normalization','cdf','DisplayStyle','stairs','LineWidth',2)
+end
+histogram(lats_NS,0:500,'Normalization','cdf','DisplayStyle','stairs','LineWidth',2,'EdgeColor','k');
+
+ylim([0 1])
+xlim([0 500])
+set(gca,'Color','none')
+box off
+grid on
+
+% Stats
+
+
+keyboard
+
+savestr = sprintf('%s_%s_st%i_%s%i',whichStim,sortBy,sortStim,convtype,tau);
+print_eps_kp(hf2,fullfile(figsavedir,['LatDistr_' savestr]))
 
 
 %% Plot results
@@ -200,12 +363,52 @@ for ist = 1:size(ThisData,3)
     
 end
 
-print_eps_kp(hf1,fullfile(figsavedir,['PopResp_' whichStim '_' sortBy]))
+savestr = sprintf('%s_%s_st%i_%s%i',whichStim,sortBy,sortStim,convtype,tau);
+print_eps_kp(hf1,fullfile(figsavedir,['PopResp_' savestr]))
 
-set(hf1,'PaperOrientation','landscape')
-print(hf1,'-dpdf','-r500','-fillpage', fullfile(figsavedir,['PopResp_' whichStim '_' sortBy]))
+% set(hf1,'PaperOrientation','landscape')
+% print(hf1,'-dpdf','-r500','-fillpage', fullfile(figsavedir,['PopResp_' whichStim '_' sortBy '_v2']))
 
 % set(hf1,'PaperOrientation','portrait')
 % print(hf1,'-dpdf','-r500','-fillpage', fullfile(figsavedir,['PopResp_' whichStim '_' sortBy '_portrait']))
+
+
+
+%% Population sparseness
+
+hf2 = figure;
+set(gcf,'Position',fullscreen)
+
+for ist = 1:size(ThisData,3)
+    
+    subplot(5,size(ThisData,3),ist)
+%     plot([0 500],[0.6135 0.6135],'k')
+    hold on
+    
+    PopSps = nan(1,size(ThisData,2));
+    PopSps_NS = nan(1,size(ThisData,2));
+    for ims = 1:size(ThisData,2)
+        PopSps(1,ims) = calculateSparseness(ThisData(flagRS,ims,ist));
+        PopSps_NS(1,ims) = calculateSparseness(ThisData(flagNS,ims,ist));
+    end
+    plot(PopSps_NS,'b','LineWidth',2)
+    plot(PopSps,'m','LineWidth',2)
+    ylim([0 0.9])
+    set(gca,'Color','none')
+    box off
+    
+    subplot(5,size(ThisData,3),size(ThisData,3)+ist)
+    plot(mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1,'omitnan'),'k','LineWidth',2)
+    if strcmp(whichStim,'AC')
+        ylim([0 0.9])
+    else
+        ylim([0 0.02])
+    end
+    set(gca,'Color','none','xtick',[],'ytick',[])
+    box off
+end
+
+print_eps_kp(hf2,fullfile(figsavedir,['PopSps_' savestr]))
+
 
 end

@@ -7,12 +7,13 @@ function AnPeakRate
 %
 
 % close all
-global fn spkshift smth_win exclOnset AM_durs VS_durs
+global fn spkshift smth_win exclOnset AM_durs VS_durs nTrGrp
 
 %!!!!!!!!!!!!!!!!!!!!
 smth_win    = 10;
 exclOnset   = 0;
 %!!!!!!!!!!!!!!!!!!!!
+nTrGrp = 4;
 
 histedges = logspace(-4,-1,100);
 
@@ -82,6 +83,8 @@ Subjects   = unique({UData_AM.Subject});
 %%
 
 % Begin by loading just one session (Mar30-AM and Mar30-VS)
+allTS_AM=[];
+allTS_Sp=[];
 
 for iiUn = 1:size(Uindices_AMVS,1)
     
@@ -92,11 +95,8 @@ for iiUn = 1:size(Uindices_AMVS,1)
         continue
     end
     
-    % Get PSTH and STIM cells from AM data
-    %  PSTH_cell{st}(trials,time)
-    %  STIM_cell{st}(trials,time)
+    % Get PSTH and STIM data
     
-    % make generic?
     [PSTH_AMc,STIM_AMc] = getdata4TRF(UData_AM,iUnAM);
     [PSTH_Spc,STIM_Spc] = getdata4TRF(UData_VS,iUnVS);
     
@@ -130,8 +130,8 @@ for iiUn = 1:size(Uindices_AMVS,1)
     end
     
     % Normalize both stim signals to be in range [0 1]
-    stim_AM = stim_AM/max(stim_AM);
-    stim_Sp = stim_Sp/max(stim_Sp);
+%     stim_AM = stim_AM/max(stim_AM);
+%     stim_Sp = stim_Sp/max(stim_Sp);
     
     
     % a) Plot distribution of peakRate events in AM and speech
@@ -140,6 +140,10 @@ for iiUn = 1:size(Uindices_AMVS,1)
     % d) Distribution of t_peaks across cells
     
     
+    % Correct artifact at beginning
+    [minV,iminV] = min(stim_AM(1:30));
+    stim_AM(1:iminV) = minV;
+    
     % Find sound events
 %     allTS = [TS; ...
 %              diff_loudness;...
@@ -147,9 +151,11 @@ for iiUn = 1:size(Uindices_AMVS,1)
 %              peakEnv;...
 %              minRate;...
 %              peakRate];
-    allTS_AM = find_peakRate(stim_AM, 1000, [1 length(stim_AM)]./1000, 'broadband');
-    allTS_Sp = find_peakRate(stim_Sp, 1000, [1 length(stim_Sp)]./1000, 'broadband');
+    uTS_AM = find_peakRate(stim_AM, 1000, [1 length(stim_AM)]./1000, 'broadband');
+    uTS_Sp = find_peakRate(stim_Sp, 1000, [1 length(stim_Sp)]./1000, 'broadband');
     
+    allTS_AM = [allTS_AM uTS_AM];
+    allTS_Sp = [allTS_Sp uTS_Sp];
     
     % Save data from this unit for plotting
     
@@ -173,11 +179,13 @@ hf=figure;
 % a) histograms of peakRate
 subplot(4,2,1:2)
 hold on
-histogram(allTS_Sp(6,:),histedges)
-histogram(allTS_AM(6,:),histedges)
+histogram(allTS_Sp(6,:),histedges,'FaceColor','m')
+histogram(allTS_AM(6,:),histedges,'FaceColor','k')
 set(gca,'xscale','log','xlim',10.^[-4 -1])
 xlabel('peakRate magnitude')
 ylabel('Count')
+
+% Set and save Boundaries for peakRate
 
 
 % b)

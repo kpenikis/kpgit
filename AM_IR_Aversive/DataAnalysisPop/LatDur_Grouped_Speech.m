@@ -1,7 +1,7 @@
 
 % close all
 useFR    =   'log'; 
-
+sortStim = 3;
 
 % Load Unit data files
 fn = set_paths_directories('','',1);
@@ -57,7 +57,58 @@ switch useFR
 end
 
 
+%% Establish peak FR groups
+
+%%%%  determine group id once, in classifier, 
+%%%%  then apply to pop psths and this 
+%%%%  *diff # cells
+%%%%  OR just use same method (mean of max of each stim)
+
+% CellTypes
+flagRS = find(UnitInfo.TroughPeak>0.43);
+flagNS = find(UnitInfo.TroughPeak<=0.43);
+
+% RS cells
+[pkRS,~]  = rankPeakFR(ThisData(flagRS,:,:,:));    % to group
+[~,ipkRS] = max(ThisData(flagRS,:,sortStim),[],2); % to sort
+Qbounds      = quantile(pkRS,[0 0.2 0.4 0.6 0.8 1]);
+
+dataRS  = [];
+isortRS = [];
+for iq=1:5
+    idx = find(pkRS>=Qbounds(iq) & pkRS<=Qbounds(iq+1));
+    [lats,idx_sort] = sort(ipkRS(idx),'descend');
+    isortRS  = [isortRS; idx(idx_sort)];
+    dataRS   = [dataRS; pkRS(idx(idx_sort)) ipkRS(idx(idx_sort))];
+%     ytickset = [ytickset size(lats,1)];
+%     yticklab = [yticklab ['RS' num2str(iq)]];
+end
+
+
+% NS cells
+[pkNS,~]  = rankPeakFR(ThisData(flagNS,:,:,:));    % to group
+[~,ipkNS] = max(ThisData(flagNS,:,sortStim),[],2); % to sort
+Qbounds      = quantile(pkNS,[0 1]);
+
+dataNS  = [];
+isortNS = [];
+for iq=1
+    idx = find(pkNS>=Qbounds(iq) & pkNS<=Qbounds(iq+1));
+    [lats,idx_sort] = sort(ipkNS(idx),'descend');
+    isortNS  = [isortNS; idx(idx_sort)];
+    dataNS   = [dataNS; pkNS(idx(idx_sort)) ipkNS(idx(idx_sort))];
+    ytickset = [ytickset size(lats,1)];
+    yticklab = [yticklab 'NS'];
+end
+
+sortdata     = [dataRS; dataNS];
+i_sorted     = [flagRS(isortRS); flagNS(isortNS)];
+ytickset     = cumsum(ytickset);
+
+
+
 %% Max Peak: time x duration
+
 
     
 hfPk=figure; 

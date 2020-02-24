@@ -1,7 +1,7 @@
 function fn = set_paths_directories(subject,session,UMS_flag)
 
 % Add Processing and Analysis folders to path
-addpath(genpath('DataProcessing'),genpath('DataAnalysis'),genpath('DataAnalysisPop'))
+addpath(genpath('DataProcessing'),genpath('DataAnalysis'),genpath('DataAnalysisPop'),genpath('cmocean'))
 
 
 % Set basic folders based on where runnuing from 
@@ -22,13 +22,25 @@ elseif strncmp(computername,'william',5)
     basefolder  = '/Volumes/KPspace/GDFS/My Drive/Sanes/DATADIR/AMaversive';
     includePath='/Local/Users/sanesuser/Documents/MATLAB/KiloSort';
     
-else
+elseif strncmp(computername,'MBP19KP.local',5)
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    % new macbook pro (2019)
+    includePath ='/Users/kristinapenikis/Documents/Repos/KiloSort';
+    addpath(genpath('/Users/kristinapenikis/Documents/Repos/npy-matlab'))
+    addpath(genpath('/Users/kristinapenikis/Documents/MATLAB/cmocean_v2.0'))
+    
+    %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    basefolder = '/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive';
+    
+else 
     if nargin==3 && UMS_flag
         includePath='/Users/kpenikis/Documents/kpgit/ums2k_02_23_2012';
 %         removePath ='/Users/kpenikis/Documents/MATLAB/KiloSort';
     else
-        includePath='/Users/kpenikis/Documents/MATLAB/KiloSort';
-%         removePath ='/Users/kpenikis/Documents/kpgit/ums2k_02_23_2012';
+%         includePath='/Users/kpenikis/Documents/MATLAB/KiloSort';
+        includePath ='/Users/kpenikis/Documents/Repos/KiloSort';
+        includePath2='/Users/kpenikis/Documents/Repos/npy-matlab';
+        %         removePath ='/Users/kpenikis/Documents/kpgit/ums2k_02_23_2012';
     end
     
     %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

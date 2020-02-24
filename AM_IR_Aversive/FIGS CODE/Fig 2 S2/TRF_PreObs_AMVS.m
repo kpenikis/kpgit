@@ -20,20 +20,20 @@ function TRF_PreObs_AMVS(RERUN)
 
 
 
-close all
+% close all
 global fn spkshift smth_win exclOnset AM_durs VS_durs nTrGrp
 
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-smth_win    = 5;
+smth_win    = 10;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 % only set up for one val rn
 TLAGS       = 500;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-exclOnset   = 0; 
+exclOnset   = 1; 
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 PlotEx      = 0;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-nBS         = 50;
+nBS         = 200;
 %!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 nTrGrp      = 10;
 
@@ -96,50 +96,39 @@ Results.C_VS_self     = nan;
 Results.C_VS_self_std = nan;
 Results.C_VS_AM       = nan;
 Results.C_VS_AM_std   = nan;
-Results.BaseFR        = nan;
-Results.BMFrt         = nan;
-Results.UnType        = {''};
+Results.BaseFR           = nan;
+Results.BMFrt            = nan;
 
 
 %% Figure settings
 
-savedir = fullfile(fn.figs,'TRF_AMVS','Feb2020');
+savedir = fullfile(fn.figs,'TRF_AMVS');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
 
-set(groot,'DefaultTextInterpreter','none')
-set(groot,'DefaultAxesFontSize',18)
-set(groot,'defaultAxesTickDir', 'out');
-set(groot,'defaultAxesTickDirMode', 'manual');
+set(0,'DefaultTextInterpreter','none')
+set(0,'DefaultAxesFontSize',18)
 
 scrsz = get(0,'ScreenSize');   %[left bottom width height]
 fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
 tallrect    = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 
-dotSize = 30;
+dotSize = 40;
 
 
 %%
 
 if RERUN
 
-for iiUn = 4:size(Uindices_AMVS,1)
+for iiUn = 1:size(Uindices_AMVS,1)
     
     iUnAM = Uindices_AMVS(iiUn,1);
     iUnVS = Uindices_AMVS(iiUn,2);
     
-    UnType = '';
-    if UInfo_AM(iUnAM,:).TroughPeak>0.43 &&  UInfo_VS(iUnVS,:).TroughPeak>0.43
-        UnType = 'RS';
-    elseif UInfo_AM(iUnAM,:).TroughPeak<=0.43 &&  UInfo_VS(iUnVS,:).TroughPeak<=0.43
-        UnType = 'NS';
-    else
-        fprintf('\nskipping iiUn %i \n\n',iiUn)
-        skipUns = [skipUns; iiUn];
+    if isnan(iUnAM)
         continue
     end
-    
     
     % Get PSTH and Stim data
     [PSTH_AM,STIM_AM] = getdata4TRF(UData_AM,iUnAM);
@@ -163,12 +152,7 @@ for iiUn = 4:size(Uindices_AMVS,1)
     coinc_AM_VS   = nan(numel(TLAGS),nBS);
     coinc_VS_self = nan(numel(TLAGS),nBS);
     coinc_VS_AM   = nan(numel(TLAGS),nBS);
-    
-    savetimewin = 5400 + (1:6000);
-    rP_diff_SAVE = [];
-    rP_self_SAVE = [];
-    rObs_SAVE    = [];
-    
+        
     for iBS = 1:nBS
         
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -203,7 +187,6 @@ for iiUn = 4:size(Uindices_AMVS,1)
         %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         psth_VS1 = []; stim_VS1 = [];
         psth_VS2 = []; stim_VS2 = [];
-        stim_plot = [];
         
         for st = find(~cellfun(@isempty,PSTH_VS))'
             
@@ -220,18 +203,9 @@ for iiUn = 4:size(Uindices_AMVS,1)
             psth_VS2  = [psth_VS2 mean(PSTH_VS{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
             stim_VS2  = [stim_VS2 mean(STIM_VS{st}(allTrs(nTrGrp+(1:nTrGrp)),:),1) ];
             
-            stim_plot = [stim_plot mean(STIM_VS{st}(allTrs,:),1) ];
         end
-        
-%         figure;
-%         subplot(4,1,1);
-%         hold on
-%         plot(stim_plot(savetimewin),'k','LineWidth',2)
-%         xlim([0 size(savetimewin,2)])
-%         print_eps_kp(gcf,fullfile(savedir,'ExPSTH_stim'))
-        
-        if length(psth_VS1)<2000
-            aaa=-245;
+        if length(psth_VS1)<5000
+            keyboard
         end
         
         
@@ -289,13 +263,13 @@ for iiUn = 4:size(Uindices_AMVS,1)
             coinc_AM_VS(it,iBS) = max( xcorr( rP_norm, rO_norm, 0) );
             
             if PlotEx
-%                 figure(hfex); clf
-%                 subplot(2,2,1);
-%                 hold on
-%                 plot(rO_norm,'k-')
-%                 plot(rP_norm,'r-','LineWidth',2)
-%                 xlim([0 length(rO_norm)])
-%                 title(sprintf('Test AM, train VS, coinc=%0.3f',coinc_AM_VS(it,iBS)))
+                figure(hfex); clf
+                subplot(2,2,1);
+                hold on
+                plot(rO_norm,'k-')
+                plot(rP_norm,'r-','LineWidth',2)
+                xlim([0 length(rO_norm)])
+                title(sprintf('Test AM, train VS, coinc=%0.3f',coinc_AM_VS(it,iBS)))
             end
             
             %- - - - - - - from self  - - - - - - -
@@ -310,12 +284,12 @@ for iiUn = 4:size(Uindices_AMVS,1)
             coinc_AM_self(it,iBS) = max( xcorr( rP_norm, rO_norm, 0) );
             
             if PlotEx
-%                 subplot(2,2,3);
-%                 hold on
-%                 plot(rO_norm,'k-')
-%                 plot(rP_norm,'b-','LineWidth',2)
-%                 xlim([0 length(rO_norm)])
-%                 title(sprintf('Test AM, train self, coinc=%0.3f',coinc_AM_self(it,iBS)))
+                subplot(2,2,3);
+                hold on
+                plot(rO_norm,'k-')
+                plot(rP_norm,'b-','LineWidth',2)
+                xlim([0 length(rO_norm)])
+                title(sprintf('Test AM, train self, coinc=%0.3f',coinc_AM_self(it,iBS)))
             end
             
             
@@ -330,14 +304,11 @@ for iiUn = 4:size(Uindices_AMVS,1)
             rP_norm = pred_response/norm(pred_response);
             rO_norm = psth_VS2/norm(psth_VS2);
             
-            % Save for plot later
-            rP_diff_SAVE = [rP_diff_SAVE; rP_norm(savetimewin)];
-            
             % Correlation between predicted and observed responses
             coinc_VS_AM(it,iBS) = max( xcorr( rP_norm, rO_norm, 0) );
             
             if PlotEx
-                subplot(2,1,1);
+                subplot(2,2,2);
                 hold on
                 plot(rO_norm,'k-')
                 plot(rP_norm,'r-','LineWidth',2)
@@ -353,15 +324,11 @@ for iiUn = 4:size(Uindices_AMVS,1)
             rP_norm = pred_response/norm(pred_response);
             rO_norm = psth_VS2/norm(psth_VS2);
             
-            % Save for plot later
-            rP_self_SAVE = [rP_self_SAVE; rP_norm(savetimewin)];
-            rObs_SAVE = [rObs_SAVE; rO_norm(savetimewin)];
-            
             % Correlation between predicted and observed responses
             coinc_VS_self(it,iBS) = max( xcorr( rP_norm, rO_norm, 0) );
             
             if PlotEx
-                subplot(2,1,2);
+                subplot(2,2,4);
                 hold on
                 plot(rO_norm,'k-')
                 plot(rP_norm,'b-','LineWidth',2)
@@ -378,25 +345,6 @@ for iiUn = 4:size(Uindices_AMVS,1)
 %         plot(STRF_VS(it,1:tlag,iBS),'b')
         
     end %iBS
-    
-    figure;
-    
-    subplot(2,1,1);
-    hold on
-    plot(mean(rObs_SAVE,1),'k-')
-    plot(mean(rP_diff_SAVE,1),'r-','LineWidth',2)
-    xlim([0 length(rObs_SAVE)])
-    title(sprintf('Test VS, train AM, coinc=%0.3f',mean(coinc_VS_AM(it,:))))
-    
-    subplot(2,1,2);
-    hold on
-    plot(mean(rObs_SAVE,1),'k-')
-    plot(mean(rP_self_SAVE,1),'b-','LineWidth',2)
-    xlim([0 length(rObs_SAVE)])
-    title(sprintf('Test VS, train self, coinc=%0.3f',mean(coinc_VS_self(it,:))))
-    
-    keyboard
-    print_eps_kp(gcf,fullfile(savedir,sprintf('ExPSTH_%i',iiUn)))
     
     
 %     figure;
@@ -435,7 +383,7 @@ for iiUn = 4:size(Uindices_AMVS,1)
         mean(coinc_AM_VS,'omitnan')   std(coinc_AM_VS,'omitnan')...
         mean(coinc_VS_self,'omitnan') std(coinc_VS_self,'omitnan')...
         mean(coinc_VS_AM,'omitnan')   std(coinc_VS_AM,'omitnan')...
-        UData_AM(iUnAM).BaseFR   BMFrt  UnType  };
+        UData_AM(iUnAM).BaseFR   BMFrt  };
     Results = [Results; Results_addrow];
     
     
@@ -443,7 +391,7 @@ end %iUn
 
 Results(1,:)=[];
 
-savename = sprintf('Res_TRF_%i_AMVS_On-%i',TLAGS,sum(~exclOnset));
+savename = sprintf('Res_TRF_%i_AMVS_On-%i',tlag,sum(~exclOnset));
 % Save Results
 save(fullfile(savedir,savename),'Results','-v7.3')
 
@@ -455,8 +403,7 @@ save(fullfile(savedir,savename),'Results','-v7.3')
 else
     
     % Load Results
-    savename = sprintf('Res_TRF_%i_AMVS_On-%i',TLAGS,sum(~exclOnset));
-    q=load(fullfile(savedir,savename));
+    q=load(fullfile(savedir,'Res_TRF_AMVS.mat'));
     Results = q.Results;
     
     
@@ -466,139 +413,9 @@ end
 %% Plot results
 
 axmax = 1; 
-iRS = strcmp(Results.UnType,'RS');
-iNS = strcmp(Results.UnType,'NS');
-
-BMs = sum(MatchedUnits{Results.iiUn,end-2:end},2)<4;
-
 
 %.......................................
-%   New figure
-%.......................................
-
-hf=figure;
-set(hf,'Position',tallrect,'NextPlot','add')
-
-%~~~~~~~~~~
-%   AM
-%~~~~~~~~~~
-hs(1)=subplot(2,2,1);
-hold on
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
-axis square; box on
-
-% plot([Results.C_AM_self Results.C_VS_self]',[Results.C_AM_VS Results.C_VS_AM]',...
-%     '-k','LineWidth',2)
-plot(Results(iRS,:).C_AM_self,Results(iRS,:).C_AM_VS,'.r','MarkerSize',dotSize)
-plot(Results(iNS,:).C_AM_self,Results(iNS,:).C_AM_VS,'.b','MarkerSize',dotSize)
-
-xlim([0 axmax])
-ylim([0 axmax])
-set(gca,'Color','none')
-title(sprintf('All putative matches, tlag=%i (N=%i)',TLAGS,size(Results,1)))
-xlabel('Same Context (AM)')
-ylabel('Opposite Context')
-
-% Stats
-C_Sam = Results.C_AM_self;
-C_Opp = Results.C_AM_VS;
-ig = ~isnan(C_Sam) & ~isnan(C_Opp);
-
-p_wsr = signrank(C_Opp(ig),C_Sam(ig));
-avg_diff = mean(C_Opp(ig)-C_Sam(ig),'omitnan');
-
-[r_c,p_c] = corr(C_Opp(ig),C_Sam(ig));
-
-text(0.02,0.9,sprintf('signrank p=%0.2e\navg diff C = %0.4f\nPearson r=%0.2f, p=%0.2e',p_wsr,avg_diff,r_c,p_c))
-
-
-%~~~~~~~~~~
-%   VS
-%~~~~~~~~~~
-hs(2)=subplot(2,2,2);
-hold on
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
-axis square; box on
-
-% plot([Results(iRS,:).C_AM_self Results.C_AM_VS]',[Results.C_VS_self Results.C_VS_AM]',...
-%     '.-k','LineWidth',2,'MarkerSize',dotSize,'MarkerFaceColor','k')
-plot(Results(iRS,:).C_VS_self,Results(iRS,:).C_VS_AM,'.r','MarkerSize',dotSize)
-plot(Results(iNS,:).C_VS_self,Results(iNS,:).C_VS_AM,'.b','MarkerSize',dotSize)
-
-xlim([0 axmax])
-ylim([0 axmax])
-set(gca,'Color','none')
-title('')
-xlabel('Same Context (VS)')
-ylabel('Opposite Context')
-
-% Stats
-C_Sam = Results.C_VS_self;
-C_Opp = Results.C_VS_AM;
-ig = ~isnan(C_Sam) & ~isnan(C_Opp);
-
-p_wsr = signrank(C_Opp(ig),C_Sam(ig));
-avg_diff = mean(C_Opp(ig)-C_Sam(ig),'omitnan');
-
-[r_c,p_c] = corr(C_Opp(ig),C_Sam(ig));
-
-text(0.02,0.9,sprintf('signrank p=%0.2e\navg diff C = %0.4f\nPearson r=%0.2f, p=%0.2e',p_wsr,avg_diff,r_c,p_c))
-
-
-
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% Just BEST matches
-%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-% AM
-hs(3)=subplot(2,2,3);
-hold on
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
-axis square; box on
-
-% plot([Results(BMs,:).C_AM_self Results(BMs,:).C_VS_self]',[Results(BMs,:).C_AM_VS Results(BMs,:).C_VS_AM]',...
-%     '-k','LineWidth',2)
-plot(Results(BMs&iRS,:).C_AM_self,Results(BMs&iRS,:).C_AM_VS,'.r','MarkerSize',dotSize)
-plot(Results(BMs&iNS,:).C_AM_self,Results(BMs&iNS,:).C_AM_VS,'.b','MarkerSize',dotSize)
-
-xlim([0 axmax])
-ylim([0 axmax])
-set(gca,'Color','none')
-title(sprintf('Best matches, N=%i',sum(BMs)))
-xlabel('Same Context (AM)')
-ylabel('Opposite Context')
-
-
-% VS
-hs(4)=subplot(2,2,4);
-hold on
-plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
-axis square; box on
-
-% plot([Results(BMs,:).C_AM_self Results(BMs,:).C_VS_self]',[Results(BMs,:).C_AM_VS Results(BMs,:).C_VS_AM]',...
-%     '-k','LineWidth',2)
-plot(Results(BMs&iRS,:).C_VS_self,Results(BMs&iRS,:).C_VS_AM,'.r','MarkerSize',dotSize)
-plot(Results(BMs&iNS,:).C_VS_self,Results(BMs&iNS,:).C_VS_AM,'.b','MarkerSize',dotSize)
-
-xlim([0 axmax])
-ylim([0 axmax])
-set(gca,'Color','none')
-title(sprintf('Best matches, N=%i',sum(BMs)))
-xlabel('Same Context (VS)')
-ylabel('Opposite Context')
-
-
-% Save figure
-print_eps_kp(hf,fullfile(savedir,savename))
-
-
-
-keyboard
-
-
-
-
-%.......................................
-% Original figure
+% Focus on fixed tlag of 100
 %.......................................
 
 hf=figure;
@@ -623,7 +440,7 @@ xlabel('Same Context Prediction')
 ylabel('Opposite Context Prediction')
 
 
-% AM vs VS
+% Scatter plot
 hs(2)=subplot(2,2,2);
 hold on
 plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])
@@ -639,8 +456,6 @@ set(gca,'Color','none')
 title('')
 xlabel('AM Context Prediction')
 ylabel('VS Context Prediction')
-
-
 
 
 % Now, just best cells and matches
@@ -667,7 +482,7 @@ xlabel('Same Context Prediction')
 ylabel('Opposite Context Prediction')
 
 
-% AM vs VS
+% Scatter plot
 hs(4)=subplot(2,2,4);
 hold on
 plot([0 axmax],[0 axmax],'Color',[0.7 0.7 0.7])

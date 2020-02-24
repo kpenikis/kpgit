@@ -45,10 +45,9 @@ switch whichCells
         
 end
 
-
 % Filter the data matrix
-CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
-
+% CTTS = Cell_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
+CTTS = Cell_Time_Trial_Stim(theseCells,:,:,theseStim);
 
 % Repmat, to artificially increase dimensionality of training data
 % CTTS = repmat(CTTS,[50 1 1 1]);
@@ -81,6 +80,12 @@ else % exponential window
         end
     end
 end
+
+
+% NOW trim to AnWin
+CTTS = CTTS(:,AnWin,:,:);
+Dur  = size(CTTS,2);
+
 
 end
 

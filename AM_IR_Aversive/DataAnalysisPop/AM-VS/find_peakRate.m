@@ -30,7 +30,7 @@ if nargin<4, envtype = 'loudness'; end
 % if set to 1, landmark series will be cleaned up to contain only a single
 % peakRate event in each envelope cycle, defined as envelope
 % trough-to-trough
-cleanup_flag = 0;
+cleanup_flag = 1;
 %% get envelope
 
 envfs    = 1000;
@@ -63,16 +63,16 @@ allTS = find_landmarks(env, onsOffenv, cleanup_flag, mpd);
 peakEnv  = allTS(4,:);
 peakRate = allTS(6,:);
 
-figure; hold on
-plot(env)
-plot(peakRate)
-plot(diff(env))
+% figure; hold on
+% plot(env)
+% plot(peakRate)
+% plot(diff(env))
 
-figure; 
-histogram(peakRate,logspace(-3,-1,100))
-ylim([0 15])
-xlim([1e-3 1e-1])
-set(gca,'xscale','log')
+% figure; 
+% histogram(peakRate,logspace(-3,-1,100))
+% ylim([0 15])
+% xlim([1e-3 1e-1])
+% set(gca,'xscale','log')
 
 end
 
@@ -230,9 +230,12 @@ if cleanup_flag
     cmax = allTS(4,cmaxloc);
     
     % initialize all other landmark variables
-    cmin=nan(size(cmaxloc));cminloc=nan(size(cmaxloc));
-    cminDt = nan(size(cmaxloc));cminDtLoc=nan(size(cmaxloc));
-    cmaxDt=nan(size(cmaxloc));cmaxDtLoc = nan(size(cmaxloc)); 
+    cmin      = nan(size(cmaxloc));
+    cminloc   = nan(size(cmaxloc));
+    cminDt    = nan(size(cmaxloc));
+    cminDtLoc = nan(size(cmaxloc));
+    cmaxDt    = nan(size(cmaxloc));
+    cmaxDtLoc = nan(size(cmaxloc)); 
     
     % --- define minima in envelope for each peak in envelope
     
@@ -258,8 +261,13 @@ if cleanup_flag
         end
     end
     
-    %% % %  peakRate % % %
+%     if (cmaxloc(1)-cminloc(1))<5
+%         cmaxloc(1) = [];
+%         cminloc(1) = [];
+%     end
     
+    
+    %% % %  peakRate % % %
     
     for i= 1:length(cmaxloc)        
         if i == 1 % first peak

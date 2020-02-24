@@ -1,27 +1,28 @@
 close all
 crAmt = 0.001;
 
+whichClass   = 'Full';
+% whichCells   = 'pkFR_RS'; 'dpRank_RS';
+
 % Data settings
 fn = set_paths_directories('','',1);
 
-datadir_AM = fullfile(fn.figs,'ClassAM','AC','Full','each');
-savedir_AM = fullfile(fn.figs,'ClassAM','AC','Full','each','byRespChar');
+% AM
+datadir_AM = fullfile(fn.figs,'ClassAM','AC',whichClass,'each');
 q = load(fullfile(fn.processed,'Units'));
 UnitInfo_AM = q.UnitInfo;
 clear q
 
-datadir_Sp = fullfile(fn.figs,'ClassSpeech','Speech','Full','each');
-savedir_Sp = fullfile(fn.figs,'ClassSpeech','Speech','Full','each','byRespChar');
+% Speech
+datadir_Sp = fullfile(fn.figs,'ClassSpeech','Speech',whichClass,'each');
 q = load(fullfile(fn.processed,'UnitsVS'));
 UnitInfo_Sp = q.UnitInfo;
 clear q
-
 
 % Load SU data
 q=load(fullfile(datadir_AM,'CR_each.mat'));
 CReach_AM = q.CR;
 clear q
-
 q=load(fullfile(datadir_Sp,'CR_each.mat'));
 CReach_Sp = q.CR;
 clear q
@@ -52,12 +53,14 @@ set(gcf,'Position',widesmall)
 %%%%%%   AM
 
 % Calculate basic reults measures
-dpStim  = nan(8,size(CReach_AM,1));
+dpStim     = nan(8,size(CReach_AM,1));
 Spsns_AM   = nan(1,size(CReach_AM,1));
+Covrg_AM   = nan(1,size(CReach_AM,1));
 for icr = 1:size(CReach_AM,1)
     ConfMat = mean(CReach_AM(icr,:).Results{:},3);
     dpStim(:,icr) = dp_from_ConfMat(ConfMat,0.001);
     Spsns_AM(icr) = calculateSparseness(dpStim(:,icr));
+    Covrg_AM(icr) = 1-Spsns_AM(icr);
 end
 
 iRS_AM = find(UnitInfo_AM(theseCells_AM,:).TroughPeak>0.43);
@@ -71,20 +74,22 @@ ylabel('d''')
 
 subplot(1,2,2)
 hold on
-plotSpread(Spsns_AM(iRS_AM),'distributionIdx',ones(1,length(iRS_AM)),'showMM',3)
-plotSpread(Spsns_AM(iNS_AM),'distributionIdx',4+ones(1,length(iNS_AM)),'showMM',3)
-ylabel('Sparseness')
+plotSpread(Covrg_AM(iRS_AM),'distributionIdx',ones(1,length(iRS_AM)),'showMM',3)
+plotSpread(Covrg_AM(iNS_AM),'distributionIdx',4+ones(1,length(iNS_AM)),'showMM',3)
+ylabel('Coverage')
 
 
-%%%%%%   AM
+%%%%%%   Speech
 
 % Calculate basic reults measures
-dpStim  = nan(8,size(CReach_Sp,1));
+dpStim     = nan(8,size(CReach_Sp,1));
 Spsns_Sp   = nan(1,size(CReach_Sp,1));
+Covrg_Sp   = nan(1,size(CReach_Sp,1));
 for icr = 1:size(CReach_Sp,1)
     ConfMat = mean(CReach_Sp(icr,:).Results{:},3);
     dpStim(:,icr) = dp_from_ConfMat(ConfMat,0.001);
     Spsns_Sp(icr) = calculateSparseness(dpStim(:,icr));
+    Covrg_Sp(icr) = 1-Spsns_Sp(icr);
 end
 
 iRS_Sp = find(UnitInfo_Sp(theseCells_Sp,:).TroughPeak>0.43);
@@ -99,13 +104,18 @@ set(gca,'xtick',[1.5 5.5],'xticklabel',{'RS' 'NS'})
 
 subplot(1,2,2)
 hold on
-plotSpread(Spsns_Sp(iRS_Sp),'distributionColors','k','distributionIdx',1+ones(1,length(iRS_Sp)),'showMM',3)
-plotSpread(Spsns_Sp(iNS_Sp),'distributionColors','k','distributionIdx',5+ones(1,length(iNS_Sp)),'showMM',3)
-ylabel('Sparseness')
+plotSpread(Covrg_Sp(iRS_Sp),'distributionColors','k','distributionIdx',1+ones(1,length(iRS_Sp)),'showMM',3)
+plotSpread(Covrg_Sp(iNS_Sp),'distributionColors','k','distributionIdx',5+ones(1,length(iNS_Sp)),'showMM',3)
+ylabel('Coverage')
 set(gca,'xtick',[1.5 5.5],'xticklabel',{'RS' 'NS'})
 
+title(whichClass)
 
-print_eps_kp(gcf,fullfile(fn.figs,'ClassSpeech','Speech','SU_celltype_speech_comparison'))
+savedir = fullfile(fn.figs,'ClassResults',whichClass);
+if ~exist(savedir,'dir')
+    mkdir(savedir)
+end
+print_eps_kp(gcf,fullfile(savedir,'SU_AM-Sp_RSNS_comparison'))
 
 
 

@@ -9,7 +9,7 @@ ndp = size(plotdata,1);
 % Render plot
 imagesc(log10(plotdata(1:ndp,:)))
 %         caxis([0 log10(max(Boundaries))+0.25])
-caxis([0 2.1])
+caxis([0 2.5])
 cmocean('-gray')
 
 

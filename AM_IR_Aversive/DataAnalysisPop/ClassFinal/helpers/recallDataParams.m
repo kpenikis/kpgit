@@ -1,8 +1,6 @@
-function [CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams(whichStim,whichCells)
+function [CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams(whichStim,whichCells,minTrs,convwin)
 % MasterClass (all parameters defined at top of file)
 %  Can process AM or Speech data.
-% 
-%  MUST RE-RUN SPEECH!! wrong units labeled RS first time around
 %
 %  SVM classifier for segments of Pdc and Irr stimuli.
 %  Instead of feeding spiking data into SVM (or whatever classifier), input
@@ -30,25 +28,16 @@ WinBeg       = 501 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 AnWin        = WinBeg:WinEnds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TRIALS
-PickTrials   = 'rand';
+% tau          = 1;
+% lambda       = 1/tau;
+% % winlen       = 500;
+% convwin      = exp(-lambda*(1:500));
+if nargin<4
+    convwin      = 1;
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% STIM
-% whichStim    = 'AC';
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 500;
-KernelType   = 'linear';
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-tau          = 5;
-lambda       = 1/tau;
-% winlen       = 500;
-convwin      = exp(-lambda*(1:500));
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-PSTHsize     = 'Train-1';
-TrainSize    = 11;
-TestSize     = 1;
-minTrs       = TrainSize + TestSize;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
 
 rng('shuffle')
 
@@ -112,12 +101,13 @@ switch whichStim
     case 'DB'
         theseStim  = [1:6 9:10];
     case 'Speech'
-        theseStim  = 1:size(Cell_Time_Trial_Stim,4);
+%         theseStim  = 1:size(Cell_Time_Trial_Stim,4);
+        theseStim  = [4 3 2 1 5 6 7 8]; 
 end
 
 % CellTypes
 iRS = find(UnitInfo.TroughPeak>0.43);
-iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
+iNS = find(UnitInfo.TroughPeak<=0.43);
 
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
