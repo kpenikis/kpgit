@@ -1,4 +1,4 @@
-function MC_eachCell
+function MC_eachCell(whichStim)
 % MasterClass (all parameters defined at top of file)
 %
 %  SVM classifier for segments of Pdc and Irr stimuli.
@@ -13,7 +13,7 @@ function MC_eachCell
 
 % close all
 
-whichClass   = 'Nspk';
+whichClass   = 'ActVec';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
@@ -28,9 +28,9 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'Speech';
+% whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 800;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -160,10 +160,12 @@ for ii = 1:numel(WinEnds)
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         if strcmp(whichClass,'Nspk')
             S_AssMat = runSVMclassFR( CTTS(iUn,:,:,:), BootstrapN, nStim, Dur, 1, PickTrials, TrainSize, TestSize, KernelType );
-        else
+        elseif strcmp(whichClass,'Full')
             % Train and test classifier
             [S_AssMat,~] = runSVMclass_notNorm( CTTS(iUn,:,:,:), CTTS(iUn,:,:,:), ...
                 BootstrapN, nStim, Dur, 1, PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );
+        elseif strcmp(whichClass,'ActVec')
+            S_AssMat = runSVM_ActVec(CTTS(iUn,:,:,:),BootstrapN, nStim, Dur, 1, PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );
         end
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         %##########################################################################
@@ -247,14 +249,14 @@ for ii = 1:numel(WinEnds)
             % Save new table
             CR = CR1;
             save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
+%             save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
             
         else % Save updated table
             
             % Concatenate new data
             CR = [CR; CR1];
             save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-            save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
+%             save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
         end
         
 %         if mod(iUn,10)==0
@@ -263,7 +265,7 @@ for ii = 1:numel(WinEnds)
     end %iUn
 end %vary classification parameter
 
-
+return
 keyboard
 
 

@@ -1,4 +1,4 @@
-function MC_subpop
+function MC_subpop(exclSpec,exclNonSig)
 % MasterClass (all parameters defined at top of file)
 %  Can process AM or Speech data.
 % 
@@ -13,12 +13,12 @@ function MC_subpop
 
 % close all
 
-whichClass   = 'Full';
+whichClass   = 'ActVec';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'allRS'; 'dpRank_RS'; %'Q_pkFR';  % pkFR_RS  %'nsExcl_RS'; 
-exclNonSig   = 1;
-exclSpec     = 1;
+whichCells   = 'Q_pkFR'; %'allRS'; %'dpRank_RS';  % pkFR_RS  %'nsExcl_RS'; 
+exclNonSig   = 0;
+exclSpec     = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -29,7 +29,7 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 BootstrapN   = 200;
 KernelType   = 'linear';
@@ -49,8 +49,8 @@ if strcmp(whichCells,'Q_pkFR')
     PoolStart    = [0.99999 0.8 0.6 0.4 0.2];
     PoolSize     = 0.2;
 elseif strcmp(whichCells,'dpRank_RS')
-    PoolStart    = [1 0.2 0.5]; %
-    PoolSize     = [1 5 10 20 50];
+    PoolStart    = [ 0.2 0.5]; %
+    PoolSize     = [5 10 30 90];%[1 5 10 20 50];
 else
     PoolStart    = 1;
     PoolSize     = 1;
@@ -148,8 +148,9 @@ iNS = find(UnitInfo.TroughPeak<=0.43);
 
 
 % Flag non-significant SU dps
-UnSig = bootstrap4significance(CReach);
-
+if exclNonSig
+    UnSig = bootstrap4significance(CReach);
+end
 
 % For rate only classifier: shuffle spiketimes within trial
 ShuffOpt = 0;
@@ -277,10 +278,12 @@ for ii = 1:numel(WinEnds)
                 keyboard
             elseif strcmp(whichClass,'Nspk')
                 S_AssMat = runSVMclassFR( CTTS(UseCells,:,:,:), BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType );
-            else
+            elseif strcmp(whichClass,'Full')
                 %Train and test classifier
                 [S_AssMat,~,~] = runSVMclass_notNorm( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
                     BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt );
+            elseif strcmp(whichClass,'ActVec')
+                S_AssMat = runSVM_ActVec(CTTS(UseCells,:,:,:),BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );
             end
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %##########################################################################
@@ -312,7 +315,8 @@ for ii = 1:numel(WinEnds)
             
             
             % Save figure
-            savename = sprintf('Res_v%s-%i_%s_%s_exclNS%i_exclSig%i',whichClass,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,exclNonSig,exclSpec);
+%             savename = sprintf('Res_v%s-%i_%s_%s_exclNS%i_exclSig%i',whichClass,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,exclNonSig,exclSpec);
+            savename = sprintf('Res_v%s-%i_%s_%s_nc%i_fc%i',whichClass,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,NumCells,FirstCell);
             
             print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
             
