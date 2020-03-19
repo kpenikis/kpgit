@@ -3,9 +3,9 @@ close all
 
 whichClass   = 'Full';
 whichCells   = 'AllMidRS'; 
-whichStim    = 'Speech';
+whichStim    = 'AC';
 
-minNcells    = 2;
+minNcells    = 3;
 
 fn = set_paths_directories('','',1);
 switch whichStim
@@ -63,9 +63,14 @@ set(gca,'Color','none')
 axis square
 title(whichStim)
 
-print_eps_kp(hfs,fullfile(figsavedir,'Sim_v_Rand'))
 
+[min(CR_sim.dprime - CR_shf.dprime) max(CR_sim.dprime - CR_shf.dprime)]
+mean(CR_sim.dprime - CR_shf.dprime)
+p=signrank(CR_sim.dprime,CR_shf.dprime)
 
+% print_eps_kp(hfs,fullfile(figsavedir,'Sim_v_Rand'))
+
+[r,p]=corr((CR_sim.dprime - CR_shf.dprime),CR_shf.nC)
 
 keyboard
 
@@ -102,7 +107,13 @@ ylabel('d'' of subpopulation')
 
 title([num2str(nSess) ' sessions, all mediocre SUs'])
 
-print_eps_kp(gcf,fullfile(figsavedir,'dp_SU_vs_Subpop'));
+
+mean(CR_sim.dprime-cellfun(@max,CR_sim.SUdps))
+signrank(CR_sim.dprime,cellfun(@max,CR_sim.SUdps))
+
+% print_eps_kp(gcf,fullfile(figsavedir,'dp_SU_vs_Subpop'));
+
+
 
 
 % % 
@@ -255,6 +266,11 @@ xlabel('Stimulus')
 ylabel('d'' Pop - best SU')
 
 
+mean(mean(dpDiffsStim))
+
+
+%%% REPLACE AC plot (now min 3 cells)
+keyboard
 print_eps_kp(hf2,fullfile(figsavedir,'BestSU_eachStim'));
 
 

@@ -309,6 +309,12 @@ xnew = linspace(log10(0.01),log10(1000),100);
 z = feval(f,xnew);
 plot(xnew,z./sum(z),'k','LineWidth',2)
 
+% Save distribution for stats
+FRdists_fit = nan(length(z),1+size(dFRs,2));
+FRdists_dat = nan(length(data),1+size(dFRs,2));
+FRdists_fit(:,1) = z./sum(z);
+FRdists_dat(:,1) = data;
+
 hold on
 for ist = 1:size(dFRs,2)
     data = round(dFRs(:,ist)+[UnitData.BaseFR]',2);
@@ -318,9 +324,11 @@ for ist = 1:size(dFRs,2)
     
     f = fit(x',values','gauss1');
     xnew = linspace(log10(0.01),log10(1000),100);
-    z = feval(f,xnew);
+    z=[]; z = feval(f,xnew);
     plot(xnew,z./sum(z),'-','Color',colors(ist,:),'LineWidth',2);
     
+    FRdists_fit(:,ist+1) = z./sum(z);
+    FRdists_dat(:,ist+1) = data;
 end
 
 axis square
@@ -330,6 +338,9 @@ xlabel('FR Resp (sp/s)')
 ylabel('Probability')
 grid on
 
+p_dist = anova1(FRdists_fit);
+[p_data,~,statss] = anova1(FRdists_dat);
+keyboard
 
 % Distribution of baseline-subtracted FRs per stimulus
 % % hold off; cla

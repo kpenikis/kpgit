@@ -1,6 +1,6 @@
 close all
 
-whichClass   = 'Nspk';
+whichClass   = 'Full';
 
 crAmt = 0.001;
 
@@ -13,37 +13,39 @@ if ~exist(savedir,'dir')
 end
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~ AM ~~~~~~~~~~~~~~~~~~~~~~~~~
-% % 
-% % datadir_AM = fullfile(fn.figs,'ClassAM','AC',whichClass);
-% % q = load(fullfile(fn.processed,'Units'));
-% % UnitInfo_AM = q.UnitInfo;
-% % clear q
-% % 
-% % % Load SU data 
-% % q=load(fullfile(datadir_AM,'each','CR_each.mat'));
-% % CReach_AM = q.CR;
-% % clear q
-% % 
-% % % Load subpop results    
-% % % q=load(fullfile(datadir_AM,'pkFR_RS',['CR_v' whichClass '_pkFR_RS.mat']));
-% % % CR_pfr_AM = q.CR;
-% % % clear q
-% % q=load(fullfile(datadir_AM,'Q_pkFR',['CR_v' whichClass '_Q_pkFR.mat']));
-% % CR_Qpfr_AM = q.CR;
-% % clear q
-% % q=load(fullfile(datadir_AM,'dpRank_RS',['CR_v' whichClass '_dpRank_RS.mat']));
-% % CR_dp_AM = q.CR;
-% % clear q
-% % 
-% % % Also get CTTS
-% % [CTTS_AM,theseCells_AM] = recallDataParams('AC','each',12);
-% % 
+
+datadir_AM = fullfile(fn.figs,'ClassAM','AC',whichClass);
+q = load(fullfile(fn.processed,'Units'));
+UnitInfo_AM = q.UnitInfo;
+UnitData_AM = q.UnitData;
+clear q
+
+% Load SU data 
+q=load(fullfile(datadir_AM,'each','CR_each.mat'));
+CReach_AM = q.CR;
+clear q
+
+% Load subpop results    
+q=load(fullfile(datadir_AM,'pkFR_RS',['CR_v' whichClass '_pkFR_RS.mat']));
+CR_pfr_AM = q.CR;
+clear q
+q=load(fullfile(datadir_AM,'Q_pkFR',['CR_v' whichClass '_Q_pkFR.mat']));
+CR_Qpfr_AM = q.CR;
+clear q
+q=load(fullfile(datadir_AM,'dpRank_RS',['CR_v' whichClass '_dpRank_RS.mat']));
+CR_dp_AM = q.CR;
+clear q
+
+% Also get CTTS
+[CTTS_AM,theseCells_AM] = recallDataParams('AC','each',12);
+
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~ Speech ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 datadir_Sp = fullfile(fn.figs,'ClassSpeech','Speech',whichClass);
 q = load(fullfile(fn.processed,'UnitsVS'));
 UnitInfo_Sp = q.UnitInfo;
+UnitData_Sp = q.UnitData;
 clear q
 
 % Load SU data 
@@ -52,9 +54,9 @@ CReach_Sp = q.CR;
 clear q
 
 % Load subpop results    
-% q=load(fullfile(datadir_Sp,'pkFR_RS',['CR_v' whichClass '_pkFR_RS.mat']));
-% CR_pfr_Sp = q.CR;
-% clear q
+q=load(fullfile(datadir_Sp,'pkFR_RS',['CR_v' whichClass '_pkFR_RS.mat']));
+CR_pfr_Sp = q.CR;
+clear q
 q=load(fullfile(datadir_Sp,'Q_pkFR',['CR_v' whichClass '_Q_pkFR.mat']));
 CR_Qpfr_Sp = q.CR;
 clear q
@@ -66,7 +68,7 @@ clear q
 [CTTS_Sp,theseCells_Sp] = recallDataParams('Speech','each',12);
 
 
-% Fig settings
+%% Fig settings
 set(groot,'DefaultTextInterpreter','none')
 set(groot,'DefaultAxesFontSize',18)
 set(groot,'defaultAxesTickDir', 'out');
@@ -94,12 +96,19 @@ UnSig_Sp = bootstrap4significance(CReach_Sp(iRS_Sp,:));
 
 % Sort units by peakFR and dprime
 % AM
-[~,ipkFR_AM]   = rankPeakFR(CTTS_AM(iRS_AM,:,:,:));
+[pkFR_AM,ipkFR_AM]   = rankPeakFR(CTTS_AM(iRS_AM,:,:,:));
 [~,iSUdps_AM]  = sort(CReach_AM(iRS_AM,:).dprime,'descend');
 % Speech
-[~,ipkFR_Sp]   = rankPeakFR(CTTS_Sp(iRS_Sp,:,:,:));
+[pkFR_Sp,ipkFR_Sp]   = rankPeakFR(CTTS_Sp(iRS_Sp,:,:,:));
 [~,iSUdps_Sp]  = sort(CReach_Sp(iRS_Sp,:).dprime,'descend');
 
+% Relationship between peak FR and SU d'
+figure;
+plot(pkFR_AM,CReach_AM(iRS_AM(ipkFR_AM),:).dprime,'o')
+[r,p]=corr(pkFR_AM,CReach_AM(iRS_AM(ipkFR_AM),:).dprime,'Type','Spearman')
+hold on
+plot(pkFR_Sp,CReach_Sp(iRS_Sp(ipkFR_Sp),:).dprime,'ok')
+[r,p]=corr(pkFR_Sp,CReach_Sp(iRS_Sp(ipkFR_Sp),:).dprime,'Type','Spearman')
 
 ymaxval = 5;
 
@@ -121,14 +130,14 @@ iCRs_dp_AM = find(CR_dp_AM.nC==NC_dp_AM);
 %         plot( find( ~UnSig(isort) ), dps( isort( ~UnSig(isort) ) ) )
 
 subplot(2,2,3)
-hold on
-plot( find(~UnSig_AM(ipkFR_AM)),CReach_AM(iRS_AM,:).dprime(ipkFR_AM(~UnSig_AM(ipkFR_AM))),'+','Color',0.5*[1 1 1],'MarkerSize',5)
-plot( find(UnSig_AM(ipkFR_AM)),CReach_AM(iRS_AM,:).dprime(ipkFR_AM(UnSig_AM(ipkFR_AM))),'o','MarkerEdgeColor',0.02*[1 1 1],'MarkerSize',5.5,'MarkerFaceColor',0.51*[1 1 1])
-% plot(1:length(ipkFR_AM),CReach_AM(iRS_AM(ipkFR_AM),:).dprime,'.k','MarkerSize',15)
-% plot(CR_pfr_AM.iC(iCRs_pfr_AM),CR_pfr_AM.dprime(iCRs_pfr_AM),'.m','MarkerSize',25)
-
-plot( (CR_Qpfr_AM.iC-[zeros(size(CR_Qpfr_AM.iC,1),1)  CR_Qpfr_AM.nC-1])', [CR_Qpfr_AM.dprime CR_Qpfr_AM.dprime]',...
-    '-g','MarkerSize',25,'LineWidth',3)
+% hold on
+% plot( find(~UnSig_AM(ipkFR_AM)),CReach_AM(iRS_AM,:).dprime(ipkFR_AM(~UnSig_AM(ipkFR_AM))),'+','Color',0.5*[1 1 1],'MarkerSize',5)
+% plot( find(UnSig_AM(ipkFR_AM)),CReach_AM(iRS_AM,:).dprime(ipkFR_AM(UnSig_AM(ipkFR_AM))),'o','MarkerEdgeColor',0.02*[1 1 1],'MarkerSize',5.5,'MarkerFaceColor',0.51*[1 1 1])
+% % plot(1:length(ipkFR_AM),CReach_AM(iRS_AM(ipkFR_AM),:).dprime,'.k','MarkerSize',15)
+% % plot(CR_pfr_AM.iC(iCRs_pfr_AM),CR_pfr_AM.dprime(iCRs_pfr_AM),'.m','MarkerSize',25)
+% 
+% plot( (CR_Qpfr_AM.iC-[zeros(size(CR_Qpfr_AM.iC,1),1)  CR_Qpfr_AM.nC-1])', [CR_Qpfr_AM.dprime CR_Qpfr_AM.dprime]',...
+%     '-g','MarkerSize',25,'LineWidth',3)
 
 
 xlabel('Cell N')
@@ -141,14 +150,14 @@ ylim([-0.1 ymaxval])
 title(['AM, pkFR'])%, NC=' num2str(NC_pfr_AM)])
 
 
-% dprime  ::  vary pool size
+% dprime  ::  SU data
 
 subplot(2,2,1)
 hold on
 plot( find(~UnSig_AM(iSUdps_AM)),CReach_AM(iRS_AM,:).dprime(iSUdps_AM(~UnSig_AM(iSUdps_AM))),'+','Color',0.5*[1 1 1],'MarkerSize',5)
 plot( find(UnSig_AM(iSUdps_AM)),CReach_AM(iRS_AM,:).dprime(iSUdps_AM(UnSig_AM(iSUdps_AM))),'o','MarkerEdgeColor',0.02*[1 1 1],'MarkerSize',5.5,'MarkerFaceColor',0.51*[1 1 1])
-% plot(1:length(iSUdps_AM),CReach_AM(iRS_AM(iSUdps_AM),:).dprime,'.k','MarkerSize',15)
-% plot(CR_dp_AM.iC(iCRs_dp_AM),CR_dp_AM.dprime(iCRs_dp_AM),'.m','MarkerSize',25)
+% % plot(1:length(iSUdps_AM),CReach_AM(iRS_AM(iSUdps_AM),:).dprime,'.k','MarkerSize',15)
+% % plot(CR_dp_AM.iC(iCRs_dp_AM),CR_dp_AM.dprime(iCRs_dp_AM),'.m','MarkerSize',25)
 
 xlabel('Cell N')
 ylabel('d'' across stimuli')
@@ -188,7 +197,7 @@ ylim([-0.1 ymaxval])
 title(['Speech, pkFR'])%, NC=' num2str(NC_pfr_Sp)])
 
 
-% dprime  ::  vary pool size
+% dprime  ::  SU data
 
 subplot(2,2,2)
 hold on
@@ -207,14 +216,14 @@ ylim([-0.1 ymaxval])
 title(['Speech, best d'', NC=' num2str(NC_dp_Sp)])
 
 
-%========================
-% Add varied pool size
-%========================
+%=========================
+% Add pool data (rank d')
+%=========================
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~ AM ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 N = histcounts(CR_dp_AM.iC,'BinMethod','integers');
-iCs_dp_AM = find(N>4);
+iCs_dp_AM = find(N>2);
 
 subplot(2,2,1)
 hold on
@@ -332,6 +341,73 @@ title(sprintf('%0.1f, Speech',pRest_nSpk*100))
 print_eps_kp(gcf,fullfile(savedir,'SU_dp_propSpikes_Speech'))
 
 
-%%
+
+%% Compare ActVec vs Projection classifier results
+
+
+% SU d'
+
+% Load Proj (Full) class SU data 
+q=load(fullfile(fn.figs,'ClassAM','AC','Full','each','CR_each.mat'));
+CRe_Proj_AM = q.CR;
+clear q
+
+q=load(fullfile(fn.figs,'ClassSpeech','Speech','Full','each','CR_each.mat'));
+CRe_Proj_Sp = q.CR;
+clear q
+
+
+% PLOT
+
+hf2=figure;
+set(hf2,'Position',sqsmall)
+
+subplot(2,2,1)
+plot(CRe_Proj_AM.dprime,CReach_AM.dprime,'.k')
+hold on
+plot([-0.2 3],[-0.2 3],'-')
+axis square
+set(gca,'Color','none','ytick',0:3,'xtick',0:3)
+xlim([-0.2 3])
+ylim([-0.2 3])
+
+[r,p] = corr(CRe_Proj_AM.dprime,CReach_AM.dprime,'type','Spearman')
+p_wsr_AM = signrank(CRe_Proj_AM.dprime,CReach_AM.dprime)
+median(CReach_AM.dprime-CRe_Proj_AM.dprime)
+
+statstext = sprintf('SINUSOIDAL\nPearson r=%0.2f, p<0.001\nsignrank p=%0.2e\nd'' ActVec-Proj median = %0.2f',r,p_wsr_AM,median(CReach_AM.dprime-CRe_Proj_AM.dprime));
+
+subplot(2,2,3)
+text(0.3,0.5,statstext)
+
+
+subplot(2,2,2)
+plot(CRe_Proj_Sp.dprime,CReach_Sp.dprime,'.k')
+hold on
+plot([-0.2 3],[-0.2 3],'-')
+axis square
+set(gca,'Color','none','ytick',0:3,'xtick',0:3)
+xlim([-0.2 3])
+ylim([-0.2 3])
+
+[r,p] = corr(CRe_Proj_Sp.dprime,CReach_Sp.dprime,'type','Spearman')
+
+p_wsr_Sp = signrank(CRe_Proj_Sp.dprime,CReach_Sp.dprime)
+median(CReach_Sp.dprime-CRe_Proj_Sp.dprime)
+
+statstext = sprintf('SPEECH\nPearson r=%0.2f, p<0.001\nsignrank p=%0.2e\nd'' ActVec-Proj median = %0.2f',r,p_wsr_Sp,median(CReach_Sp.dprime-CRe_Proj_Sp.dprime));
+
+subplot(2,2,4)
+text(0.3,0.5,statstext)
+
+
+print_eps_kp(gcf,fullfile(savedir,'ActVec_vs_Proj_SUdp'))
+
+
+
+
+
+
+
 
 

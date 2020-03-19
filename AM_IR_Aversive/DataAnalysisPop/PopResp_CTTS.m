@@ -176,7 +176,6 @@ ETTS = Env_Time_Trial_Stim(theseUns,AnWin,:,theseStim);
 %% Sort data
 
 clear i_sorted
-ThisData = FR_vec;
 
 switch sortBy
     case 'FRrange'
@@ -189,7 +188,7 @@ switch sortBy
             max(FR_vec(flagRS,:,3),[],2)-min(FR_vec(flagRS,:,3),[],2) ...
             max(FR_vec(flagRS,:,4),[],2)-min(FR_vec(flagRS,:,4),[],2) ],2);
         Qbounds    = quantile(rangeFR,[0 0.2 0.4 0.6 0.8 1]);
-        [~,ipkRS]  = max(ThisData(flagRS,:,sortStim),[],2);
+        [~,ipkRS]  = max(FR_vec(flagRS,:,sortStim),[],2);
         
         figure; hold on
         
@@ -219,7 +218,7 @@ switch sortBy
             max(FR_vec(flagNS,:,3),[],2)-min(FR_vec(flagNS,:,3),[],2) ...
             max(FR_vec(flagNS,:,4),[],2)-min(FR_vec(flagNS,:,4),[],2) ],2);
         Qbounds    = quantile(rangeFR,[0 1]);
-        [~,ipkNS]  = max(ThisData(flagNS,:,sortStim),[],2);
+        [~,ipkNS]  = max(FR_vec(flagNS,:,sortStim),[],2);
         
         dataNS  = [];
         isortNS = [];
@@ -244,15 +243,15 @@ switch sortBy
         
         % RS cells
 %         [pkRS,ipkRS] = max(ThisData(flagRS,:,sortStim),[],2);
-        [pkRS,isort]  = rankPeakFR(ThisData(flagRS,:,:));        % to group
+        [pkRS,isort]  = rankPeakFR(FR_vec(flagRS,:,:));        % to group
         [~,isback] = sort(isort);
         pkRS = pkRS(isback);
         if strcmp(whichStim,'AC') && sortStim==3                 % to sort
-            [~,ipkRS] = max(ThisData(flagRS,1:250,sortStim),[],2);
+            [~,ipkRS] = max(FR_vec(flagRS,1:250,sortStim),[],2);
         elseif strcmp(whichStim,'Speech') && sortStim==2
-            [~,ipkRS] = max(ThisData(flagRS,1:350,sortStim),[],2);
+            [~,ipkRS] = max(FR_vec(flagRS,1:350,sortStim),[],2);
         else
-            [~,ipkRS] = max(ThisData(flagRS,:,sortStim),[],2);
+            [~,ipkRS] = max(FR_vec(flagRS,:,sortStim),[],2);
         end
         Qbounds      = quantile(pkRS,[0 0.2 0.4 0.6 0.8 1]);
         
@@ -273,15 +272,15 @@ switch sortBy
         
         % NS cells
 %         [pkNS,ipkNS] = max(ThisData(flagNS,:,sortStim),[],2);
-        [pkNS,isort]  = rankPeakFR(ThisData(flagNS,:,:));        % to group
+        [pkNS,isort]  = rankPeakFR(FR_vec(flagNS,:,:));        % to group
         [~,isback] = sort(isort);
         pkNS = pkNS(isback);
         if strcmp(whichStim,'AC') && sortStim==3                 % to sort
-            [~,ipkNS] = max(ThisData(flagNS,1:250,sortStim),[],2);
+            [~,ipkNS] = max(FR_vec(flagNS,1:250,sortStim),[],2);
         elseif strcmp(whichStim,'Speech') && sortStim==2
-            [~,ipkNS] = max(ThisData(flagNS,1:350,sortStim),[],2);
+            [~,ipkNS] = max(FR_vec(flagNS,1:350,sortStim),[],2);
         else
-            [~,ipkNS] = max(ThisData(flagNS,:,sortStim),[],2);
+            [~,ipkNS] = max(FR_vec(flagNS,:,sortStim),[],2);
         end
         Qbounds      = quantile(pkNS,[0 1]);
         
@@ -356,9 +355,9 @@ else
     keyboard
 end
 
-for ist = 1:size(ThisData,3)
+for ist = 1:size(FR_vec,3)
     
-    subplot(1,size(ThisData,3),ist)
+    subplot(1,size(FR_vec,3),ist)
     thisRespPlot
     
 end
@@ -379,17 +378,17 @@ print_eps_kp(hf1,fullfile(figsavedir,['PopResp_' savestr]))
 hf2 = figure;
 set(gcf,'Position',fullscreen)
 
-for ist = 1:size(ThisData,3)
+for ist = 1:size(FR_vec,3)
     
-    subplot(5,size(ThisData,3),ist)
+    subplot(5,size(FR_vec,3),ist)
 %     plot([0 500],[0.6135 0.6135],'k')
     hold on
     
-    PopSps = nan(1,size(ThisData,2));
-    PopSps_NS = nan(1,size(ThisData,2));
-    for ims = 1:size(ThisData,2)
-        PopSps(1,ims) = calculateSparseness(ThisData(flagRS,ims,ist));
-        PopSps_NS(1,ims) = calculateSparseness(ThisData(flagNS,ims,ist));
+    PopSps = nan(1,size(FR_vec,2));
+    PopSps_NS = nan(1,size(FR_vec,2));
+    for ims = 1:size(FR_vec,2)
+        PopSps(1,ims) = calculateSparseness(FR_vec(flagRS,ims,ist));
+        PopSps_NS(1,ims) = calculateSparseness(FR_vec(flagNS,ims,ist));
     end
     plot(PopSps_NS,'b','LineWidth',2)
     plot(PopSps,'m','LineWidth',2)
@@ -397,7 +396,7 @@ for ist = 1:size(ThisData,3)
     set(gca,'Color','none')
     box off
     
-    subplot(5,size(ThisData,3),size(ThisData,3)+ist)
+    subplot(5,size(FR_vec,3),size(FR_vec,3)+ist)
     plot(mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1,'omitnan'),'k','LineWidth',2)
     if strcmp(whichStim,'AC')
         ylim([0 0.9])
