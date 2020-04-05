@@ -80,7 +80,7 @@ P1 = P1.*sqrt(f);
 
 P1(2:end-1) = 2*P1(2:end-1);
 
-AMcutoff = 32; 
+% AMcutoff = 32; 
 figure;
 % plot(f(f<AMcutoff),P1(f<AMcutoff)/max(P1(f<AMcutoff)),'LineWidth',2)
 plot(f,P1/max(P1),'LineWidth',2)
