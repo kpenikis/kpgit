@@ -1,5 +1,6 @@
 function plotMPS(w,fs)
 %Adapted from matlab file exchange script by: Diego Barragán G.
+%https://www.mathworks.com/matlabcentral/fileexchange/12240-am-modulation-and-its-spectrum
 
 Ts = 1/fs;
 
