@@ -1,3 +1,5 @@
+% New plot: compare SU d' with FR only or Full classifiers
+% Old plots: shape and context classification results 
 
 
 whichStim  = 'Speech';
@@ -7,7 +9,7 @@ whichCells = 'dpRank_RS';
 fn = set_paths_directories('','',1);
 
 switch whichStim
-    case 'AC'    
+    case 'AC'
         keyboard
         
         q = load(fullfile(fn.processed,'Units'));
@@ -20,14 +22,37 @@ switch whichStim
         eCR_F = q.CR;
         clear q
         
+        % Rate
+        q=load(fullfile(fn.figs,'ClassAM','AC','OnlyRate','each','CR_each.mat'));
+        eCR_R = q.CR;
+        clear q
         
+        %%%
+        figure;
+        hold on
+        plot([0 4],[0 4])
+        plot([0 8],[0 4])
+        plot([0 16],[0 4])
+        plot([0 32],[0 4])
+        plot([0 64],[0 4])
+        plot([0 128],[0 4])
+        plot(eCR_F.dprime,eCR_R.dprime,'.k','MarkerSize',10)
+        ylabel('d'' only rate')
+        xlabel('d'' with temporal pattern')
+        xlim([-0.2 4])
+        ylim([-0.2 4])
+        axis square
+        set(gca,'Color','none')
+        title('SU d'', sinusoidal AM')
+        print_eps_kp(gcf,fullfile(fn.figs,'ClassResults','Full',whichStim,'SU_Full_vs_Rate'))
+        %%%
         
         % Also get CTTS
-        [~,theseCells] = recallDataParams('AC','each');
+        [~,theseCells] = recallDataParams('AC','each',12);
         
         savedir = fullfile(fn.figs,'ClassContext','AC','CompareShape');
         
-    case 'Speech'        
+    case 'Speech'
         q = load(fullfile(fn.processed,'UnitsVS'));
         UnitInfo = q.UnitInfo;
         clear q
@@ -39,7 +64,7 @@ switch whichStim
         eCR_F = q.CR;
         clear q
         q=load(fullfile(fn.figs,'ClassSpeech','Speech','Full',whichCells,['CR_vFull_' whichCells '.mat']));
-        CR_F = q.CR;  
+        CR_F = q.CR;
         clear q
         
         % Temp
@@ -59,12 +84,33 @@ switch whichStim
         clear q
         
         
+        %%%
+        figure;
+        hold on
+        plot([0 4],[0 4])
+        plot([0 8],[0 4])
+        plot([0 16],[0 4])
+        plot([0 32],[0 4])
+        plot([0 64],[0 4])
+        plot([0 128],[0 4])
+        plot(eCR_F.dprime,eCR_R.dprime,'.k','MarkerSize',10)
+        ylabel('d'' only rate')
+        xlabel('d'' with temporal pattern')
+        xlim([-0.2 4])
+        ylim([-0.2 4])
+        axis square
+        set(gca,'Color','none')
+        title('SU d'', Speech')
+        print_eps_kp(gcf,fullfile(fn.figs,'ClassResults','Full',whichStim,'SU_Full_vs_Rate'))
+        %%%
+        
+        
         % Also get CTTS
         [CTTS,theseCells] = recallDataParams('Speech','each');
         
         
         % Load Response Duration estimation
-        load(fullfile(fn.figs,'ClassContext',whichStim,'RawData','avgPropUp.mat'));        
+        load(fullfile(fn.figs,'ClassContext',whichStim,'RawData','avgPropUp.mat'));
         
         savedir = fullfile(fn.figs,'ClassResults',whichStim,'Pooling');
 end
@@ -89,14 +135,14 @@ widescreen = [1 scrsz(4)/3 scrsz(3) scrsz(4)/3];
 
 %% For each Class Type, compare Shape and Context SU distributions
 
-hf=figure; 
+hf=figure;
 set(hf,'Position',widescreen)
 
 
 % CellTypes
 iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
 
-% Sort units by: 
+% Sort units by:
 [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
 
 
@@ -181,7 +227,7 @@ print_eps_kp(gcf,fullfile(savedir,'SUvPools_15cell'))
 %%  avgPropUp(iRS)
 
 
-hf=figure; 
+hf=figure;
 set(hf,'Position',widescreen)
 
 
@@ -247,7 +293,7 @@ pRest_nSpk = 1-pBest_nSpk;
 
 
 ymax = 2.5;
-figure; 
+figure;
 
 yyaxis right
 plot(1:numel(dps),dps,'.')
@@ -273,7 +319,7 @@ print_eps_kp(gcf,fullfile(rootdir,whichStim,'SU_dp_propSpikes'))
 
 
 
-%% compare d' to VS 
+%% compare d' to VS
 
 SigVS = find(~cellfun(@isempty,{UnitData(theseCells).iBMF_VS}));
 NSVS  = find(cellfun(@isempty,{UnitData(theseCells).iBMF_VS}));
@@ -282,8 +328,8 @@ CReach.dprime(NSVS)
 
 
 dpSg=[]; dpNS=[];
-hf1=figure; 
-hf2=figure; 
+hf1=figure;
+hf2=figure;
 for icr = 1:numel(theseCells)
     
     VSdata = UnitData(theseCells(icr)).VSdata_spk(:,1:6);
@@ -297,7 +343,7 @@ for icr = 1:numel(theseCells)
             plot(VSdata(1,ist),CReach.dprime(icr),'ok','MarkerSize',3)
             dpNS = [dpNS; CReach.dprime(icr)];
         end
-        figure(hf2); 
+        figure(hf2);
         subplot(2,3,ist); hold on
         plot(VSdata(2,ist),CReach.dprime(icr),'.k','MarkerSize',5)
     end
@@ -335,7 +381,7 @@ end
 % CellTypes
 iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
 
-% Sort units by: 
+% Sort units by:
 [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
 [dps,iSUdps]     = sort(CReach(iRS,:).dprime,'descend');
 
@@ -343,7 +389,7 @@ plotDPs = CReach(iRS(iSUdps),:).dprime;
 
 
 % plot
-hf=figure; 
+hf=figure;
 set(hf,'Position',widescreen)
 
 subplot(1,2,1)

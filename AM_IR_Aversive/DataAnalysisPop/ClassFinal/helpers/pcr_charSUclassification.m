@@ -19,7 +19,7 @@ fprintf(' done.\n')
 
 % CellTypes
 iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
-iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
+iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43);
 
 
 [dps,iSUdps] = sort(CReach(iRS,:).dprime,'descend');

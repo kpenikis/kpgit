@@ -4,10 +4,7 @@ function PopResp_CTTS
 % 
 
 close all
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SORT
-sortBy       = 'peakFRquant_Lat'; % 'FRrange'; 
-sortStim     = 3;
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -16,7 +13,15 @@ WinEnds      = WinBeg+Dur-1;
 AnWin        = WinBeg:WinEnds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+whichStim    = 'Speech';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% SORT
+sortBy       = 'peakFRquant_Lat'; % 'FRrange'; 
+if strcmp(whichStim,'AC')
+    sortStim     = 3;
+elseif strcmp(whichStim,'Speech')
+    sortStim     = 4;
+end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SMOOTHING
 % convtype     = 'gauss';
@@ -94,7 +99,7 @@ tallhalf    = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 widehalf    = [1 scrsz(4)/2 scrsz(3) scrsz(4)/2];
 
 % Set figsavedir
-figsavedir = fullfile(fn.figs,'PopResp');
+figsavedir = fullfile(fn.figs,'PopResp','NSmin');
 if ~exist(figsavedir,'dir')
     mkdir(figsavedir)
 end
@@ -139,7 +144,7 @@ minTrs = 12;
 [CTTS,theseUns,~,~,~] = filterDataMatrix( Cell_Time_Trial_Stim, ...
     'each', nTrialMat, UnitData,theseStim, flagRS, flagNS, minTrs, convwin, AnWin, 'exp' );
 
-FR_vec = permute(mean(CTTS,3,'omitnan'),[1 2 4 3]);
+FR_vec = permute(mean(CTTS,3,'omitnan'),[1 2 4 3]).*1000;
 
 % Load encoding time estimation
 load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassSpeech/avgPropUp.mat')
@@ -176,6 +181,7 @@ ETTS = Env_Time_Trial_Stim(theseUns,AnWin,:,theseStim);
 %% Sort data
 
 clear i_sorted
+%
 
 switch sortBy
     case 'FRrange'
@@ -241,16 +247,19 @@ switch sortBy
         ytickset = 0;
         yticklab = {''};
         
-        % RS cells
+        %/\/\/\/\/\/\/\/\
+        %    RS cells
+        %\/\/\/\/\/\/\/\/
 %         [pkRS,ipkRS] = max(ThisData(flagRS,:,sortStim),[],2);
         [pkRS,isort]  = rankPeakFR(FR_vec(flagRS,:,:));        % to group
         [~,isback] = sort(isort);
         pkRS = pkRS(isback);
         if strcmp(whichStim,'AC') && sortStim==3                 % to sort
             [~,ipkRS] = max(FR_vec(flagRS,1:250,sortStim),[],2);
-        elseif strcmp(whichStim,'Speech') && sortStim==2
-            [~,ipkRS] = max(FR_vec(flagRS,1:350,sortStim),[],2);
+        elseif strcmp(whichStim,'Speech') 
+            [~,ipkRS] = max(FR_vec(flagRS,:,sortStim),[],2);
         else
+            keyboard
             [~,ipkRS] = max(FR_vec(flagRS,:,sortStim),[],2);
         end
         Qbounds      = quantile(pkRS,[0 0.2 0.4 0.6 0.8 1]);
@@ -269,18 +278,21 @@ switch sortBy
             lats_RS(1:size(lats,1),iq) = lats';
         end
         
-        
-        % NS cells
+        %/\/\/\/\/\/\/\/\
+        %    NS cells
+        %\/\/\/\/\/\/\/\/
 %         [pkNS,ipkNS] = max(ThisData(flagNS,:,sortStim),[],2);
         [pkNS,isort]  = rankPeakFR(FR_vec(flagNS,:,:));        % to group
         [~,isback] = sort(isort);
         pkNS = pkNS(isback);
         if strcmp(whichStim,'AC') && sortStim==3                 % to sort
-            [~,ipkNS] = max(FR_vec(flagNS,1:250,sortStim),[],2);
-        elseif strcmp(whichStim,'Speech') && sortStim==2
-            [~,ipkNS] = max(FR_vec(flagNS,1:350,sortStim),[],2);
+%             [~,ipkNS] = max(FR_vec(flagNS,1:250,sortStim),[],2);
+            [~,ipkNS] = min(FR_vec(flagNS,1:250,sortStim),[],2);
+        elseif strcmp(whichStim,'Speech') 
+            [~,ipkNS] = min(FR_vec(flagNS,:,sortStim),[],2);
         else
-            [~,ipkNS] = max(FR_vec(flagNS,:,sortStim),[],2);
+            keyboard
+            [~,ipkNS] = min(FR_vec(flagNS,:,sortStim),[],2);
         end
         Qbounds      = quantile(pkNS,[0 1]);
         
@@ -303,47 +315,47 @@ switch sortBy
         ytickset     = cumsum(ytickset);
 end
 
-
-%% Plot latency distributions
-
-% % % set(gcf,'Position',tallhalf)
-% % if strcmp(whichStim,'AC')
-% %     set(gcf,'Position',fullscreen)
-% % elseif strcmp(whichStim,'Speech')
-% %     set(gcf,'Position',widehalf)
-% % else
-% %     keyboard
+% % 
+% % %% Plot latency distributions
+% % 
+% % % % % set(gcf,'Position',tallhalf)
+% % % % if strcmp(whichStim,'AC')
+% % % %     set(gcf,'Position',fullscreen)
+% % % % elseif strcmp(whichStim,'Speech')
+% % % %     set(gcf,'Position',widehalf)
+% % % % else
+% % % %     keyboard
+% % % % end
+% % % % 
+% % % % 
+% % % % subplot(1,size(ThisData,3),sortStim)
+% % 
+% % 
+% % hf2 = figure;       
+% % set(gca,'ColorOrder',cmocean('thermal',6))
+% % hold on
+% % plot(nan,nan,'.')
+% % for iq = 1:size(lats_RS,2)
+% %     histogram(lats_RS(:,iq),0:500,'Normalization','cdf','DisplayStyle','stairs','LineWidth',2)
 % % end
+% % histogram(lats_NS,0:500,'Normalization','cdf','DisplayStyle','stairs','LineWidth',2,'EdgeColor','k');
+% % 
+% % ylim([0 1])
+% % xlim([0 500])
+% % set(gca,'Color','none')
+% % box off
+% % grid on
+% % 
+% % % Stats
+% % 
+% % % 
+% % % keyboard
+% % % 
+% % % savestr = sprintf('%s_%s_st%i_%s%i',whichStim,sortBy,sortStim,convtype,tau);
+% % % print_eps_kp(hf2,fullfile(figsavedir,['LatDistr_' savestr]))
 % % 
 % % 
-% % subplot(1,size(ThisData,3),sortStim)
-
-
-hf2 = figure;       
-set(gca,'ColorOrder',cmocean('thermal',6))
-hold on
-plot(nan,nan,'.')
-for iq = 1:size(lats_RS,2)
-    histogram(lats_RS(:,iq),0:500,'Normalization','cdf','DisplayStyle','stairs','LineWidth',2)
-end
-histogram(lats_NS,0:500,'Normalization','cdf','DisplayStyle','stairs','LineWidth',2,'EdgeColor','k');
-
-ylim([0 1])
-xlim([0 500])
-set(gca,'Color','none')
-box off
-grid on
-
-% Stats
-
-
-keyboard
-
-savestr = sprintf('%s_%s_st%i_%s%i',whichStim,sortBy,sortStim,convtype,tau);
-print_eps_kp(hf2,fullfile(figsavedir,['LatDistr_' savestr]))
-
-
-%% Plot results
+% % %% Plot results
 
 hf1 = figure;
 % set(gcf,'Position',tallhalf)
@@ -355,6 +367,8 @@ else
     keyboard
 end
 
+ThisData = FR_vec;
+
 for ist = 1:size(FR_vec,3)
     
     subplot(1,size(FR_vec,3),ist)
@@ -362,6 +376,7 @@ for ist = 1:size(FR_vec,3)
     
 end
 
+%%
 savestr = sprintf('%s_%s_st%i_%s%i',whichStim,sortBy,sortStim,convtype,tau);
 print_eps_kp(hf1,fullfile(figsavedir,['PopResp_' savestr]))
 

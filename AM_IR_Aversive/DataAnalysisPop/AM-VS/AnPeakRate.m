@@ -134,11 +134,6 @@ for iiUn = 1:size(Uindices_AMVS,1)
 %     stim_Sp = stim_Sp/max(stim_Sp);
     
     
-    % a) Plot distribution of peakRate events in AM and speech
-    % b) Evoked response from all cells averaged (color by peakRate magnitude)
-    % c) Evoked response for each cell individually (mark t_peak)
-    % d) Distribution of t_peaks across cells
-    
     
     % Correct artifact at beginning
     [minV,iminV] = min(stim_AM(1:30));
@@ -171,8 +166,19 @@ for iiUn = 1:size(Uindices_AMVS,1)
     
     
 end %iiUn
-    
 
+
+% allTS = [TS; ...
+%          diff_loudness;...
+%          minEnv;...
+%          peakEnv;...
+%          minRate;...
+%          peakRate];
+
+% a) Plot distribution of peakRate events in AM and speech
+% b) Evoked response from all cells averaged (color by peakRate magnitude)
+% c) Evoked response for each cell individually (mark t_peak)
+% d) Distribution of t_peaks across cells
 
 hf=figure;
 

@@ -6,8 +6,8 @@ function PopSps_CTTS
 % close all
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SORT
-sortBy       = 'peakFRquant_Lat'; % 'FRrange'; 
-sortStim     = 2;
+% sortBy       = 'peakFRquant_Lat'; % 'FRrange'; 
+% sortStim     = 2;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -16,11 +16,11 @@ WinEnds      = WinBeg+Dur-1;
 AnWin        = WinBeg:WinEnds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % SMOOTHING
 convtype     = 'exp';
-tau          = 50;
+tau          = 10;
 window       = gausswin(tau);
 window       = window-min(window);
 convwin      = window/sum(window);
@@ -31,7 +31,7 @@ convwin      = window/sum(window);
 % % winlen       = 500;
 % convwin      = exp(-lambda*(1:500));
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-minTrs       = 5;
+minTrs       = 12;
 
 
 %% Load data
@@ -79,7 +79,7 @@ tallhalf    = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 widehalf    = [1 scrsz(4)/2 scrsz(3) scrsz(4)/2];
 
 % Set figsavedir
-figsavedir = fullfile(fn.figs,'PopResp');
+figsavedir = fullfile(fn.figs,'PopSps');
 if ~exist(figsavedir,'dir')
     mkdir(figsavedir)
 end
@@ -109,14 +109,19 @@ flagNS = find(UnitInfo.TroughPeak<=0.43);
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % Define cells and stimuli
-[CTTS,~,~,~,~] = filterDataMatrix( Cell_Time_Trial_Stim, ...
-    'PopResp', nTrialMat, UnitData,theseStim, flagRS, flagNS, minTrs, convwin, AnWin, convtype );
+[CTTS,theseCells,~,~,~] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+    'each', nTrialMat, UnitData,theseStim, flagRS, flagNS, minTrs, convwin, AnWin, convtype );
 
 if size(CTTS,1) ~= size(Cell_Time_Trial_Stim,1)
     keyboard
 end
 
+% CellTypes
+flagRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
+flagNS = find(UnitInfo(theseCells,:).TroughPeak<=0.43);
+
 ThisData = permute(mean(CTTS(flagRS,:,:,:),3,'omitnan'),[1 2 4 3]);
+% ThisData = ThisData - repmat([UnitData(theseCells(flagRS)).BaseFR]'/1000,[1 500 8]);
 
 ETTS = Env_Time_Trial_Stim(:,AnWin,:,theseStim);
 
@@ -130,9 +135,19 @@ set(gcf,'Position',widehalf)
 
 for ist = 1:size(ThisData,3)
     
+    Env01 = mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1,'omitnan')./max(mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1,'omitnan'));
+    
+    % Cumulative PSTH
     subplot(4,size(ThisData,3),ist)
 %     plot([0 500],[0.6135 0.6135],'k')
-    plot(mean(ThisData(:,:,ist),1,'omitnan')./max(mean(ThisData(:,:,ist),1,'omitnan'))./2+0.4,'k','LineWidth',2)
+    plot(Env01./2+0.5,'k','LineWidth',2)
+    hold on
+    plot(mean(ThisData(:,:,ist),1,'omitnan')./max(mean(ThisData(:,:,ist),1,'omitnan'))./2+0.4,'b','LineWidth',2)
+    
+    
+    % Population sparseness
+    subplot(4,size(ThisData,3),size(ThisData,3)+ist)
+    plot(Env01./4+0.75,'k','LineWidth',2)
     hold on
     
     % skip nan units
@@ -143,15 +158,13 @@ for ist = 1:size(ThisData,3)
         PopSps(1,ims) = calculateSparseness(ThisData(gu,ims,ist));
     end
     plot(PopSps,'m','LineWidth',2)
-    ylim([0.4 0.9])
     
+    ylim([0.5 1])
+    
+    % Stat
 %     [r(ist),p(ist)] = corr(mean(ThisData(:,:,ist),1,'omitnan')',PopSps')
 %     [r(ist),p(ist)] = corr(diff(mean(ThisData(:,:,ist),1,'omitnan'))',diff(PopSps)');
     [r(ist),p(ist)] = corr(diff(mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1,'omitnan'))',diff(PopSps)');
-    
-    subplot(4,size(ThisData,3),size(ThisData,3)+ist)
-    plot(mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1,'omitnan'),'k','LineWidth',2)
-    ylim([0 0.9])
 end
 
 r

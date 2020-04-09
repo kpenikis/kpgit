@@ -1,4 +1,4 @@
-function [allTS, env, peakRate, peakEnv] = find_peakRate(sound, soundfs, onsOff, envtype)
+function [allTS, env, peakRate, peakEnv, minRatio] = find_peakRate(sound, soundfs, onsOff, envtype)
 % function [env, peakRate, peakEnv] = find_peakRate(sound, soundfs, onsOff, envtype)
 % Inputs: 
 %   sound - time x 1, sound waveform
@@ -25,12 +25,15 @@ if nargin<3
     onsOff= [1/soundfs length(sound)/soundfs];
 end
 
-if nargin<4, envtype = 'loudness'; end
+if nargin<4, envtype = 'broadband'; end
 
 % if set to 1, landmark series will be cleaned up to contain only a single
 % peakRate event in each envelope cycle, defined as envelope
 % trough-to-trough
-cleanup_flag = 1;
+cleanup_flag = 0;
+
+minRatio = 1.5;
+
 %% get envelope
 
 envfs    = 1000;
@@ -59,7 +62,7 @@ onsOffenv(1,ceil(onsOff(1)*envfs))  = 1;
 onsOffenv(2,round(onsOff(2)*envfs)) = 1;
 
 
-allTS = find_landmarks(env, onsOffenv, cleanup_flag, mpd); 
+allTS = find_landmarks(env, onsOffenv, cleanup_flag, mpd, minRatio); 
 peakEnv  = allTS(4,:);
 peakRate = allTS(6,:);
 
@@ -170,7 +173,7 @@ end
 
 
 %% landmark detection in envelope
-function [allTS, varNames] = find_landmarks(TS,  onsOff, cleanup_flag, mpd)
+function [allTS, varNames] = find_landmarks(TS,  onsOff, cleanup_flag, mpd, minRatio)
 
 %% find discrete events in envelope
 
@@ -219,6 +222,39 @@ allTS = [TS; ...
     peakEnv;...
     minRate;...
     peakRate];
+
+
+%% ------- KP clean up (loudness must double to keep peakRate event)
+
+envRatios = [];
+ipRs = find(allTS(6,:));
+for ipk = ipRs
+    
+    i1=ipk;
+    Emin = allTS(3,i1);
+    while Emin==0
+        i1=i1-1;
+        if i1>0
+            Emin = allTS(3,i1);
+        else
+            break
+        end
+    end
+    
+    i2=ipk;
+    Emax = allTS(4,i2);
+    while Emax==0
+        i2=i2+1;
+        Emax = allTS(4,i2);
+    end
+    
+    envRatios = [envRatios; Emax/Emin];
+end
+
+allTS(6,ipRs(envRatios<minRatio))=0;
+
+% figure;
+% plot([nan diff(find(allTS(6,:)))],allTS(6,(allTS(6,:)>0)),'ob')
 
 
 %% --------------- clean up

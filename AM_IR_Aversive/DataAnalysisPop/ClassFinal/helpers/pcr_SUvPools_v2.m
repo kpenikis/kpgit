@@ -2,7 +2,7 @@ close all
 
 whichClass   = 'Full';
 
-crAmt = 0.001;
+crAmt = 0.01;
 
 % Data settings
 fn = set_paths_directories('','',1);

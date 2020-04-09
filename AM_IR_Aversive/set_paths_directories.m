@@ -1,7 +1,7 @@
 function fn = set_paths_directories(subject,session,UMS_flag)
 
 % Add Processing and Analysis folders to path
-addpath(genpath('DataProcessing'),genpath('DataAnalysis'),genpath('DataAnalysisPop'),genpath('cmocean'))
+addpath(genpath('DataProcessing'),genpath('DataAnalysis'),genpath('DataAnalysisPop'),genpath('cmocean'),genpath('/Users/kristinapenikis/Documents/MATLAB/CircStat2012a'))
 
 
 % Set basic folders based on where runnuing from 

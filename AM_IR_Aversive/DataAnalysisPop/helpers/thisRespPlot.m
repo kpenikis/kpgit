@@ -1,21 +1,20 @@
 
 
-plotdata  = ThisData(i_sorted,:,ist).*1000;
+plotdata  = ThisData(i_sorted,:,ist);%.*1000;
 xtickset  = [0 size(plotdata,2)];
 xticklabs = xtickset;
-ndp = size(plotdata,1);
 
 
 % Render plot
-imagesc(log10(plotdata(1:ndp,:)))
+imagesc(log10(plotdata+0.01))
 %         caxis([0 log10(max(Boundaries))+0.25])
-caxis([0 2.5])
+caxis([0 2])
 cmocean('-gray')
 
 
 % Finish plot
 xlim([1 size(plotdata,2)])
-ylim([0.5 ndp+0.5])
+ylim([0.5 size(plotdata,1)+0.5])
 set(gca,'tickdir','out','ticklength',[0.02 0.02],'Color','none')
 set(gca,'xtick',xtickset,'xticklabel',xticklabs)
 

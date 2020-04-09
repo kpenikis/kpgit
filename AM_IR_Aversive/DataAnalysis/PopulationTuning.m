@@ -3,7 +3,7 @@ function PopulationTuning
 
 % [ ] proportion units significantly above silence baseline 
 % [ ] distribution of BMF-VS
-% [ ] cdf to pdf, don?t plot z-score
+% [ ] cdf to pdf, don't plot z-score
 % [ ] trial variability plots 
 % [ ] bar: mean FF as function of stimulus (last 750 ms)
 % [ ] scatter: FF as a function of FR  (last 750 ms)

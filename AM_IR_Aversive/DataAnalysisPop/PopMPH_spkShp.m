@@ -29,7 +29,7 @@ labelNS  = 0;
 %% Load data
 
 % Load Unit data files
-fn = set_paths_directories('','',1);
+fn = set_paths_directories;
 q = load(fullfile(fn.processed,'Units'));
 UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;

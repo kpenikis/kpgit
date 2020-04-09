@@ -149,6 +149,8 @@ UnSig_AM = bootstrap4significance(CReach_AM(iRS_AM,:));
 
 avg_dp = CReach_AM(iRS_AM,:).dprime;
 
+
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 %%% Plot mean dprime vs sparseness of performance across stimuli
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -176,7 +178,7 @@ print_eps_kp(gcf,fullfile(savedir,'SU_meanDP-spsns_AM'))
 
 
 
-% PLAY WITH 2 EXAMPLE CELLS
+%% PLAY WITH 2 EXAMPLE CELLS
 % same mean d' different sparseness
 
 exC_data = find(abs(avg_dp-0.36673)<0.0001); %index out of 181
@@ -226,8 +228,9 @@ set(gca,'xticklabel',{'low sps' 'high sps'})
 print_eps_kp(gcf,fullfile(savedir,'SU_exCs_samemean_randpools_AM'))
 
 
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-%%% Plot mean dprime vs sparseness of performance across stimuli
+%%% Sort by mean dprime, plot min to max across stimuli
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 figure;
@@ -245,7 +248,7 @@ axis square
 
 print_eps_kp(gcf,fullfile(savedir,'SU_meanDP-maxmin_AM'))
 
-
+% Same, in log space
 figure;
 set(gcf,'Position',sqsmall)
 plot([avg_dp() avg_dp()]'...
@@ -307,8 +310,16 @@ end
 print_eps_kp(hfa,fullfile(savedir,'SUdps_AM_all'))
 
 
+
+
 keyboard
+
+
 %% Compare d' to FF 
+
+
+
+
 
 
 

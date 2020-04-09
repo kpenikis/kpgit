@@ -49,10 +49,6 @@ for iBS = 1:BSN
     
     %% Preallocate
     
-    % Data -- 40 x 2056
-    %  observations: trials x stim
-    %  predictors: templates x cells
-    
     DataTrain   = [];
     DataTest    = [];
     EnvTrain    = [];
@@ -138,8 +134,10 @@ for iBS = 1:BSN
                 for itmp = 1:nSt
                     
                     % Get template data
-                    Nm1_PSTH = mean(CTTS(iUn,:,Train_trs(itmp,Train_trs(itmp,:)~=itr),itmp),3);
-                    Nm1_PETH = mean(ETTS(iUn,:,Train_trs(itmp,Train_trs(itmp,:)~=itr),itmp),3);
+%                               Nm1_PSTH = mean( CTTS(iUn,:,Train_trs(itmp,Train_trs(itmp,:)~=itr),itmp) ,3);
+%                               Nm1_PETH = mean( ETTS(iUn,:,Train_trs(itmp,Train_trs(itmp,:)~=itr),itmp) ,3);
+                    Nm1_PSTH = mean( CTTS(iUn,:,Train_trs(itmp,Train_trs(ist,:)~=itr),itmp) ,3);
+                    Nm1_PETH = mean( ETTS(iUn,:,Train_trs(itmp,Train_trs(ist,:)~=itr),itmp) ,3);
                     
                     % Calculate dot product
                     if sum(trial_data)>0 && sum(Nm1_PSTH)>0 
