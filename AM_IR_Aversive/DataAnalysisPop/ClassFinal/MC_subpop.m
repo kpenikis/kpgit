@@ -11,12 +11,12 @@ function MC_subpop(exclSpec,exclNonSig)
 %  KP, 2019-01
 %
 
-% close all
+close all
 
 whichClass   = 'ActVec';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'Q_pkFR'; %'allRS'; %'dpRank_RS';  % pkFR_RS  %'nsExcl_RS'; 
+whichCells   = 'maxdp_RS'; %'Q_pkFR'; %'allRS'; %'dpRank_RS';  % pkFR_RS  %'nsExcl_RS'; 
 exclNonSig   = 0;
 exclSpec     = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,9 +29,9 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'Speech';
+whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 200;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -48,8 +48,8 @@ minTrs       = TrainSize + TestSize;
 if strcmp(whichCells,'Q_pkFR')
     PoolStart    = [0.99999 0.8 0.6 0.4 0.2];
     PoolSize     = 0.2;
-elseif strcmp(whichCells,'dpRank_RS')
-    PoolStart    = [ 0.2 0.5]; %
+elseif strcmp(whichCells,'dpRank_RS') || strcmp(whichCells,'maxdp_RS')
+    PoolStart    = [1 0.2 0.5]; %
     PoolSize     = [5 10 30 90];%[1 5 10 20 50];
 else
     PoolStart    = 1;
@@ -219,6 +219,10 @@ for ii = 1:numel(WinEnds)
                     [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
                     UseCells   = iRS(iSUdps(FirstCell+(0:(NumCells-1))));
 %                     SUdps      = CReach(UseCells,:).dprime
+                
+                case 'maxdp_RS'
+                    [maxdps,iSUdps] = sort_maxdp(CReach(iRS,:));
+                    UseCells   = iRS(iSUdps(FirstCell+(0:(NumCells-1))));
                     
                 case 'Q_pkFR'
                     [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));

@@ -11,16 +11,16 @@ function MC_RandSubpop
 %  dimensionality.
 %
 %
-%  KP, 2019-01
+%  KP, 2020-01; updated 2020-03 for ActVec
 %
 
 close all
 
-varPar       = 'PoolRand';
+whichClass   = 'Full';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'RS'; 
+whichCells   = 'Rand_RS'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -33,20 +33,21 @@ PickTrials   = 'rand';
 % STIM
 whichStim    = 'AC';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 250;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
 lambda       = 1/tau;
 % winlen       = 500;
 convwin      = exp(-lambda*(1:500));
+convwin      = convwin./sum(convwin);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PSTHsize     = 'Train-1';
 TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-nPools       = 1000;
+nPools       = 500;
 PoolSize     = 10;
 
 rng('shuffle')
@@ -110,9 +111,9 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,varPar,whichCells);
-if ~exist(fullfile(figsavedir,'backupTables'),'dir')
-    mkdir(fullfile(figsavedir,'backupTables'))
+figsavedir = fullfile(rootdir,whichStim,whichClass,whichCells);
+if ~exist(fullfile(figsavedir),'dir')
+    mkdir(fullfile(figsavedir))
 end
 
 
@@ -135,8 +136,14 @@ end
 
 % CellTypes
 iRS = find(UnitInfo.TroughPeak>0.43);
-iNS = find(UnitInfo.TroughPeak<0.43 & [UnitData.BaseFR]'>2);
+iNS = find(UnitInfo.TroughPeak<=0.43);
 
+% For rate only classifier: shuffle spiketimes within trial
+ShuffOpt = 0;
+if strcmp(whichClass,'OnlyRate')
+    ShuffOpt = 1;
+    convwin  = 1;
+end
 
 %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 %##########################################################################
@@ -146,7 +153,7 @@ for ii = 1:numel(WinEnds)
     AnWin = WinBeg(ii):WinEnds(ii);
     fprintf('Dur: %i ms\n',WinEnds(ii)-WinBeg(ii)+1)
     
-    for fc = (1:nPools)+30 %PoolStart
+    for fc = (1:nPools) %PoolStart
         
         FirstCell = fc;
         
@@ -163,13 +170,13 @@ for ii = 1:numel(WinEnds)
             
             % Get indices of RS//NS cells (from just "theseCells")
             iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
-            iNS = find(UnitInfo(theseCells,:).TroughPeak<0.43 & [UnitData(theseCells).BaseFR]'>2);
+            iNS = find(UnitInfo(theseCells,:).TroughPeak<=0.43);
             
             
             % Set the subpopulation of cells to use
             switch whichCells
                 
-                case 'RS'
+                case 'Rand_RS'
                     [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
                     iRands     = ipkFR(randperm(size(ipkFR,1),NumCells));
                     UseCells   = iRS(iRands);
@@ -211,10 +218,19 @@ for ii = 1:numel(WinEnds)
                     UseCells   = iRS(iSUdps((FirstCell+1):end));
             end
             
-            % Train and test classifier
-            [S_AssMat_NC,~,~] = runSVMclass_SnE( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
-                BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType );
-            
+                        
+            %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+            if strcmp(whichClass,'OnlyTemp')
+                keyboard
+            elseif strcmp(whichClass,'Nspk')
+                S_AssMat = runSVMclassFR( CTTS(UseCells,:,:,:), BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType );
+            elseif strcmp(whichClass,'Full')
+                %Train and test classifier
+                [S_AssMat,~,~] = runSVMclass_notNorm( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+                    BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt );
+            elseif strcmp(whichClass,'ActVec')
+                S_AssMat = runSVM_ActVec(CTTS(UseCells,:,:,:),BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );
+            end
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
             %##########################################################################
             %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -222,7 +238,7 @@ for ii = 1:numel(WinEnds)
             
             %% Plot NEURAL results
             
-            ConfMat = mean(S_AssMat_NC,3);
+            ConfMat = mean(S_AssMat,3);
             
             muPC    = mean(diag(ConfMat))*100;
             dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
@@ -245,15 +261,15 @@ for ii = 1:numel(WinEnds)
             
             
             % Save figure
-            savename = sprintf('Res_v%s-%i_%s_%s_%i_%i',...
-                varPar,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,NumCells,FirstCell);
+            savename = sprintf('Res_%s-%i_%s_%s_%i_%i',...
+                whichClass,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,NumCells,FirstCell);
             
 %             print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
             
             
             %% Save results to master table
             
-            mastertablesavename = sprintf('CR_v%s_%s',varPar,whichCells);
+            mastertablesavename = sprintf('CR_%s_%s',whichClass,whichCells);
             thistablesavename   = savename;
             
             CR1 = table;
@@ -262,7 +278,7 @@ for ii = 1:numel(WinEnds)
             CR1.Cells    = {whichCells};
             CR1.iC       = FirstCell;
             CR1.nC       = NumCells;
-            CR1.Results  = {S_AssMat_NC};
+            CR1.Results  = {S_AssMat};
             CR1.PC       = muPC;
             CR1.dprime   = dprime;
             CR1.WinBeg   = WinBeg(ii);
@@ -274,7 +290,8 @@ for ii = 1:numel(WinEnds)
             CR1.nTest    = TestSize;
             CR1.conv     = {'exp'};
             CR1.tau      = tau;
-            CR1.SUids    = {UseCells};
+            CR1.UnIDs    = {theseCells(UseCells)};
+            CR1.CRids    = {UseCells};
             CR1.SUdps    = {SUdps};
 %             CR1.TrRes    = {TrialResults};
             
@@ -293,14 +310,14 @@ for ii = 1:numel(WinEnds)
                 % Save new table
                 CR = CR1;
                 save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-                save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
+%                 save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
                 
             else % Save updated table
                 
                 % Concatenate new data
                 CR = [CR; CR1];
                 save(fullfile(figsavedir,mastertablesavename),'CR','-v7.3')
-                save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
+%                 save(fullfile(figsavedir,'backupTables',thistablesavename),'CR1','-v7.3')
             end
             
         end % nc
