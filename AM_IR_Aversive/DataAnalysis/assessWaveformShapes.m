@@ -16,7 +16,7 @@ function [UnitInfo,UnitData] = assessWaveformShapes(Units_fn, FigSavename, makeP
 
 %% Load Unit data files
 
-fn = set_paths_directories('','',1);
+fn = set_paths_directories;
 
 if nargin<5 && ~exist('UnitData','var')
         
@@ -26,6 +26,9 @@ if nargin<5 && ~exist('UnitData','var')
     clear q
     
     % [~,UnitData] = identifyResponsiveUnits(UnitData);
+end
+if isempty(FigSavename)
+    FigSavename = [Units_fn '_WaveformShapes'];
 end
 
 
@@ -156,7 +159,7 @@ UnitInfo.WidthHalfMax  = SpikeWidthData(:,1);
 UnitInfo.TimetoTrough  = SpikeWidthData(:,2);
 UnitInfo.TroughPeak    = SpikeWidthData(:,3);
 
-save(fullfile(fn.processed,Units_fn),'UnitInfo','UnitData','-v7.3');
+% save(fullfile(fn.processed,Units_fn),'UnitInfo','UnitData','-v7.3');
 
 
 
@@ -165,31 +168,31 @@ save(fullfile(fn.processed,Units_fn),'UnitInfo','UnitData','-v7.3');
 if makePlot
     
     % Width x PeakTrough
-    hf1 = figure;
-    hold on
-    scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak',200,log(ceil(AllBaselineFRs)'),'filled','Linewidth',3)
-    % scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak', 300,'k')
-    axis square
-    set(gca,'xlim',[0.1 0.35],'ylim',[0.1 0.8])
-    
-    xlabel('Width at half max (ms)')
-    ylabel('Time from trough to peak (ms)')
-    title('Spike shape distribution, colored by baseline FR')
-    text(0.27,0.15,sprintf('N = %i units\nfrom %i sessions',size(UnitInfo,1),numel(unique(UnitInfo.Session))))
-    
-    % colormap('winter')
-    colormap(cmocean('-turbid'))
-    cb=colorbar; pause(1)
-    cb.Ruler.Scale = 'linear';
-    cb.Ruler.TickValues = log(fliplr(ceil(max(AllBaselineFRs)):-5:min(AllBaselineFRs)));
-    cb.Ruler.TickLabels = fliplr(ceil(max(AllBaselineFRs)):-5:min(AllBaselineFRs));
-    cb.Label.String = 'Baseline FR (sp/s)';
-    
-    savedir = fullfile(fn.figs,'WaveformShapes');
-    if ~exist(savedir,'dir')
-        mkdir(savedir)
-    end
-    print_eps_kp(hf1,fullfile(savedir,FigSavename))
+% %     hf1 = figure;
+% %     hold on
+% %     scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak',200,log(ceil(AllBaselineFRs)'),'filled','Linewidth',3)
+% %     % scatter(UnitInfo.WidthHalfMax', UnitInfo.TroughPeak', 300,'k')
+% %     axis square
+% %     set(gca,'xlim',[0.1 0.35],'ylim',[0.1 0.8])
+% %     
+% %     xlabel('Width at half max (ms)')
+% %     ylabel('Time from trough to peak (ms)')
+% %     title('Spike shape distribution, colored by baseline FR')
+% %     text(0.27,0.15,sprintf('N = %i units\nfrom %i sessions',size(UnitInfo,1),numel(unique(UnitInfo.Session))))
+% %     
+% %     % colormap('winter')
+% %     colormap(cmocean('-turbid'))
+% %     cb=colorbar; pause(1)
+% %     cb.Ruler.Scale = 'linear';
+% %     cb.Ruler.TickValues = log(fliplr(ceil(max(AllBaselineFRs)):-5:min(AllBaselineFRs)));
+% %     cb.Ruler.TickLabels = fliplr(ceil(max(AllBaselineFRs)):-5:min(AllBaselineFRs));
+% %     cb.Label.String = 'Baseline FR (sp/s)';
+% %     
+% %     savedir = fullfile(fn.figs,'WaveformShapes');
+% %     if ~exist(savedir,'dir')
+% %         mkdir(savedir)
+% %     end
+% %     print_eps_kp(hf1,fullfile(savedir,FigSavename))
     
     
     % Baseline FR x PeakTrough

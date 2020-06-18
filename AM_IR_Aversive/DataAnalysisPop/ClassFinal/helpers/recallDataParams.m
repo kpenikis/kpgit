@@ -1,13 +1,5 @@
 function [CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams(whichStim,whichCells,minTrs,convwin)
-% MasterClass (all parameters defined at top of file)
-%  Can process AM or Speech data.
-%
-%  SVM classifier for segments of Pdc and Irr stimuli.
-%  Instead of feeding spiking data into SVM (or whatever classifier), input
-%  just a scalar for each class comparison. This allows for independent
-%  information from many neurons, without a drastic increase of
-%  dimensionality.
-%
+% [CTTS,theseCells,nUns,Dur,nStim,TrainSize,TestSize,UnitData] = recallDataParams(whichStim,whichCells,minTrs,convwin)
 %
 %  KP, 2019-01
 %

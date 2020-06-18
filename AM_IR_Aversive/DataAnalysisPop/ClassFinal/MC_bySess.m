@@ -1,4 +1,4 @@
-function MC_sessMids
+function MC_bySess
 % MasterClass (all parameters defined at top of file)
 %  Can process AM or Speech data.
 %
@@ -9,7 +9,7 @@ function MC_sessMids
 %  dimensionality.
 %
 %
-%  KP, 2019-01
+%  KP, 2020-01
 %
 
 close all
@@ -18,8 +18,7 @@ whichClass   = 'Full';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-% whichCells   = 'pkFR_8RS'; 
-whichCells   = 'AllMidRS'; 
+whichCells   = 'allRS'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
@@ -28,12 +27,12 @@ WinEnds      = WinBeg+Dur-1;
 AnWin        = WinBeg:WinEnds;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
-PickTrials   = {'rand'};% 'rand'};
+PickTrials   = {'rand' 'sim'};% 'rand'};
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
 whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 800;
+BootstrapN   = 500;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -46,13 +45,7 @@ TrainSize    = 11;
 TestSize     = 1;
 minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-ncells_sp    = 3;
-switch whichStim
-    case 'AC'
-        dpthresh     = 1.1; 
-    case 'Speech'
-        dpthresh     = 1.5; 
-end
+ncells_sp    = 2;
 
 rng('shuffle')
 
@@ -102,6 +95,14 @@ if size(Cell_Time_Trial_Stim,1)<size(CReach,1)
 end
 
 
+% For rate only classifier: shuffle spiketimes within trial
+ShuffOpt = 0;
+if strcmp(whichClass,'OnlyRate')
+    ShuffOpt = 1;
+    convwin  = 1;
+end
+
+
 %% Find sessions with simultaneously recorded units to analyze
 
 [AllSessions,~,CellSessID]= unique({UnitData.Session});
@@ -115,10 +116,11 @@ set(groot,'DefaultAxesFontSize',18)
 set(groot,'defaultAxesTickDir', 'out');
 set(groot,'defaultAxesTickDirMode', 'manual');
 
-scrsz = get(0,'ScreenSize');     %[left bottom width height]
+% scrsz = get(0,'ScreenSize');     %[left bottom width height]
 % fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
-tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
-widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
+% tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
+% widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
+
 
 % Set figsavedir
 figsavedir = fullfile(rootdir,whichStim,whichClass,'Sess',whichCells);
@@ -144,6 +146,7 @@ switch whichStim
         theseStim  = 1:size(Cell_Time_Trial_Stim,4);
 end
 
+
 % CellTypes
 iRS = find(UnitInfo.TroughPeak>0.43);
 iNS = find(UnitInfo.TroughPeak<=0.43);
@@ -162,7 +165,7 @@ ETTS = Env_Time_Trial_Stim(idxAllCells,AnWin,:,theseStim);
 
 % Get indices of RS//NS cells (from just "theseCells")
 iRS = find(UnitInfo(idxAllCells,:).TroughPeak>0.43);
-iNS = find(UnitInfo(idxAllCells,:).TroughPeak<0.43);
+iNS = find(UnitInfo(idxAllCells,:).TroughPeak<=0.43);
 
 for iss = 1:numel(AllSessions)
     
@@ -172,32 +175,25 @@ for iss = 1:numel(AllSessions)
     whichSess = AllSessions{iss};
     fprintf('session %s...\n',whichSess)
     
-    
-    % Set the subpopulation of cells to use
-    isess = find(strcmp({UnitData(idxAllCells).Session},whichSess));
-    idxCRe  = intersect(isess',iRS);
-    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    if strcmp(whichCells,'AllMidRS')
-        UnSig    = bootstrap4significance(CReach(idxCRe,:));
-        UseCells = idxCRe(UnSig & CReach(idxCRe,:).dprime<dpthresh);
-        if numel(UseCells)<2
-            continue
-        end
-        [SUdps,~] = sort(CReach(UseCells,:).dprime,'descend')
-        
-    else
-        [dps,iSUdps] = sort(CReach(idxCRe,:).dprime,'descend');
-        
-        % Check if there are enough RS units to run
-        if sum(dps<dpthresh)<ncells_sp
-            continue
-        end
-        
-        UseCells = idxCRe(iSUdps(find(dps<dpthresh,1,'first')+(0:(ncells_sp-1))));
-        SUdps    = dps(find(dps<dpthresh,1,'first')+(0:(ncells_sp-1)))
-        CReach(UseCells,:).dprime;
+    % Set the subpopulation of cells to use
+    
+    isess = find(strcmp({UnitData(idxAllCells).Session},whichSess));
+    
+    switch whichCells
+        case 'all'
+            UseCells  = isess';
+        case 'allRS'
+            UseCells  = intersect(isess',iRS);
+        case 'allNS'
+            UseCells  = intersect(isess',iNS);
     end
+    if numel(UseCells)<ncells_sp
+        continue
+    end
+    
+    SUdps = CReach(UseCells,:).dprime
+    
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     
     for TrM = 1:numel(PickTrials)
@@ -208,12 +204,19 @@ for iss = 1:numel(AllSessions)
             TrMethod = PickTrials;
         end
         
+        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         % Train and test classifier
+        
+        %Sum
+%         [S_AssMat,~,~] = runSVMclass_SUM( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+%             BootstrapN, nStim, Dur, length(UseCells), TrMethod, TrainSize, TestSize, KernelType, ShuffOpt );
+        
+        %Cat
         [S_AssMat,~,~] = runSVMclass_notNorm( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
-            BootstrapN, nStim, Dur, length(UseCells), TrMethod, TrainSize, TestSize, KernelType ); 
+            BootstrapN, nStim, Dur, length(UseCells), TrMethod, TrainSize, TestSize, KernelType, ShuffOpt );
         
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-        %##########################################################################
         %++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
         
         
@@ -242,7 +245,7 @@ for iss = 1:numel(AllSessions)
         
         
         % Save figure
-        savename = sprintf('Res_%s-%i_Train%i_conv%i_%s_%s_%s',whichClass,WinEnds-WinBeg+1,TrainSize,tau,whichStim,whichSess,TrMethod);
+        savename = sprintf('Res_%s_%s_%s',whichStim,whichSess,TrMethod);
         
         print(hf,fullfile(figsavedir,savename),'-dpdf')
         
@@ -250,13 +253,12 @@ for iss = 1:numel(AllSessions)
         %% Save results to master table
         
         mastertablesavename = sprintf('CR_%s_%s',whichClass,whichCells);
-        thistablesavename   = savename;
         
         CR1 = table;
         CR1.figname  = {savename};
         CR1.Stim     = {whichStim};
         CR1.Cells    = {whichSess};
-        CR1.nC       = length(UseCells);
+        CR1.nC       = numel(UseCells);
         CR1.Results  = {S_AssMat};
         CR1.PC       = muPC;
         CR1.dprime   = dprime;
@@ -269,8 +271,8 @@ for iss = 1:numel(AllSessions)
         CR1.nTest    = TestSize;
         CR1.conv     = {'exp'};
         CR1.tau      = tau;
-        CR1.SUiUD    = {idxAllCells(UseCells)};
-        CR1.SUiCR    = {UseCells};
+        CR1.UnIDs    = {idxAllCells(UseCells)};
+        CR1.CRids    = {UseCells};
         CR1.SUdps    = {SUdps};
 %         CR1.TrRes    = {TrialResults};
         

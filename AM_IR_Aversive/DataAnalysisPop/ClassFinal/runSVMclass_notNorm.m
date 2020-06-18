@@ -195,8 +195,8 @@ for iBS = 1:BSN
     %####  NEURAL
     
     % Finish preparing input data
-    DataTrain = single(round(DataTrain,5));
-    DataTest  = single(round(DataTest,5));
+    DataTrain = single(round(DataTrain,4));
+    DataTest  = single(round(DataTest,4));
     
     TrueTrain = single(TrueTrain(1:size(DataTrain,1)));
     TrueTest  = single(TrueTest(1:size(DataTest,1)));

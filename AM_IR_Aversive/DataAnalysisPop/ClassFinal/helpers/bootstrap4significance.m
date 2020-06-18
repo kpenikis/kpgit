@@ -1,16 +1,16 @@
-function [UnSig,ConfIntervals] = bootstrap4significance(CReach)
-% UnSig = bootstrap4significance(CReach)
+function [UnSig,ConfIntervals] = bootstrap4significance(CRtable)
+% UnSig = bootstrap4significance(CRtable)
 %
 % 
 
-UnSig = true(size(CReach,1),1);
+UnSig = true(size(CRtable,1),1);
 Nbs = 10000;
 
-ConfIntervals = nan(size(CReach,1),2);
+ConfIntervals = nan(size(CRtable,1),2);
 
-for iUn = 1:size(CReach,1)
+for iUn = 1:size(CRtable,1)
     
-    Res = CReach(iUn,:).Results{:};
+    Res = CRtable(iUn,:).Results{:};
     
     threshNzeros = round(Nbs*0.05);
     

@@ -200,10 +200,10 @@ for iUn = 1:numel(UnitData)
                 if this_rate==2
                     iPds = MPH.Starttime(ifilt)==500;
                 else
-                    iPds = MPH.Starttime(ifilt)>749 & MPH.Starttime(ifilt)<1000;
+                    iPds = MPH.Starttime(ifilt)>249 & MPH.Starttime(ifilt)<1000;
                 end
                 
-                Data     = MPH(ifilt(iPds),:);
+                Data = MPH(ifilt(iPds),:);
                 if isempty(Data) || sum(cellfun(@(x) size(x,1),Data.raster)) < 10
                     continue
                 end
@@ -273,11 +273,11 @@ for iUn = 1:numel(UnitData)
     
 end %iUn
 
-save(fullfile(savedir,'PhaseData'),'Phs_SS_all','Phs_SS_sig','Phs_First_4','Phs_First_32','Phs_First_4_sig','Phs_First_32_sig','-v7.3')
+    save(fullfile(savedir,'PhaseData_750'),'Phs_SS_all','Phs_SS_sig','Phs_First_4','Phs_First_32','Phs_First_4_sig','Phs_First_32_sig','-v7.3')
 
 else
     
-    load(fullfile(savedir,'PhaseData'))
+    load(fullfile(savedir,'PhaseData_500'))
     
 end
 
@@ -293,7 +293,7 @@ iNS(numel(iNS)+1:300) = 0;
 degvector = deg2rad(0:22.5:360);
 
 CellType = {'RS' 'NS'};
-rmaxvals = [60 24];
+rmaxvals = [45 18];
 
 for ict = 1:numel(CellType)
     
@@ -370,7 +370,7 @@ for ict = 1:numel(CellType)
         
     end %ir
         
-    savename = ['MeanPhase_Polar_' CellType{ict}];
+    savename = ['MeanPhase_Polar_' CellType{ict} '_500'];
     print_eps_kp(gcf,fullfile(savedir,savename))
     
 end %celltype
@@ -379,6 +379,7 @@ end %celltype
 
 
 %% 1D HISTO PLOTS
+keyboard
 
 histvec = linspace(0,2*pi,17);
 

@@ -2,7 +2,7 @@
 close all
 
 whichClass   = 'Full';
-whichCells   = 'AllMidRS'; 
+whichCells   = 'AllRS'; 
 whichStim    = 'AC';
 
 minNcells    = 3;

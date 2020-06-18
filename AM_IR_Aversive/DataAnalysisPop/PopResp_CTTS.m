@@ -2,6 +2,7 @@ function PopResp_CTTS
 % 
 % PopResp_CTTS
 % 
+% 2020-03, updated 2020-04 
 
 close all
 
@@ -95,8 +96,8 @@ set(groot,'defaultAxesTickDirMode', 'manual');
 
 scrsz = get(0,'ScreenSize');     %[left bottom width height]
 fullscreen  = [1 scrsz(4) scrsz(3) scrsz(4)];
-tallhalf    = [1 scrsz(4) scrsz(3)/2 scrsz(4)];
 widehalf    = [1 scrsz(4)/2 scrsz(3) scrsz(4)/2];
+widenarrow  = [1 scrsz(4)/4 scrsz(3) scrsz(4)/4];
 
 % Set figsavedir
 figsavedir = fullfile(fn.figs,'PopResp','NSmin');
@@ -147,7 +148,7 @@ minTrs = 12;
 FR_vec = permute(mean(CTTS,3,'omitnan'),[1 2 4 3]).*1000;
 
 % Load encoding time estimation
-load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassSpeech/avgPropUp.mat')
+% load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassSpeech/avgPropUp.mat')
 
 % New RS/NS labels
 flagRS = find(UnitInfo(theseUns,:).TroughPeak>0.43);
@@ -376,9 +377,10 @@ for ist = 1:size(FR_vec,3)
     
 end
 
+
 %%
 savestr = sprintf('%s_%s_st%i_%s%i',whichStim,sortBy,sortStim,convtype,tau);
-print_eps_kp(hf1,fullfile(figsavedir,['PopResp_' savestr]))
+% print_eps_kp(hf1,fullfile(figsavedir,['PopResp_' savestr]))
 
 % set(hf1,'PaperOrientation','landscape')
 % print(hf1,'-dpdf','-r500','-fillpage', fullfile(figsavedir,['PopResp_' whichStim '_' sortBy '_v2']))
@@ -388,7 +390,73 @@ print_eps_kp(hf1,fullfile(figsavedir,['PopResp_' savestr]))
 
 
 
+%% Also: 
+% grand avg PSTH (RS cells) 
+% correlate to amplitude and derivative
+
+
+
+% first, convert amplitude to dB! 
+% then, MinPeakProminence can be +6 (doubling of loudness) 
+
+
+
+% close all
+hf2 = figure;
+% set(gcf,'Position',widenarrow)
+set(gcf,'Position',widehalf)
+for ist = 1:size(FR_vec,3)
+    
+    % Get variables
+    Env = mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1);
+    Env = Env./max(Env);
+    
+    LdB = sound2dB_AM(mean(mean(ETTS(:,:,:,ist),3,'omitnan'),1),75); %mode(TrialData.SPL)
+    
+    Drv = diff(Env);
+    Drv(Drv<0) = 0;
+    Drv = Drv./max(Drv);
+    GAH = mean(FR_vec(flagRS,:,ist),1)./max(mean(FR_vec(flagRS,:,ist),1));
+    
+    % Yulia's method
+    [allTS, ~, peakRate, peakEnv, minRatio] = find_peakRate(LdB, 1000);
+    
+    
+    % Plot data
+    subplot(3,size(FR_vec,3),ist)
+%     plot(Drv,'r','LineWidth',2)
+    hold on
+%     plot(Env,'b','LineWidth',2)
+    plot(allTS(1,:),'c','LineWidth',2)
+    plot(GAH,'k','LineWidth',2)
+    plot(find(peakRate),GAH(find(peakRate)),'.r','MarkerSize',20)
+    plot(find(peakEnv),GAH(find(peakEnv)),'.g','MarkerSize',20)
+    plot(find(allTS(3,:)),GAH(find(allTS(3,:))),'.c','MarkerSize',20)
+    ylim([0 1])
+%     ylim([0 0.25])
+    title(ist)
+    
+    % Calculate correlations
+    [C_env,lags] = xcorr(GAH,Env,60);
+    [C_drv,lags] = xcorr(GAH(2:end),Drv,60);
+    
+    subplot(3,size(FR_vec,3),size(FR_vec,3)+ist)
+    plot(lags,C_drv,'r','LineWidth',2)
+    hold on
+    plot(lags,C_env,'b','LineWidth',2)
+    
+%     % Yulia's method
+%     subplot(3,size(FR_vec,3),size(FR_vec,3)*2+ist)
+%     
+end
+
+
+
+
 %% Population sparseness
+
+keyboard
+
 
 hf2 = figure;
 set(gcf,'Position',fullscreen)

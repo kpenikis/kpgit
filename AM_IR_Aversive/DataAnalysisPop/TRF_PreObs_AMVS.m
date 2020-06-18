@@ -124,7 +124,10 @@ dotSize = 30;
 
 if RERUN
 
-for iiUn = 4:size(Uindices_AMVS,1)
+% %     STIM_AM_ALL = cell(7,1);
+% %     STIM_VS_ALL = cell(7,1);
+    
+for iiUn = 1:size(Uindices_AMVS,1)
     
     iUnAM = Uindices_AMVS(iiUn,1);
     iUnVS = Uindices_AMVS(iiUn,2);
@@ -144,6 +147,14 @@ for iiUn = 4:size(Uindices_AMVS,1)
     % Get PSTH and Stim data
     [PSTH_AM,STIM_AM] = getdata4TRF(UData_AM,iUnAM);
     [PSTH_VS,STIM_VS] = getdata4TRF(UData_VS,iUnVS);
+    
+% % %     % Save averages for fft later
+% % %     for ist = 1:numel(STIM_AM)
+% % %         STIM_AM_ALL{ist} = [STIM_AM_ALL{ist}; mean(STIM_AM{ist},1)];
+% % %     end
+% % %     for ist = 1:numel(STIM_VS)
+% % %         STIM_VS_ALL{ist} = [STIM_VS_ALL{ist}; mean(STIM_VS{ist},1)];
+% % %     end
     
     fprintf(' running model\n')
      

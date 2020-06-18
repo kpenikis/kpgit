@@ -109,9 +109,9 @@ for iiUn = 1:size(Uindices_AMVS,1)
         if size(STIM_AMc{st},1)<10
             keyboard
         end
-        if st==5
-            continue
-        end
+%         if st==5
+%             continue
+%         end
         
         % Average trials and concatenate stim
         psth_AM  = [psth_AM mean(PSTH_AMc{st}(:,:),1) ];

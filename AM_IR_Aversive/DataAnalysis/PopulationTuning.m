@@ -1,7 +1,7 @@
 function PopulationTuning
-% 
+% Figure 3
 
-% [ ] proportion units significantly above silence baseline 
+% [ ] proportion units significantly above and below silence baseline 
 % [ ] distribution of BMF-VS
 % [ ] cdf to pdf, don't plot z-score
 % [ ] trial variability plots 
@@ -14,7 +14,7 @@ function PopulationTuning
 alfaVS = 0.0002;
 alfaFR = 0.05;
 
-minTrs  = 12;
+minTrs  = 15;
 
 AMrates = [2 4 8 16 32];
 Stimuli = [9 1:8];
@@ -100,12 +100,13 @@ for iUn = 1:numel(UnitData)
     
     
     % Filter FRtrials to datapoints above minTrs
-%     if any(sum(~isnan(FRtrials),1)<minTrs)
     if any( sum(~isnan(FRtrials),1)<minTrs & sum(~isnan(FRtrials),1)>1 )
         idx=find( sum(~isnan(FRtrials),1)<minTrs & sum(~isnan(FRtrials),1)>1 );
         FRtrials(:,idx) = nan;
         fprintf('removed stim %i \n',idx)
     end
+    
+    mFRs(iUn,:) = mean(FRtrials(:,2:end),1,'omitnan');
     
     % New way to get dFRs
     dFRs(iUn,:) = mean(FRtrials(:,2:end),1,'omitnan') - UnitData(iUn).BaseFR;
@@ -114,7 +115,9 @@ for iUn = 1:numel(UnitData)
     % Percent of units FR significantly > silence
     pvals = nan(1,5);
     for ist = 1:5
-        pvals(ist) = ranksum(FRtrials(:,1),FRtrials(:,ist+2));
+        try
+            pvals(ist) = ranksum(FRtrials(:,1),FRtrials(:,ist+2));
+        end
     end
     
     [iIR_sig_bonferroni,iIR_sig_bonferroniholm] = checkSignificance_bonferroni(pvals,0.05);
@@ -302,12 +305,13 @@ subplot(3,4,8)
 
 % First, distribution for Silence
 data = round([UnitData.BaseFR]',2);
-[values,edges] = histcounts(log10(data),linspace(log10(0.01),log10(1000),20));
+[values,edges] = histcounts(log10(data),linspace(log10(0.001),log10(1000),20));
 x = (edges(1:end-1) + mode(diff(edges))/2);
 f = fit(x',values','gauss1');
-xnew = linspace(log10(0.01),log10(1000),100);
+xnew = linspace(log10(0.001),log10(1000),100);
 z = feval(f,xnew);
-plot(xnew,z./sum(z),'k','LineWidth',2)
+% plot(xnew,z./sum(z),'k','LineWidth',2)
+plot(x,values./sum(values),'k','LineWidth',2)
 
 % Save distribution for stats
 FRdists_fit = nan(length(z),1+size(dFRs,2));
@@ -317,15 +321,17 @@ FRdists_dat(:,1) = data;
 
 hold on
 for ist = 1:size(dFRs,2)
-    data = round(dFRs(:,ist)+[UnitData.BaseFR]',2);
     
-    [values,edges] = histcounts(log10(data),linspace(log10(0.01),log10(1000),20));
+    data = round( dFRs(:,ist)+[UnitData.BaseFR]' ,2);
+    
+    [values,edges] = histcounts(log10(data),linspace(log10(0.001),log10(1000),20));
     x = (edges(1:end-1) + mode(diff(edges))/2);
     
     f = fit(x',values','gauss1');
-    xnew = linspace(log10(0.01),log10(1000),100);
+    xnew = linspace(log10(0.001),log10(1000),100);
     z=[]; z = feval(f,xnew);
-    plot(xnew,z./sum(z),'-','Color',colors(ist,:),'LineWidth',2);
+%     plot(xnew,z./sum(z),'-','Color',colors(ist,:),'LineWidth',2);
+    plot(x,values./sum(values),'-','Color',colors(ist,:),'LineWidth',2);
     
     FRdists_fit(:,ist+1) = z./sum(z);
     FRdists_dat(:,ist+1) = data;
@@ -333,14 +339,17 @@ end
 
 axis square
 set(gca,'Color','none')
-ylim([0 0.04])
-xlabel('FR Resp (sp/s)')
+% ylim([0 0.04])
+ylim([0 0.25])
+xlabel('FR (sp/s)')
 ylabel('Probability')
 grid on
 
-p_dist = anova1(FRdists_fit);
+% p_dist = anova1(FRdists_fit);
 [p_data,~,statss] = anova1(FRdists_dat);
-keyboard
+multcompare(statss)
+title(sprintf('F=%0.2f',p_data))
+
 
 % Distribution of baseline-subtracted FRs per stimulus
 % % hold off; cla

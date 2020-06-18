@@ -1,6 +1,5 @@
 % NOT yet broken down by stimulus 
 
-
 close all
 
 whichClass   = 'ActVec';

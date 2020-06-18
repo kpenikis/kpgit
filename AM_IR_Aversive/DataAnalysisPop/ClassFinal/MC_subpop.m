@@ -8,21 +8,22 @@ function MC_subpop(exclSpec,exclNonSig)
 %  dimensionality.
 %
 %
-%  KP, 2019-01
+%  KP, 2020-01
 %
 
-close all
+% close all
 
 whichClass   = 'ActVec';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
-whichCells   = 'maxdp_RS'; %'Q_pkFR'; %'allRS'; %'dpRank_RS';  % pkFR_RS  %'nsExcl_RS'; 
+whichCells   = 'dpRank_RS'; %'Q_pkFR'; %'allRS'; %'dpRank_RS';  
 exclNonSig   = 0;
 exclSpec     = 0;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
 Dur          = 500;
 WinBeg       = 501 * ones(size(Dur));
+% WinBeg       = [501 551 601 651 751 901];
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
@@ -49,8 +50,8 @@ if strcmp(whichCells,'Q_pkFR')
     PoolStart    = [0.99999 0.8 0.6 0.4 0.2];
     PoolSize     = 0.2;
 elseif strcmp(whichCells,'dpRank_RS') || strcmp(whichCells,'maxdp_RS')
-    PoolStart    = [1 0.2 0.5]; %
-    PoolSize     = [5 10 30 90];%[1 5 10 20 50];
+    PoolStart    = 1; %
+    PoolSize     = [1 3 5 7 10 15 20 30 50 90];%[1 5 10 20 50];
 else
     PoolStart    = 1;
     PoolSize     = 1;
@@ -93,7 +94,8 @@ Cell_Time_Trial_Stim = q.Cell_Time_Trial_Stim;
 Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
 % Load SU classification results
-q = load(fullfile(rootdir,whichStim,whichClass,'each','CR_each.mat'));
+% q = load(fullfile(rootdir,whichStim,whichClass,'each','CR_each.mat'));
+q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
 CReach = q.CR;
 clear q
 
@@ -207,8 +209,14 @@ for ii = 1:numel(WinEnds)
             % Set the subpopulation of cells to use
             switch whichCells
                 
+                case 'all'
+                    UseCells   = 1:size(CTTS,1);
+                    
                 case 'allRS'
                     UseCells   = iRS;
+                    
+                case 'allNS'
+                    UseCells   = iNS;
                     
                 case 'pkFR_RS'
                     [pkFRsort,ipkFR] = rankPeakFR(CTTS(iRS,:,:,:));
@@ -283,9 +291,15 @@ for ii = 1:numel(WinEnds)
             elseif strcmp(whichClass,'Nspk')
                 S_AssMat = runSVMclassFR( CTTS(UseCells,:,:,:), BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType );
             elseif strcmp(whichClass,'Full')
-                %Train and test classifier
+                
+                % Train and test classifier
+                
+%                 [S_AssMat,~,~] = runSVMclass_SUM( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+%                     BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt ); 
+                
                 [S_AssMat,~,~] = runSVMclass_notNorm( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
-                    BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt );
+                    BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt ); 
+                
             elseif strcmp(whichClass,'ActVec')
                 S_AssMat = runSVM_ActVec(CTTS(UseCells,:,:,:),BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );
             end
@@ -314,13 +328,16 @@ for ii = 1:numel(WinEnds)
             xlabel('Assigned')
             set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
             
-            title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i,%i)',...
-                muPC,dprime,KernelType,whichStim,whichCells,NumCells,FirstCell))
+            title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
+                muPC,dprime,KernelType,whichStim,whichCells,NumCells))
+%             title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s ',...
+%                 muPC,dprime,KernelType,whichStim,whichCells))
             
             
             % Save figure
 %             savename = sprintf('Res_v%s-%i_%s_%s_exclNS%i_exclSig%i',whichClass,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,exclNonSig,exclSpec);
-            savename = sprintf('Res_v%s-%i_%s_%s_nc%i_fc%i',whichClass,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,NumCells,FirstCell);
+%             savename = sprintf('Res_v%s-%i_%s_%s_nc%i_fc%i',whichClass,WinEnds(ii)-WinBeg(ii)+1,whichStim,whichCells,NumCells,FirstCell);
+            savename = sprintf('Res_%s_%s_nc%i_win%i',whichStim,whichCells,numel(UseCells),WinBeg(ii));
             
             print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
             
@@ -337,7 +354,7 @@ for ii = 1:numel(WinEnds)
             CR1.exNonSig = exclNonSig;
             CR1.exclSpec = exclSpec;
             CR1.iC       = FirstCell;
-            CR1.nC       = NumCells;
+            CR1.nC       = numel(UseCells);
             CR1.Results  = {S_AssMat};
             CR1.PC       = muPC;
             CR1.dprime   = dprime;
@@ -380,14 +397,13 @@ for ii = 1:numel(WinEnds)
             end
             
         end % nc
-%         close all
     end % fc
-end %vary classification parameter
+end %analysis window 
 
 
 keyboard
 
-[~,ConfIntervals] = bootstrap4significance(CR)
+[~,ConfIntervals] = bootstrap4significance(CR);
 
 idx = [4 3 1 2];
 idx = 1:4;

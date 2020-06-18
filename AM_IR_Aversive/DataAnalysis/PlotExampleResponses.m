@@ -29,7 +29,7 @@ UnitData = q.UnitData;
 UnitInfo = q.UnitInfo;
 clear q
 %-------
-spkshift = mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
+spkshift = 0; %mean([UnitData([UnitData.IntTime_spk]>0).IntTime_spk]);
 %-------
 
 iUn = find(strcmp(UnitInfo.Session,SESSION) & strcmp(UnitInfo.Subject,SUBJECT) & UnitInfo.Clu==CluID);
@@ -116,7 +116,7 @@ for ist = Stimuli
     % Convert FR to z-score
     bs_smth = 20;
     [Stream_FRsmooth,Stream_zscore,Stream_Spikes,~] = convertSpiketimesToFR(spiketimes,...
-        length(SpoutStream),TrialData.onset(1),TrialData.offset(1),10,bs_smth,'silence');
+        length(SpoutStream),TrialData.onset(1),TrialData.offset(1),'gauss',bs_smth,'silence');
     
     % Get all stimuli presented with these parameters, given a
     % sufficient number of trials without diruptive artifact
@@ -258,6 +258,9 @@ for ist = Stimuli
     subplot(hs(ist,3)); hold on
     plot(0:Duration, mean(psth,1,'omitnan'),...
         'LineWidth',psthlinewidth,'Color','k')
+    plot([0 Duration],[UnitData(iUn).BaseFR UnitData(iUn).BaseFR],'y')
+    plot([0 Duration],std(mean(psth,2,'omitnan'))+[UnitData(iUn).BaseFR UnitData(iUn).BaseFR],':y')
+    plot([0 Duration],-1*std(mean(psth,2,'omitnan'))+[UnitData(iUn).BaseFR UnitData(iUn).BaseFR],':y')
     set(gca,'Color','none','xtick',unique([0:500:Duration Duration]),...
         'xticklabel',unique([0:500:Duration Duration]),'tickdir','out','ticklength',0.01.*[1 1])
     xlabel('Time (ms)')
@@ -290,124 +293,124 @@ end %ist
 % savename = sprintf('AMresponses_Clu%i', CluID);
 % save(fullfile(savedir,savename),'AvgEnv','PSTH','Info','-v7.3')
 
-
-[IR_Prediction_sim, IR_Pred_std_sim, pvals] = predictIRresponse_simulation(FRtrials);
+% 
+% [IR_Prediction_sim, IR_Pred_std_sim, pvals] = predictIRresponse_simulation(FRtrials);
 
 
 
 %% Tuning curves 
-
-htc=figure;
-set(gcf,'Position',widescreen)
-hold on
-
-xvals = [1:5 allStim(allStim>6)+2]; 
-
-
-% - - - - - - - - - - - - - -   FR   - - - - - - - - - - - - - -
-
-y_vals = FR_allSt;
-y_errs = std_allSt;
-
-subplot(1,3,1);
-hold on
-
-% Plot baseline FR
-if abs(FR_allSt(9) - UnitData(iUn).BaseFR) > (FR_allSt(9)/20)
-    keyboard
-end
-plot([0 max(xvals)+1],[FR_allSt(9) FR_allSt(9)],'--k','LineWidth',3)
-
-% Plot periodic stimuli
-plot(1:5,y_vals(2:6),'k','LineWidth',2)
-for ir = 1:5
-    plot([xvals(ir) xvals(ir)], y_vals(ir+1) + y_errs(ir+1)*[-1 1], ...
-        '-','Color','k','LineWidth',4)
-    plot(xvals(ir),y_vals(ir+1), 'o','MarkerSize',20,...
-        'MarkerFaceColor','k','MarkerEdgeColor','none')
-end
-
-% Plot IR prediction
-plot([7 7], IR_Prediction_sim + IR_Pred_std_sim*[-1 1],'k','LineWidth',4)
-plot( 7, IR_Prediction_sim, 'ok','MarkerSize',20,...
-    'MarkerEdgeColor','k','MarkerFaceColor','none','LineWidth',4)
-
-% Plot IR observed
-for ir = 1:sum(xvals>5)
-    plot(xvals(5+ir),y_vals(xvals(5+ir)-2),'o','MarkerSize',20,...
-        'MarkerFaceColor',colors(xvals(5+ir)-2,:),'MarkerEdgeColor','none')
-    plot([xvals(5+ir) xvals(5+ir)],y_vals(xvals(5+ir)-2) + y_errs(xvals(5+ir)-2)*[-1 1],...
-        '-','Color',colors(xvals(5+ir)-2,:),'LineWidth',4)
-    if pvals(xvals(5+ir)-8)<0.05
-        plot(xvals(5+ir),y_vals(xvals(5+ir)-2) + 1.5*y_errs(xvals(5+ir)-2),'*k')
-    end
-end
-
-% Finish formatting
-set(gca,'XTick',sort([xvals 7]),...
-    'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
-    'TickLabelInterpreter','none')
-xtickangle(45)
-
-xlim([-1+min(xvals) max(xvals)+1])
-keyboard
-ylim([0 16])
-ylabel('FR')
-keyboard
-
-
-% - - - - - - - - - - - - - -   VS   - - - - - - - - - - - - - -
-
-subplot(1,3,2);
-hold on
-
-% Plot periodic stimuli
-plot(1:5,UnitData(iUn).VSdata_spk(1,2:6),'-ok','MarkerSize',20,'LineWidth',2)
-plot(find((UnitData(iUn).VSdata_spk(3,2:6)<0.001)),UnitData(iUn).VSdata_spk(1,1+find(UnitData(iUn).VSdata_spk(3,2:6)<0.001)),'.k','MarkerSize',55,'LineWidth',2)
-
-% Finish formatting
-set(gca,'XTick',sort([xvals 7]),...
-    'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
-    'TickLabelInterpreter','none')
-xtickangle(45)
-
-xlim([-1+min(xvals) max(xvals)+1])
-ylim([0 1])
-ylabel('VS')
-
-
-
-% - - - - - - - - - - - - - -   FF   - - - - - - - - - - - - - -
-
-subplot(1,3,3);
-hold on
-
-plot([0 max(xvals)+1],[FF_allSt(9) FF_allSt(9)],'--k','LineWidth',3)
-
-% Plot periodic stimuli
-plot(1:5,FF_allSt(2:6),'k','LineWidth',2)
-for ir = 1:5
-    plot(xvals(ir),FF_allSt(ir+1), 'o','MarkerSize',20,...
-        'MarkerFaceColor','k','MarkerEdgeColor','none')
-end
-
-% Plot IR observed
-for ir = 1:sum(xvals>5)
-    plot(xvals(5+ir),FF_allSt(xvals(5+ir)-2),'o','MarkerSize',20,...
-        'MarkerFaceColor',colors(xvals(5+ir)-2,:),'MarkerEdgeColor','none')
-end
-
-% Finish formatting
-set(gca,'XTick',sort([xvals 7]),...
-    'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
-    'TickLabelInterpreter','none')
-xtickangle(45)
-
-xlim([-1+min(xvals) max(xvals)+1])
+% 
+% htc=figure;
+% set(gcf,'Position',widescreen)
+% hold on
+% 
+% xvals = [1:5 allStim(allStim>6)+2]; 
+% 
+% 
+% % - - - - - - - - - - - - - -   FR   - - - - - - - - - - - - - -
+% 
+% y_vals = FR_allSt;
+% y_errs = std_allSt;
+% 
+% subplot(1,3,1);
+% hold on
+% 
+% % Plot baseline FR
+% if abs(FR_allSt(9) - UnitData(iUn).BaseFR) > (FR_allSt(9)/20)
+%     keyboard
+% end
+% plot([0 max(xvals)+1],[FR_allSt(9) FR_allSt(9)],'--k','LineWidth',3)
+% 
+% % Plot periodic stimuli
+% plot(1:5,y_vals(2:6),'k','LineWidth',2)
+% for ir = 1:5
+%     plot([xvals(ir) xvals(ir)], y_vals(ir+1) + y_errs(ir+1)*[-1 1], ...
+%         '-','Color','k','LineWidth',4)
+%     plot(xvals(ir),y_vals(ir+1), 'o','MarkerSize',20,...
+%         'MarkerFaceColor','k','MarkerEdgeColor','none')
+% end
+% 
+% % Plot IR prediction
+% plot([7 7], IR_Prediction_sim + IR_Pred_std_sim*[-1 1],'k','LineWidth',4)
+% plot( 7, IR_Prediction_sim, 'ok','MarkerSize',20,...
+%     'MarkerEdgeColor','k','MarkerFaceColor','none','LineWidth',4)
+% 
+% % Plot IR observed
+% for ir = 1:sum(xvals>5)
+%     plot(xvals(5+ir),y_vals(xvals(5+ir)-2),'o','MarkerSize',20,...
+%         'MarkerFaceColor',colors(xvals(5+ir)-2,:),'MarkerEdgeColor','none')
+%     plot([xvals(5+ir) xvals(5+ir)],y_vals(xvals(5+ir)-2) + y_errs(xvals(5+ir)-2)*[-1 1],...
+%         '-','Color',colors(xvals(5+ir)-2,:),'LineWidth',4)
+%     if pvals(xvals(5+ir)-8)<0.05
+%         plot(xvals(5+ir),y_vals(xvals(5+ir)-2) + 1.5*y_errs(xvals(5+ir)-2),'*k')
+%     end
+% end
+% 
+% % Finish formatting
+% set(gca,'XTick',sort([xvals 7]),...
+%     'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
+%     'TickLabelInterpreter','none')
+% xtickangle(45)
+% 
+% xlim([-1+min(xvals) max(xvals)+1])
 % keyboard
-ylim([0 10])
-ylabel('FF')
-keyboard
+% ylim([0 16])
+% ylabel('FR')
+% keyboard
+% 
+% 
+% % - - - - - - - - - - - - - -   VS   - - - - - - - - - - - - - -
+% 
+% subplot(1,3,2);
+% hold on
+% 
+% % Plot periodic stimuli
+% plot(1:5,UnitData(iUn).VSdata_spk(1,2:6),'-ok','MarkerSize',20,'LineWidth',2)
+% plot(find((UnitData(iUn).VSdata_spk(3,2:6)<0.001)),UnitData(iUn).VSdata_spk(1,1+find(UnitData(iUn).VSdata_spk(3,2:6)<0.001)),'.k','MarkerSize',55,'LineWidth',2)
+% 
+% % Finish formatting
+% set(gca,'XTick',sort([xvals 7]),...
+%     'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
+%     'TickLabelInterpreter','none')
+% xtickangle(45)
+% 
+% xlim([-1+min(xvals) max(xvals)+1])
+% ylim([0 1])
+% ylabel('VS')
+% 
+% 
+% 
+% % - - - - - - - - - - - - - -   FF   - - - - - - - - - - - - - -
+% 
+% subplot(1,3,3);
+% hold on
+% 
+% plot([0 max(xvals)+1],[FF_allSt(9) FF_allSt(9)],'--k','LineWidth',3)
+% 
+% % Plot periodic stimuli
+% plot(1:5,FF_allSt(2:6),'k','LineWidth',2)
+% for ir = 1:5
+%     plot(xvals(ir),FF_allSt(ir+1), 'o','MarkerSize',20,...
+%         'MarkerFaceColor','k','MarkerEdgeColor','none')
+% end
+% 
+% % Plot IR observed
+% for ir = 1:sum(xvals>5)
+%     plot(xvals(5+ir),FF_allSt(xvals(5+ir)-2),'o','MarkerSize',20,...
+%         'MarkerFaceColor',colors(xvals(5+ir)-2,:),'MarkerEdgeColor','none')
+% end
+% 
+% % Finish formatting
+% set(gca,'XTick',sort([xvals 7]),...
+%     'XTickLabel',[Info.stim_ID_key(2:6)' 'Linear Prediction' Info.stim_ID_key(allStim(7:end))' ],...
+%     'TickLabelInterpreter','none')
+% xtickangle(45)
+% 
+% xlim([-1+min(xvals) max(xvals)+1])
+% % keyboard
+% ylim([0 10])
+% ylabel('FF')
+% keyboard
 
 
 %% Save figures
@@ -423,10 +426,10 @@ for ist = Stimuli
     
 end
 
-
-% Save MTF figure
-savename = sprintf('TuningCurves_%s_%i',SESSION,CluID);
-print_eps_kp(htc,fullfile(savedir,savename))
+% 
+% % Save MTF figure
+% savename = sprintf('TuningCurves_%s_%i',SESSION,CluID);
+% print_eps_kp(htc,fullfile(savedir,savename))
 
 
 

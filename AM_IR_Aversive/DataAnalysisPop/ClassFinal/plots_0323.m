@@ -336,7 +336,7 @@ print_eps_kp(gcf,fullfile(savedir,'SUdp_slow_vs_32'))
 
 %%
 %==========================================================================
-% Pairwise correlations betweene stimulus SU d' vectors
+% Pairwise correlations between stimulus SU d' vectors
 %==========================================================================
 
 CorrMat = ones(nStim,nStim);

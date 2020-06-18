@@ -185,123 +185,208 @@ if ~isrow(TS)
     TS = TS';
 end
 
-% Bring max envelope to 0
-TS = TS-max(TS)-0.01;
+% normalize envelope to between -1 and 1
+TS = TS/max(abs(TS));
 
-envFloor = ceil(min(TS)+1);
+TS(find(onsOff(2,:)==1):end) = 0;
+TS(1:find(onsOff(1,:)==1)) = 0;
 
 % first temporal derivative of TS
-diff_loudness = [0 diff(TS)];
+diff_loudness = [diff(TS) 0];
 
 %% discrete loudness
-
 % min
-% [lmin, minloc] = findpeaks(-TS,'MinPeakDistance',mpd);
-[lmin, minloc] = findpeaks(-TS,'MinPeakProminence',6);
+[lmin, minloc] = findpeaks(-TS,'MinPeakDistance',mpd);
+% [lmin, minloc] = findpeaks(-TS,'MinPeakProminence',mpd*(max(-TS)-min(-TS)));
 minEnv = zeros(size(TS));
 minEnv(minloc)=-lmin;
-
-% Also add the time that envelope crosses the floor threshold
-% (adding this because min peaks are found at beginning, not end, of 
-% intertrial intervals for speech
-if envFloor<80
-    idxOnset = 429+find(TS(430:505)>envFloor,1,'first');
-    minEnv(idxOnset) = TS(idxOnset);
-end
-
-
 % max
-% [lmin, minloc] = findpeaks(TS,'MinPeakDistance',mpd);
-[lmin, minloc] = findpeaks(TS,'MinPeakProminence',6);
+[lmin, minloc] = findpeaks(TS,'MinPeakDistance',mpd);
+% [lmin, minloc] = findpeaks(TS,'MinPeakProminence',mpd*(max(TS)-min(TS)));
 peakEnv = zeros(size(TS));
 peakEnv(minloc)=lmin;
 
-
-% Check for cases where two mins without a max in between them 
-Mins = find(minEnv);
-Maxs = find(peakEnv);
-
-for im = 2:numel(Mins)
-    
-    iMax = find(Maxs>Mins(im-1) & Maxs<Mins(im));
-    
-    mE = envFloor-1;
-    if isempty(iMax)
-        [mE,imE] = max(TS(Mins(im-1):Mins(im)));
-    end
-    
-    % Include only if envelope exceeds a low threshold
-    if mE>envFloor+2
-        peakEnv(imE+Mins(im-1)-1) = mE;
-    end
-end
-
-
 %% discrete delta loudness
-
 % min
 negloud = diff_loudness; negloud(negloud>0) = 0;
 [lmin, minloc] = findpeaks(-negloud,'MinPeakDistance',mpd);
-% [lmin, minloc] = findpeaks(-negloud,'MinPeakProminence',6);
-decrRate = zeros(size(TS));
-decrRate(minloc)=-lmin;
-
+% [lmin, minloc] = findpeaks(-negloud,'MinPeakProminence',mpd*(max(-negloud)-min(-negloud)));
+minRate = zeros(size(TS));
+minRate(minloc)=-lmin;
 % max
 posloud = diff_loudness; posloud(posloud<0) = 0;
 [lmin, minloc] = findpeaks(posloud,'MinPeakDistance',mpd);
-% [lmin, minloc] = findpeaks(posloud,'MinPeakProminence',6);
+% [lmin, minloc] = findpeaks(posloud,'MinPeakProminence',mpd*(max(posloud)-min(posloud)));
 peakRate = zeros(size(TS));
 peakRate(minloc)=lmin;
 
 clear negloud posloud ;
 
-
-%% ------- KP clean up 
-% for each minEnv to maxEnv, keep the highest peakRate event
-
-Mins = find(minEnv);
-Maxs = find(peakEnv);
-iprs = find(peakRate);
-
-NewPeakRate = zeros(size(peakRate));
-
-for im = 1:numel(Mins)
-    
-    % Find beginning and end of this level ramp
-    t1 = Mins(im);
-    t2 = Maxs(find(Maxs>t1,1,'first'));
-    if isempty(t2)
-        continue
-    end
-    
-    % Find maximum peak of derivative
-    thesePRs = iprs(iprs>t1 & iprs<t2);
-    [maxRise,iRise] = max(peakRate(thesePRs));
-    
-    % Set all other peakRate events to keep
-    NewPeakRate(thesePRs(iRise)) = maxRise;
-    
-end
-
-% % % Plot to check
-% % figure;
-% % plot(TS,'k','LineWidth',2)
-% % hold on
-% % plot(find(peakRate),TS(1,peakRate~=0),'.r','MarkerSize',10)
-% % plot(find(peakEnv),TS(1,peakEnv~=0),'.g','MarkerSize',20)
-% % plot(find(minEnv),TS(1,minEnv~=0),'.c','MarkerSize',20)
-% % 
-% % plot(find(NewPeakRate),TS(NewPeakRate~=0),'*b','MarkerSize',20)
-
-
-%% Finish storing output information
-
+%% complete loudness information
 allTS = [TS; ...
     diff_loudness;...
     minEnv;...
     peakEnv;...
-    decrRate;...
-    NewPeakRate];
+    minRate;...
+    peakRate];
+
+
+%% ------- KP clean up (loudness must double (or exceed some multiplier) to keep peakRate event)
+
+envRatios = [];
+ipRs = find(allTS(6,:));
+for ipk = ipRs
+    
+    i1=ipk;
+    Emin = allTS(3,i1);
+    while Emin==0
+        i1=i1-1;
+        if i1>0
+            Emin = allTS(3,i1);
+        else
+            break
+        end
+    end
+    
+    i2=ipk;
+    Emax = allTS(4,i2);
+    while Emax==0
+        i2=i2+1;
+        if i2<=size(allTS,2)
+            Emax = allTS(4,i2);
+        else
+            break
+        end
+    end
+    
+    envRatios = [envRatios; Emax/Emin];
+end
+
+allTS(6,ipRs(envRatios<minRatio))=0;
+
+% clean up all variables to keep one per cycle (env min and max)
+
+
+
+% figure;
+% plot([nan diff(find(allTS(6,:)))],allTS(6,(allTS(6,:)>0)),'ob')
+
+
+%% --------------- clean up
+
+if cleanup_flag
+    %% start with maxima in envelope
+    
+    cmaxloc = find(allTS(4,:)~=0);
+    cmax = allTS(4,cmaxloc);
+    
+    % initialize all other landmark variables
+    cmin      = nan(size(cmaxloc));
+    cminloc   = nan(size(cmaxloc));
+    cminDt    = nan(size(cmaxloc));
+    cminDtLoc = nan(size(cmaxloc));
+    cmaxDt    = nan(size(cmaxloc));
+    cmaxDtLoc = nan(size(cmaxloc)); 
+    
+    % --- define minima in envelope for each peak in envelope
+    
+    % first peak - getting cmin, cminloc
+    cminloc(1) = 1;
+    cmin(1) = 0.001;
+        
+    % remaining peaks
+    for i= 2:length(cmaxloc)
+        % find troughs between two consecutive peaks
+        cExtrLoc = find(allTS(3,cmaxloc(i-1):cmaxloc(i))~=0);
+        cExtr = allTS(3, cmaxloc(i-1)+cExtrLoc-1);
+        if length(cExtr)==1 % this is standard case - one min per peak
+            cmin(i) = cExtr;
+            cminloc(i) = cmaxloc(i-1)+cExtrLoc-1;
+        elseif length(cExtr) > 1 % if multiple troughs, use the lowest one; should not happen ever.
+            [cmin(i),cl] = min(cExtr);
+            cminloc(i) = cExtrLoc(cl)+cmaxloc(i-1)-1;
+        elseif isempty(cExtr) % no minima in this window found by general algorithm; define as lowest point between this and previous peak.
+            [cExtr(i), cExtrLoc(i)] = min(allTS(1, cmaxloc(i-1):cmaxloc(i)));
+            cminloc(i) = cExtrLoc(i) + cmaxloc(i-1)+1;
+            cmin(i) = cExtr(i);            
+        end
+    end
+    
+%     if (cmaxloc(1)-cminloc(1))<5
+%         cmaxloc(1) = [];
+%         cminloc(1) = [];
+%     end
+    
+    
+    %% % %  peakRate % % %
+    
+    for i= 1:length(cmaxloc)        
+        if i == 1 % first peak
+            cExtrLoc = find(allTS(6,1:cmaxloc(1))~=0);
+            cExtr = allTS(6, cExtrLoc);
+            prevloc = 0;
+        else % remaining peaks
+            cExtrLoc = find(allTS(6,cmaxloc(i-1):cmaxloc(i))~=0);
+            cExtr = allTS(6,  cmaxloc(i-1)+cExtrLoc-1);
+            prevloc = cmaxloc(i-1)-1;
+        end
+        
+        if length(cExtr)==1
+            cmaxDt(i) = cExtr;
+            cmaxDtLoc(i) = cExtrLoc+prevloc;        
+        elseif length(cExtr)>1
+            [cmaxDt(i),cl] = max(cExtr);
+            cmaxDtLoc(i) = cExtrLoc(cl)+prevloc;
+        elseif isempty(cExtr)
+            warning('no peakRate found in cycle %d  \n', i);
+        end
+    end
+    
+    %% % %  minRate % % %
+    
+    % all but last peaks
+    for i= 1:length(cmaxloc)-1        
+        cExtrLoc = find(allTS(5,cmaxloc(i):cmaxloc(i+1))~=0);
+        cExtr = allTS(5, cmaxloc(i)+cExtrLoc-1);
+        if length(cExtr)==1
+            cminDt(i) = cExtr;
+            cminDtLoc(i) = cExtrLoc+cmaxloc(i)-1;
+        elseif isempty(cExtr)
+            warning('no rate trough in cycle %d \n', i);
+        elseif length(cExtr)>1
+            [cminDt(i),cl] = min(cExtr);
+            cminDtLoc(i) = cExtrLoc(cl)+cmaxloc(i)-1;        
+        end
+    end
+    
+    % last peak
+    peakId = length(cmaxloc);
+    envelopeEnd = find(TS~=0, 1, 'last');
+    cExtrLoc = find(allTS(5,cmaxloc(end): envelopeEnd-1)~=0);
+    cExtr = allTS(5, cExtrLoc+cmaxloc(end)-1);
+    if length(cExtr)==1
+        cminDt(peakId) = cExtr;
+        cminDtLoc(peakId) = cExtrLoc+cmaxloc(end)-1;    
+    elseif length(cExtr)>1
+        [cminDt(peakId),cl] = min(cExtr);
+        cminDtLoc(peakId) = cExtrLoc(cl)+cmaxloc(end)-1;
+    elseif isempty(cExtr)
+        warning('no minDtL in cycle %d \n', i);
+    end
+    
+    %% detect silence in middle of utterance 
+    if sum(cmin==0)>0 ,         warning('0 min found \n');    end
+    
+    %% combine all info
+    cextVal = [cmin;cmax;cminDt;cmaxDt];
+    cextLoc = [cminloc;cmaxloc;cminDtLoc;cmaxDtLoc];
+    
+    % redo allTS with cleaned values.
+    for i = 3:6
+        allTS(i,:)=0;
+        allTS(i, cextLoc(i-2,:)) = cextVal(i-2,:);
+    end
+end
 
 varNames = {'Loudness', 'dtLoudness', 'minenv', 'peakEnv', 'minRate', 'peakRate'};
 

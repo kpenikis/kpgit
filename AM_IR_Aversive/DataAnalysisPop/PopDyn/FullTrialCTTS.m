@@ -11,7 +11,7 @@ rng('shuffle')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'Speech';
+whichStim    = 'AC';
 switch whichStim
     case 'AC'
         Stimuli      = 1:8;
@@ -83,6 +83,83 @@ NS = UnitInfo.TroughPeak<=0.43;
 
 % GCs = (sum(nTrialMat(:,Stimuli)<minTr,2)==0);
 % theseCells = find(GCs & RS);
+
+
+
+
+%% Modulation power spectrum of speech stimuli
+
+fs=1000;
+
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% % Conv win
+tau          = 10;
+gaussconvwin = gausswin(tau);
+gaussconvwin = gaussconvwin./sum(gaussconvwin);
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Get durations of each stimulus
+MeanEnv  = permute(mean(mean(ETTS,3,'omitnan'),1,'omitnan'),[4 2 1 3]);
+MeanPSTH = permute(mean(mean(CTTS,3,'omitnan'),1,'omitnan'),[4 2 1 3]);
+
+
+% Modulation Power Spectrum of all stimuli
+CatEnv   = [];
+CatPSTH  = [];
+for ist =  1:numel(Stimuli) % [3 4] 
+    
+%     convEnv = conv(MeanEnv(ist,:)',gaussconvwin,'same');
+%     convPST = conv(MeanPSTH(ist,:)',gaussconvwin,'same');
+%     CatEnv  = [CatEnv;  convEnv(501:(500+TD(ist)))];
+%     CatPSTH = [CatPSTH; convPST(501:(500+TD(ist)))];
+    
+    CatEnv  = [CatEnv;  MeanEnv(ist,501:(500+TD(ist)))'];
+    CatPSTH = [CatPSTH; MeanPSTH(ist,501:(500+TD(ist)))'];
+end
+
+% FFT method #1
+% [ssf,fws]     = plotMPS(CatEnv,fs);
+% [ssf_R,fws_R] = plotMPS(CatPSTH,fs);
+
+% FFT method #2
+L    = length(CatEnv);
+f    = fs*(0:(L/2))'/L;
+y_S  = fft(CatEnv);
+P2_S = abs(y_S/L);
+P1_S = P2_S( 1 : floor(L/2+1) );
+P1_S = P1_S.*sqrt(f);
+P1_S(2:end-1) = 2*P1_S(2:end-1);
+
+y_R  = fft(CatPSTH);
+P2_R = abs(y_R/L);
+P1_R = P2_R( 1 : floor(L/2+1) );
+P1_R = P1_R.*sqrt(f);
+P1_R(2:end-1) = 2*P1_R(2:end-1);
+
+
+% Plot SIGNAL
+figure; 
+plot(CatEnv./max(CatEnv),'LineWidth',2)
+hold on
+plot(CatPSTH./max(CatPSTH),'LineWidth',0.5)
+xlim([0 length(CatEnv)])
+xlabel('Time (ms)')
+
+% print_eps_kp(gcf,fullfile(savedir,'Data',['CatStimPSTH_' whichStim '_10msG']))
+
+
+% Plot POWER SPECTRUM
+figure; 
+xlim([0.25 2^9])
+set(gca,'xscale','log')
+% plot(ssf,fws./max(fws(ssf>0.25&ssf<64)),'LineWidth',2)
+hold on
+plot(f,P1_S/max(P1_S),'LineWidth',2)
+plot(f,P1_R/max(P1_R),'LineWidth',1)
+set(gca,'xtick',[0.5 1 2 4 8 16 32 2^9])
+xlabel('Frequency')
+
+print_eps_kp(gcf,fullfile(savedir,'Data',['ModSpectrum_CatStimPSTH_' whichStim ])) %'_10msG'
 
 
 
@@ -168,6 +245,23 @@ title([whichStim ' ' num2str(Stim)])
 print_eps_kp(gcf,fullfile(savedir,sprintf('%s_HistEventTiming',whichStim)))
 
 
+figure;
+plot([nan; diff(pRs)],diff([pRs eMs],1,2),'.k','MarkerSize',15)
+hold on
+xlabel('next peakRate')
+ylabel('next maxEnv')
+plot(500,125,'s','MarkerSize',10)
+plot(250,125/2,'s','MarkerSize',10)
+plot(500/4,125/4,'s','MarkerSize',10)
+plot(500/8,125/8,'s','MarkerSize',10)
+plot(500/16,125/16,'s','MarkerSize',10)
+
+print_eps_kp(gcf,fullfile(savedir,sprintf('%s_ScatterEventTiming',whichStim)))
+
+xlim([0 500])
+legend(ih,{'Time from peakRate until maxEnv' 'Time between peakRate events'})
+title([whichStim ' ' num2str(Stim)])
+
 
 %allTS = [ Env; ...
 %     diff_Env;...
@@ -221,19 +315,21 @@ for ist = Stimuli
     end %it
     
     figure;
-    plot(15+5.*(mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan')./max(mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan'))),...
+    plot(40.*(mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan')./max(mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan'))),...
         'Color',0.6*[1 1 1],'LineWidth',2)
 %     plot(sum(raster,1),'k')
     hold on
-    plot(XVALS,mean(nSpkBins,1))
-    plot(XVALS,mean(nCellsBin,1))
+%     plot(10.*(mean(mean(CTTS(theseCells,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan')./max(mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan'))),...
+%         'LineWidth',2)
+    plot(XVALS,mean(nSpkBins,1),'LineWidth',2)
+%     plot(XVALS,mean(nCellsBin,1))
     
-    figure;
-    plot((mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan')./max(mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan'))),...
-        'Color',0.6*[1 1 1],'LineWidth',2)
-%     plot(1+10.*mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan'))
-    hold on
-    plot(XVALS,mean(nSpkBins,1)./mean(nCellsBin,1),'k','LineWidth',2)
+%     figure;
+%     plot((mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan')./max(mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan'))),...
+%         'Color',0.6*[1 1 1],'LineWidth',2)
+% %     plot(1+10.*mean(mean(ETTS(:,500+(1:BINS(end)),:,ist),1,'omitnan'),3,'omitnan'))
+%     hold on
+%     plot(XVALS,mean(nSpkBins,1)./mean(nCellsBin,1),'k','LineWidth',2)
     
 end %ist
 
