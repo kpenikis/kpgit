@@ -324,7 +324,11 @@ for ii = 1:numel(WinEnds)
             
             elseif strcmp(whichClass,'Sum')
                 [S_AssMat,~,~] = runSVMclass_SUM( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
-                    BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt ); 
+                    BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt );
+                
+            elseif strcmp(whichClass,'SumAV')
+                [S_AssMat,~,~] = runSVMclass_avSUM( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+                    BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt );
                 
             elseif strcmp(whichClass,'ActVec')
                 S_AssMat = runSVM_ActVec(CTTS(UseCells,:,:,:),BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );

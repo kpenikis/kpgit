@@ -1,10 +1,10 @@
 
 
 whichStim  = 'AC';
-whichClass = 'Sum';
+whichClass = 'SumAV';
 
 % Set N trials
-allMT = [16 19 22 32];
+allMT = [12 16 17 19 22 32];
 
 for minTrs = allMT
 close all
