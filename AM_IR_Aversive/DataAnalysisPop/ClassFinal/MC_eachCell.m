@@ -13,15 +13,16 @@ function MC_eachCell(whichStim)
 
 % close all
 
-whichClass   = 'ActVec';
+whichClass   = 'Full';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
 whichCells   = 'each'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
-Dur          = 500;%[10:20:150 200 300 400 500];
-WinBeg       = 501 * ones(size(Dur));
+Dur          = 100;%[10:20:150 200 300 400 500];
+WinBeg       = [501 551 601 651 751];
+% WinBeg       = 1001 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TRIALS
@@ -94,9 +95,9 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,whichClass,whichCells);
-if ~exist(fullfile(figsavedir,'backupTables'),'dir')
-    mkdir(fullfile(figsavedir,'backupTables'))
+figsavedir = fullfile(rootdir,whichStim,whichClass,whichCells,'Sliding100');
+if ~exist(figsavedir,'dir')
+    mkdir(figsavedir)
 end
 
 
@@ -179,35 +180,35 @@ for ii = 1:numel(WinEnds)
         muPC    = mean(diag(ConfMat))*100;
         dprime  = norminv(mean(diag(ConfMat)),0,1) - norminv(mean(ConfMat(~diag(diag(ConfMat)))),0,1);
         
-        ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
+%         ConfMat(1:nStim+1:nStim*nStim) = -1.*ConfMat(1:nStim+1:nStim*nStim);
         
         % Plot
-        hf(ii) = figure;
-        imagesc(ConfMat)
-        axis square
-        caxis([-1 1])
-        %         cmocean('ice') %ice
-        cmocean('curl','pivot',0)
-        colorbar
-        ylabel('True stim')
-        xlabel('Assigned')
-        set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
-        
-        title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (iUn=%i)',...
-            muPC,dprime,KernelType,whichStim,whichCells,iUn))
-        
-        
-        % Save figure
-        
+%         hf(ii) = figure;
+%         imagesc(ConfMat)
+%         axis square
+%         caxis([-1 1])
+%         %         cmocean('ice') %ice
+%         cmocean('curl','pivot',0)
+%         colorbar
+%         ylabel('True stim')
+%         xlabel('Assigned')
+%         set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
+%         
+%         title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (iUn=%i)',...
+%             muPC,dprime,KernelType,whichStim,whichCells,iUn))
+%         
+%         
+%         % Save figure
+%         
         savename = sprintf('Res_%s-%i_Train%i_conv%i_%s',whichCells,iUn,TrainSize,tau,whichStim);
-        
-        print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
+%         
+%         print(hf(ii),fullfile(figsavedir,savename),'-dpdf')
         
         
         %% Save results to master table
         
         mastertablesavename = sprintf('CR_%s',whichCells);
-        thistablesavename   = savename;
+%         thistablesavename   = savename;
         
         % Calculate performance for Env data
 %         ConfMat  = mean(E_AssMat,3);
@@ -260,7 +261,7 @@ for ii = 1:numel(WinEnds)
         end
         
 %         if mod(iUn,10)==0
-            close all
+%             close all
 %         end
     end %iUn
 end %vary classification parameter

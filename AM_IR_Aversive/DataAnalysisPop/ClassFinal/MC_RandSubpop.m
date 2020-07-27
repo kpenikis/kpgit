@@ -11,7 +11,7 @@ function MC_RandSubpop
 %  dimensionality.
 %
 %
-%  KP, 2020-01; updated 2020-03 for ActVec
+%  KP, 2020-01; updated 2020-03 for ActVec; 2020-04 back to Projections
 %
 
 close all
