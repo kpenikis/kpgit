@@ -1,4 +1,4 @@
-function MC_eachCell(whichStim)
+function MC_eachCell(minTrs,whichStim,whichClass)
 % MasterClass (all parameters defined at top of file)
 %
 %  SVM classifier for segments of Pdc and Irr stimuli.
@@ -9,19 +9,20 @@ function MC_eachCell(whichStim)
 %
 %
 %  KP, 2019-12
+%   updated 2020-07 for changing minTrs
 %
 
 % close all
 
-whichClass   = 'Full';
+% whichClass   = 'Full';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
 whichCells   = 'each'; 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % TIME
-Dur          = 100;%[10:20:150 200 300 400 500];
-WinBeg       = [501 551 601 651 751];
+Dur          = 500;%[10:20:150 200 300 400 500];
+WinBeg       = [501];
 % WinBeg       = 1001 * ones(size(Dur));
 WinEnds      = WinBeg+Dur-1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -31,7 +32,7 @@ PickTrials   = 'rand';
 % STIM
 % whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 500;
+BootstrapN   = 50;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -41,9 +42,9 @@ convwin      = exp(-lambda*(1:winlen));
 convwin      = convwin./sum(convwin);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PSTHsize     = 'Train-1';
-TrainSize    = 11;
 TestSize     = 1;
-minTrs       = TrainSize + TestSize;
+TrainSize    = minTrs - TestSize;
+% minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 rng('shuffle')
 
@@ -95,7 +96,7 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,whichClass,whichCells,'Sliding100');
+figsavedir = fullfile(rootdir,whichStim,whichClass,['minTrs' num2str(minTrs)]);
 if ~exist(figsavedir,'dir')
     mkdir(figsavedir)
 end
@@ -267,7 +268,6 @@ for ii = 1:numel(WinEnds)
 end %vary classification parameter
 
 return
-keyboard
 
 
 pcr_SUdpFR

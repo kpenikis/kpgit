@@ -1,4 +1,4 @@
-function MC_subpop(exclSpec,exclNonSig)
+function MC_subpop(minTrs,whichStim,whichClass)  %(exclSpec,exclNonSig)
 % MasterClass (all parameters defined at top of file)
 %  Can process AM or Speech data.
 % 
@@ -13,7 +13,7 @@ function MC_subpop(exclSpec,exclNonSig)
 
 % close all
 
-whichClass   = 'ActVec';
+% whichClass   = 'Full';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % CELLS
 whichCells   = 'dpRank_RS'; %'Q_pkFR'; %'allRS'; %'dpRank_RS';  
@@ -30,9 +30,9 @@ WinEnds      = WinBeg+Dur-1;
 PickTrials   = 'rand';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % STIM
-whichStim    = 'AC';
+% whichStim    = 'Speech';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-BootstrapN   = 500;
+BootstrapN   = 50;
 KernelType   = 'linear';
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 tau          = 5;
@@ -42,16 +42,16 @@ convwin      = exp(-lambda*(1:500));
 convwin      = convwin./sum(convwin);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 PSTHsize     = 'Train-1';
-TrainSize    = 11;
 TestSize     = 1;
-minTrs       = TrainSize + TestSize;
+TrainSize    = minTrs - TestSize;
+% minTrs       = TrainSize + TestSize;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if strcmp(whichCells,'Q_pkFR')
     PoolStart    = [0.99999 0.8 0.6 0.4 0.2];
     PoolSize     = 0.2;
 elseif strcmp(whichCells,'dpRank_RS') || strcmp(whichCells,'maxdp_RS')
     PoolStart    = 1; %
-    PoolSize     = [1 3 5 7 10 15 20 30 50 90];%[1 5 10 20 50];
+%     PoolSize     = [3 5 10 nan];%[1 5 10 20 50];
 else
     PoolStart    = 1;
     PoolSize     = 1;
@@ -64,7 +64,7 @@ rng('shuffle')
 
 %% Load data
 
-fn = set_paths_directories('','',1);
+fn = set_paths_directories;
 switch whichStim
     case {'AC' 'DB'}
         rootdir = fullfile(fn.figs,'ClassAM');
@@ -95,9 +95,14 @@ Env_Time_Trial_Stim  = q.Env_Time_Trial_Stim;
 
 % Load SU classification results
 % q = load(fullfile(rootdir,whichStim,whichClass,'each','CR_each.mat'));
-q = load(fullfile(rootdir,whichStim,'Full','each','CR_each.mat'));
+try 
+    q = load(fullfile(rootdir,whichStim,whichClass,['minTrs' num2str(minTrs)],'CR_each.mat'));
+catch
+    q = load(fullfile(rootdir,whichStim,'ActVec',['minTrs' num2str(minTrs)],'CR_each.mat'));
+end
 CReach = q.CR;
 clear q
+
 
 % Check that matching data files were imported
 if size(Cell_Time_Trial_Stim,1)~=numel(UnitData)
@@ -121,7 +126,7 @@ tallsmall = [1 scrsz(4)/2 scrsz(3)/4 scrsz(4)/2];
 widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
 
 % Set figsavedir
-figsavedir = fullfile(rootdir,whichStim,whichClass,whichCells);
+figsavedir = fullfile(rootdir,whichStim,whichClass,['minTrs' num2str(minTrs)],whichCells);
 if ~exist(figsavedir,'dir')
     mkdir(figsavedir)
 end
@@ -175,15 +180,28 @@ for ii = 1:numel(WinEnds)
 %     end
     
     % Define cells and stimuli
-    [CTTS,theseCells,nUns,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
+    [CTTS,theseCells,~,Dur,nStim] = filterDataMatrix( Cell_Time_Trial_Stim, ...
         'each', nTrialMat, UnitData,theseStim, iRS, iNS, minTrs, convwin, AnWin );
-
+    if numel(theseCells)~=size(CReach,1)
+        keyboard
+    end
+    
     ETTS = Env_Time_Trial_Stim(theseCells,AnWin,:,theseStim);
 
     % Get indices of RS//NS cells (from just "theseCells")
     iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
     iNS = find(UnitInfo(theseCells,:).TroughPeak<=0.43);
     
+    %%%% Set PoolSize now, based on how many RS cells total with this minTrs
+    if numel(iRS)>100
+        PoolSize = [3 5 10 20 30 40 50 numel(iRS)];
+    elseif numel(iRS)>50
+        PoolSize = [3 5 7 10 15 20 30 numel(iRS)];
+    elseif numel(iRS)>30
+        PoolSize = [3 5 7 10 20 numel(iRS)];
+    else
+        PoolSize = [3 5 7 10 numel(iRS)];
+    end
     
     for fc = 1:numel(PoolStart) %PoolStart
         
@@ -225,7 +243,11 @@ for ii = 1:numel(WinEnds)
                     
                 case 'dpRank_RS'
                     [~,iSUdps] = sort(CReach(iRS,:).dprime,'descend');
-                    UseCells   = iRS(iSUdps(FirstCell+(0:(NumCells-1))));
+                    if isnan(NumCells)
+                        UseCells   = iRS(iSUdps);
+                    else
+                        UseCells   = iRS(iSUdps(FirstCell+(0:(NumCells-1))));
+                    end
 %                     SUdps      = CReach(UseCells,:).dprime
                 
                 case 'maxdp_RS'
@@ -299,6 +321,10 @@ for ii = 1:numel(WinEnds)
                 
                 [S_AssMat,~,~] = runSVMclass_notNorm( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
                     BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt ); 
+            
+            elseif strcmp(whichClass,'Sum')
+                [S_AssMat,~,~] = runSVMclass_SUM( CTTS(UseCells,:,:,:), ETTS(UseCells,:,:,:), ...
+                    BootstrapN, nStim, Dur, length(UseCells), PickTrials,TrainSize, TestSize, KernelType, ShuffOpt ); 
                 
             elseif strcmp(whichClass,'ActVec')
                 S_AssMat = runSVM_ActVec(CTTS(UseCells,:,:,:),BootstrapN, nStim, Dur, length(UseCells), PickTrials, TrainSize, TestSize, KernelType, ShuffOpt );
@@ -329,7 +355,7 @@ for ii = 1:numel(WinEnds)
             set(gca,'tickdir','out','xtick',1:nStim,'ytick',1:nStim)
             
             title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s (N=%i)',...
-                muPC,dprime,KernelType,whichStim,whichCells,NumCells))
+                muPC,dprime,KernelType,whichStim,whichCells,numel(UseCells)))
 %             title(sprintf('%0.1f%%, d''=%0.2f\n%s SVM (%s)  |  %s ',...
 %                 muPC,dprime,KernelType,whichStim,whichCells))
             
@@ -400,7 +426,7 @@ for ii = 1:numel(WinEnds)
     end % fc
 end %analysis window 
 
-
+return
 keyboard
 
 [~,ConfIntervals] = bootstrap4significance(CR);
