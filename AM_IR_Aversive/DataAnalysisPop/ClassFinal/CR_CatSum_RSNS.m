@@ -7,12 +7,12 @@ function CR_CatSum_RSNS
 %
 %   Classification using the entire 500 ms segment.
 %
-% KP, 2020-04
+% KP, 2020-04, updated 2020-08 
 %
 
 % close all
 
-whichClass   = 'Full';
+whichClass   = 'ActVec';
 whichStim    = 'AC';
 
 crAmt = 0.01;
@@ -22,7 +22,7 @@ crAmt = 0.01;
 % Data settings
 fn = set_paths_directories;
 
-savedir = fullfile(fn.figs,'ClassResults',whichClass,'CatSum');
+savedir = fullfile(fn.figs,'ClassResults','Corrections','CatSum');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end

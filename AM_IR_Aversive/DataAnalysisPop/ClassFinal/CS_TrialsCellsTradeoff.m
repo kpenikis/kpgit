@@ -7,16 +7,23 @@ set(groot,'defaultAxesTickDir', 'out');
 set(groot,'defaultAxesTickDirMode', 'manual');
 % New Results, with CReach run first
 
+scrsz = get(0,'ScreenSize');     %[left bottom width height]
+widescrn  = [1 scrsz(4)/3 scrsz(3) scrsz(4)/3];
+widesmall = [1 scrsz(4)/3 scrsz(3)/3*2 scrsz(4)/3];
+
 close all
-whichStim = 'AC';
-whichClass = 'Sum';
+whichStim = 'Speech';
+whichClass = 'Full';
 
 
-dpm = 4;
+dpm = 7;
+
+fn = set_paths_directories;
 savedir = fullfile(fn.figs,'ClassResults','Corrections','TrsCellsTradeoff');
 if ~exist(savedir,'dir')
     mkdir(savedir)
 end
+
 
 %%
 % results for adding RS cells dp ranked
@@ -24,20 +31,36 @@ end
 fn = set_paths_directories;
 switch whichStim
     case 'AC'
-        rootdir = fullfile(fn.figs,'ClassAM',whichStim,whichClass);
+        rootdir = fullfile(fn.figs,'ClassAM',whichStim);
     case 'Speech'
-        rootdir = fullfile(fn.figs,'ClassSpeech',whichStim,whichClass);
+        rootdir = fullfile(fn.figs,'ClassSpeech',whichStim);
 end
-Ntrs = dir(fullfile(rootdir,'minTrs*'));
+Ntrs = dir(fullfile(rootdir,whichClass,'minTrs*'));
 
 Res=struct;
 for ii = 1:numel(Ntrs)
     
-    load(fullfile(rootdir,Ntrs(ii).name,'dpRank_RS',['CR_v' whichClass '_dpRank_RS.mat']))
+    clear CR
+    load(fullfile(rootdir,whichClass,Ntrs(ii).name,'dpRank_RS',['CR_v' whichClass '_dpRank_RS.mat']))
     
     Res(ii).minTrs   = str2num(Ntrs(ii).name(end-1:end));
     [Res(ii).NC,inc] = sort(CR.nC);
     Res(ii).dp       = CR.dprime(inc);
+    Res(ii).PC       = CR.PC(inc);
+    
+    % Also load CReach results
+    switch whichClass
+        case {'Full' 'Sum'}
+            clear CR
+            load(fullfile(rootdir,'Full',Ntrs(ii).name,'CR_each.mat'))
+            Res(ii).bestSU   = max(CR.dprime);
+            Res(ii).bestSUpc = max(CR.PC);
+        case {'ActVec' 'SumAV'}
+            clear CR
+            load(fullfile(rootdir,'ActVec',Ntrs(ii).name,'CR_each.mat'))
+            Res(ii).bestSU   = max(CR.dprime);
+            Res(ii).bestSUpc = max(CR.PC);
+    end
     
 end
 
@@ -46,27 +69,31 @@ end
 
 hf=figure;
 hold on
+set(gcf,'Position',widescrn)
 
 xlabelpos=[];
 xlabelstr={};
+clear ip
 for imt = 1:numel(Res)
     
-    ip(imt) = plot(Res(imt).NC+200*(imt-1),min(Res(imt).dp,dpm),'LineWidth',3);
+    ip(imt) = plot([1; Res(imt).NC]+200*(imt-1),min([Res(imt).bestSU;Res(imt).dp],dpm),'LineWidth',3);
     
-    xlabelpos = [xlabelpos; 0+200*(imt-1); Res(imt).NC+200*(imt-1)];
-    xlabelstr = [xlabelstr; sprintf('%i Trs',Res(imt).minTrs); cellstr(num2str(Res(imt).NC)) ];
-    
+%     xlabelpos = [xlabelpos; 0+200*(imt-1); Res(imt).NC+200*(imt-1)];
+%     xlabelstr = [xlabelstr; sprintf('%i Trs',Res(imt).minTrs); cellstr(num2str(Res(imt).NC)) ];
+    xlabelpos = [xlabelpos; max(Res(imt).NC)+200*(imt-1)];
+    xlabelstr = [xlabelstr; cellstr(num2str(max(Res(imt).NC))) ];    
 end
 
 legend(ip,cellfun(@num2str, {Res.minTrs},'UniformOutput',0),'Location','best')
 
-xlabel('# Cells in ensemble')
+xlabel('Total # Cells in ensemble')
 ylabel('d''')
 set(gca,'Color','none','xtick',xlabelpos,'xticklabel',xlabelstr)
 ylim([0 dpm])
 
-savename = sprintf('%s_%s_dpAddCells',whichStim,whichClass);
+savename = sprintf('%s_%s_dpAddCells_dpm%i',whichStim,whichClass,dpm);
 print_eps_kp(hf,fullfile(savedir,savename))
+
 
 
 %% Visualize trade off
@@ -74,21 +101,28 @@ print_eps_kp(hf,fullfile(savedir,savename))
 % collect d's
 dp_allRS = nan(numel(Res),1);
 dp_max   = nan(numel(Res),1);
+dp_SU    = nan(numel(Res),1);
 Ncells   = nan(numel(Res),1);
 for imt = 1:numel(Res)
     dp_allRS(imt) = min(Res(imt).dp(end),dpm);
     dp_max(imt)   = min(max(Res(imt).dp),dpm);
+    dp_SU(imt)    = min(max(Res(imt).bestSU),dpm);
     Ncells(imt)   = Res(imt).NC(end);
 end
 
 % sort by d' with all cells
-[~,inmt] = sort(dp_allRS);
+% [~,inmt] = sort(dp_allRS);
+inmt = [1:numel(Res)]';
 
 % plot min N trs by [d'all - d'30]
 % label d' max
 hf2 = figure;
-plot([0 500],[0 0],'--k')
+set(gcf,'Position',widesmall)
+
+subplot(1,2,1)
+% plot([0 500],[0 0],'--k')
 hold on
+clear ip2
 for iinmt = inmt'
 %     plot(Res(iinmt).minTrs, dp_allRS(iinmt)-dp_30RS(iinmt),'.','MarkerSize',50)
     ip2(iinmt==inmt)=plot(Ncells(iinmt), dp_allRS(iinmt)-dp_max(iinmt),'.','MarkerSize',50);
@@ -101,53 +135,121 @@ xlim([0 200])
 ylabel('d''_all  -  max d''')
 
 
+subplot(1,2,2)
+% plot([0 500],[0 0],'--k')
+hold on
+clear ip2
+for iinmt = inmt'
+%     plot(Res(iinmt).minTrs, dp_allRS(iinmt)-dp_30RS(iinmt),'.','MarkerSize',50)
+    ip2(iinmt==inmt)=plot(Ncells(iinmt), dp_allRS(iinmt)-dp_SU(iinmt),'.','MarkerSize',50);
+end
+
+legend(ip2,cellfun(@num2str, {Res(inmt).minTrs},'UniformOutput',0),'Location','best')
+set(gca,'Color','none')
+xlabel('maximum N cells')
+xlim([0 200])
+ylabel('d''_all  -  best SU d''')
+
+
 savename = sprintf('%s_%s_NcellsDPdiff',whichStim,whichClass);
 print_eps_kp(hf2,fullfile(savedir,savename))
 
 
-
-keyboard
-
+%%  PERCENT CORRECT
 
 
-%%
+%% Raw results (d' as a fct of N cells, for each trial minimum cutoff
 
-% Load original: min 12 trials
-load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassAM/AC/Full/allRS/CR_vFull_allRS.mat')
-CR_all_Proj = CR;
-clear CR
-CR_all_Proj = CR_all_Proj(1,:);
+hf3=figure;
+hold on
+set(gcf,'Position',widescrn)
 
-load('/Volumes/GoogleDrive/My Drive/Sanes/DATADIR/AMaversive/Figures/ClassAM/AC/Full/dpRank_RS/CR_vFull_dpRank_RS.mat')
-CR_Proj = CR;
-clear CR
-
-CR_Proj = CR_Proj(CR_Proj.iC==1,:);
-[nC_P,inC_P] = sort(CR_Proj.nC);
-CR_Proj = CR_Proj(inC_P,:);
-
-Res=struct;
-Res(1).minTrs = 12;
-Res(1).NC     = [nC_P; 181];
-Res(1).dp     = [CR_Proj.dprime; CR_all_Proj.dprime];
-
-
-% Load results with other min N trials
-rootdir = fullfile(fn.figs,'ClassAM','AC','Full','dpRank_RS');
-
-Ntrials = [22 23 24 27 32];
-
-for imt = 1:numel(Ntrials)
+xlabelpos=[];
+xlabelstr={};
+clear ip
+for imt = 1:numel(Res)
     
+    ip(imt) = plot([1; Res(imt).NC]+200*(imt-1),[Res(imt).bestSUpc;Res(imt).PC],'LineWidth',3);
     
-    load(fullfile(rootdir,['Trs' num2str(Ntrials(imt))],'CR_vFull_dpRank_RS.mat'))
-    
-    Res(imt+1).minTrs = Ntrials(imt);
-    Res(imt+1).NC     = CR.nC;
-    Res(imt+1).dp     = CR.dprime;
-    
-    
+%     xlabelpos = [xlabelpos; 0+200*(imt-1); Res(imt).NC+200*(imt-1)];
+%     xlabelstr = [xlabelstr; sprintf('%i Trs',Res(imt).minTrs); cellstr(num2str(Res(imt).NC)) ];
+    xlabelpos = [xlabelpos; max(Res(imt).NC)+200*(imt-1)];
+    xlabelstr = [xlabelstr; cellstr(num2str(max(Res(imt).NC))) ];    
 end
+
+legend(ip,cellfun(@num2str, {Res.minTrs},'UniformOutput',0),'Location','best')
+
+xlabel('Total # Cells in ensemble')
+ylabel('Percent Correct')
+set(gca,'Color','none','xtick',xlabelpos,'xticklabel',xlabelstr)
+ylim([0 100])
+
+savename = sprintf('%s_%s_dpAddCells_PC',whichStim,whichClass);
+print_eps_kp(hf3,fullfile(savedir,savename))
+
+
+
+%% Visualize trade off
+
+% collect PCs
+PC_allRS = nan(numel(Res),1);
+PC_max   = nan(numel(Res),1);
+PC_SU    = nan(numel(Res),1);
+Ncells   = nan(numel(Res),1);
+for imt = 1:numel(Res)
+    PC_allRS(imt) = Res(imt).PC(end);
+    PC_max(imt)   = max(Res(imt).PC);
+    PC_SU(imt)    = max(Res(imt).bestSUpc);
+    Ncells(imt)   = Res(imt).NC(end);
+end
+
+% sort by d' with all cells
+% [~,inmt] = sort(dp_allRS);
+inmt = [1:numel(Res)]';
+
+% plot min N trs by [d'all - d'30]
+% label d' max
+hf4 = figure;
+set(gcf,'Position',widesmall)
+
+subplot(1,2,1)
+% plot([0 500],[0 0],'--k')
+hold on
+clear ip2
+for iinmt = inmt'
+%     plot(Res(iinmt).minTrs, dp_allRS(iinmt)-dp_30RS(iinmt),'.','MarkerSize',50)
+    ip2(iinmt==inmt)=plot(Ncells(iinmt), PC_allRS(iinmt)-PC_max(iinmt),'.','MarkerSize',50);
+end
+
+legend(ip2,cellfun(@num2str, {Res(inmt).minTrs},'UniformOutput',0),'Location','best')
+set(gca,'Color','none')
+xlabel('maximum N cells')
+xlim([0 200])
+ylabel('PC_all  -  max PC')
+
+
+subplot(1,2,2)
+% plot([0 500],[0 0],'--k')
+hold on
+clear ip2
+for iinmt = inmt'
+%     plot(Res(iinmt).minTrs, dp_allRS(iinmt)-dp_30RS(iinmt),'.','MarkerSize',50)
+    ip2(iinmt==inmt)=plot(Ncells(iinmt), PC_allRS(iinmt)-PC_SU(iinmt),'.','MarkerSize',50);
+end
+
+legend(ip2,cellfun(@num2str, {Res(inmt).minTrs},'UniformOutput',0),'Location','best')
+set(gca,'Color','none')
+xlabel('maximum N cells')
+xlim([0 200])
+ylabel('PC_all  -  best SU PC')
+
+
+savename = sprintf('%s_%s_NcellsPCdiff',whichStim,whichClass);
+print_eps_kp(hf4,fullfile(savedir,savename))
+
+
+
+
 
 
 

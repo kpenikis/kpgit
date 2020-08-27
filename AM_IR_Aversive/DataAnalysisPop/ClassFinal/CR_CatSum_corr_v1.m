@@ -1,13 +1,18 @@
-function CR_AddCells_CatSum
+function CR_CatSum_corr_v1
 % Plots Fig 10* last panel
+% new data
 
 % close all
 
 whichClass   = 'Full';
 whichCells   = 'dpRank_RS';
-whichStim    = 'AC';
 
-crAmt = 0.01;
+whichStim    = 'Speech';
+
+minNtrs      = 17;
+
+dpmaxval     = 4;
+crAmt        = 0.001;
 
 % Data settings
 fn = set_paths_directories;
@@ -21,7 +26,17 @@ end
 switch whichStim
     %~~~~~~~~~~~~~~~~~~~~~~~~~ AM ~~~~~~~~~~~~~~~~~~~~~~~~~
     case 'AC'
-        datadir = fullfile(fn.figs,'ClassAM','AC',whichClass);
+        
+        rootdir = fullfile(fn.figs,'ClassAM',whichStim,whichClass,['minTrs' num2str(minNtrs)]);
+        switch whichClass
+            case 'Full'
+                rootdir_sum = fullfile(fn.figs,'ClassAM',whichStim,'Sum',['minTrs' num2str(minNtrs)]);
+                sumclassstr = 'Sum';
+            case 'ActVec'
+                rootdir_sum = fullfile(fn.figs,'ClassAM',whichStim,'SumAV',['minTrs' num2str(minNtrs)]);
+                sumclassstr = 'SumAV';
+        end
+        
         q = load(fullfile(fn.processed,'Units'));
         UnitInfo = q.UnitInfo;
         UnitData = q.UnitData;
@@ -29,7 +44,17 @@ switch whichStim
         
     %~~~~~~~~~~~~~~~~~~~~~~~~~ Speech ~~~~~~~~~~~~~~~~~~~~~~~~~
     case 'Speech'
-        datadir = fullfile(fn.figs,'ClassSpeech','Speech',whichClass);
+        
+        rootdir = fullfile(fn.figs,'ClassSpeech',whichStim,whichClass,['minTrs' num2str(minNtrs)]);
+        switch whichClass
+            case 'Full'
+                rootdir_sum = fullfile(fn.figs,'ClassSpeech',whichStim,'Sum',['minTrs' num2str(minNtrs)]);
+                sumclassstr = 'Sum';
+            case 'ActVec'
+                rootdir_sum = fullfile(fn.figs,'ClassSpeech',whichStim,'SumAV',['minTrs' num2str(minNtrs)]);
+                sumclassstr = 'SumAV';
+        end
+        
         q = load(fullfile(fn.processed,'UnitsVS'));
         UnitInfo = q.UnitInfo;
         UnitData = q.UnitData;
@@ -38,34 +63,23 @@ end
 
 
 % Load SU data 
-q=load(fullfile(datadir,'each','CR_each.mat'));
+q=load(fullfile(rootdir,'CR_each.mat'));
 CReach = q.CR;
 clear q
 
 % Load subpop results    
 % Cat
-q=load(fullfile(datadir,'dpRank_RS',['CR_v' whichClass '_dpRank_RS.mat']));
-CR_dp_Cat = q.CR;
-clear q
-% Sum
-q=load(fullfile(datadir,'dpRank_RS','Sum',['CR_v' whichClass '_dpRank_RS.mat']));
-CR_dp_Sum = q.CR;
-clear q
-
-% Load subpop results    
-% Cat
-q=load(fullfile(datadir,'allRS',['CR_v' whichClass '_allRS.mat']));
+q=load(fullfile(rootdir,whichCells,['CR_v' whichClass '_' whichCells '.mat']));
 CR_Cat = q.CR;
-CR_Cat = CR_Cat(CR_Cat.exclSpec==0 & CR_Cat.exNonSig==0,:);
 clear q
 % Sum
-q=load(fullfile(datadir,'allRS','Sum',['CR_v' whichClass '_allRS.mat']));
+q=load(fullfile(rootdir_sum,whichCells,['CR_v' sumclassstr  '_' whichCells '.mat']));
 CR_Sum = q.CR;
 clear q
 
 
 % Also get CTTS
-[CTTS,theseCells] = recallDataParams(whichStim,'each',12);
+[~,theseCells] = recallDataParams(whichStim,'each',minNtrs);
 
 
 %% Fig settings
@@ -98,12 +112,10 @@ iRS = find(UnitInfo(theseCells,:).TroughPeak>0.43);
 [~,iSUdps]  = sort(CReach(iRS,:).dprime,'descend');
 
 % Filter Cat data to just FC = 1
-CR_dp_Cat = CR_dp_Cat(ismember(CR_dp_Cat.iC,1),:);
+CR_Cat = CR_Cat(ismember(CR_Cat.iC,1),:);
 
 
 %% Plot
-
-ymaxval = 5;
 
 hf=figure; 
 set(hf,'Position',sqsmall)
@@ -115,20 +127,24 @@ subplot(2,2,1)
 hold on
 % plot( find(~UnSig_AM(iSUdps_AM)),CReach_AM(iRS_AM,:).dprime(iSUdps_AM(~UnSig_AM(iSUdps_AM))),'+','Color',0.5*[1 1 1],'MarkerSize',5)
 % plot( find(UnSig_AM(iSUdps_AM)),CReach_AM(iRS_AM,:).dprime(iSUdps_AM(UnSig_AM(iSUdps_AM))),'o','MarkerEdgeColor',0.02*[1 1 1],'MarkerSize',5.5,'MarkerFaceColor',0.51*[1 1 1])
-plot(1:length(iSUdps),CReach(iRS(iSUdps),:).dprime,'.k','MarkerSize',15)
+dp = CReach(iRS(iSUdps),:).dprime;
+dp(dp>dpmaxval) = dpmaxval;
+plot(1:length(iSUdps),dp,'.k','MarkerSize',15)
 
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~ Pooled 
 
 % Cat
-[ncs,incs] = sort(CR_dp_Cat.nC);
-plot([ncs; numel(CR_Cat.SUdps{:})],[CR_dp_Cat.dprime(incs); CR_Cat.dprime],...
-    ':r','LineWidth',3)
+[ncs,incs] = sort(CR_Cat.nC);
+dp = CR_Cat.dprime(incs);
+dp(dp>dpmaxval) = dpmaxval;
+plot(ncs,dp,':r','LineWidth',3)
 
 % Sum
-[ncs,incs] = sort(CR_dp_Sum.nC);
-plot([ncs; numel(CR_Sum.SUdps{:})],[CR_dp_Sum.dprime(incs); CR_Sum.dprime],...
-    '-r','LineWidth',3)
+[ncs,incs] = sort(CR_Sum.nC);
+dp = CR_Sum.dprime(incs);
+dp(dp>dpmaxval) = dpmaxval;
+plot(ncs,dp,'-r','LineWidth',3)
 
 % ~~~~~~~~~~~~~~~~~~~~~~~~~ Finish plot
 xlabel('Cell N')
@@ -137,11 +153,9 @@ grid on
 box off
 set(gca,'Color','none','xtick',round(linspace(0,length(iSUdps),6)))
 xlim([0 numel(iRS)])
-ylim([-0.1 ymaxval])
+ylim([-0.3 dpmaxval])
 title([whichStim ', rank best d'''])
 
-
-print_eps_kp(gcf,fullfile(savedir,['AddCells_' whichStim]))
 
 
 %% Collect d' for each stimulus
@@ -154,34 +168,38 @@ for ii = 1:numel(iSUdps)
 end
 
 % Cat
-dp_RS_Cat  = nan(size(CR_dp_Cat,1)+1,nStim);
-Spsns_Cat  = nan(size(CR_dp_Cat,1)+1,1);
-NC_Cat     = nan(size(CR_dp_Cat,1)+1,1);
-[ncs,incs] = sort(CR_dp_Cat.nC);
-
+dp_RS_Cat  = nan(size(CR_Cat,1),nStim);
+Spsns_Cat  = nan(size(CR_Cat,1),1);
+NC_Cat     = nan(size(CR_Cat,1),1);
+[ncs,incs] = sort(CR_Cat.nC);
 for ii = 1:numel(incs)
-    dp_RS_Cat(ii,:) = dp_from_ConfMat(mean(CR_dp_Cat(incs(ii),:).Results{:},3,'omitnan'),crAmt);
+    dp_RS_Cat(ii,:) = dp_from_ConfMat(mean(CR_Cat(incs(ii),:).Results{:},3,'omitnan'),crAmt);
     Spsns_Cat(ii)   = calculateSparseness(dp_RS_Cat(ii,:));
     NC_Cat(ii)      = ncs(ii);
 end
-dp_RS_Cat(end,:)    = dp_from_ConfMat(mean(CR_Cat.Results{:},3,'omitnan'),crAmt);
-Spsns_Cat(end)      = calculateSparseness(dp_RS_Cat(end,:));
-NC_Cat(end)         = numel(CR_Cat.SUdps{:});
+% dp_RS_Cat(end,:)    = dp_from_ConfMat(mean(CR_Cat.Results{:},3,'omitnan'),crAmt);
+% Spsns_Cat(end)      = calculateSparseness(dp_RS_Cat(end,:));
+% NC_Cat(end)         = numel(CR_Cat.SUdps{:});
 
 % Sum
-dp_RS_Sum  = nan(size(CR_dp_Sum,1)+1,nStim);
-Spsns_Sum  = nan(size(CR_dp_Sum,1)+1,1);
-NC_Sum     = nan(size(CR_dp_Sum,1)+1,1);
-[ncs,incs] = sort(CR_dp_Sum.nC);
-
+dp_RS_Sum  = nan(size(CR_Sum,1),nStim);
+Spsns_Sum  = nan(size(CR_Sum,1),1);
+NC_Sum     = nan(size(CR_Sum,1),1);
+[ncs,incs] = sort(CR_Sum.nC);
 for ii = 1:numel(incs)
-    dp_RS_Sum(ii,:) = dp_from_ConfMat(mean(CR_dp_Sum(incs(ii),:).Results{:},3,'omitnan'),crAmt);
+    dp_RS_Sum(ii,:) = dp_from_ConfMat(mean(CR_Sum(incs(ii),:).Results{:},3,'omitnan'),crAmt);
     Spsns_Sum(ii)   = calculateSparseness(dp_RS_Sum(ii,:));
     NC_Sum(ii)      = ncs(ii);
 end
-dp_RS_Sum(end,:)    = dp_from_ConfMat(mean(CR_Sum.Results{:},3,'omitnan'),crAmt);
-Spsns_Sum(end)      = calculateSparseness(dp_RS_Sum(end,:));
-NC_Sum(end)         = numel(CR_Sum.SUdps{:});
+% dp_RS_Sum(end,:)    = dp_from_ConfMat(mean(CR_Sum.Results{:},3,'omitnan'),crAmt);
+% Spsns_Sum(end)      = calculateSparseness(dp_RS_Sum(end,:));
+% NC_Sum(end)         = numel(CR_Sum.SUdps{:});
+
+
+% Correct each to max d' value
+dp_RS_SU(dp_RS_SU>dpmaxval)   = dpmaxval;
+dp_RS_Cat(dp_RS_Cat>dpmaxval) = dpmaxval;
+dp_RS_Sum(dp_RS_Sum>dpmaxval) = dpmaxval;
 
 
 %% Add sparseness to task avg 
@@ -217,10 +235,54 @@ NC_Sum(end)         = numel(CR_Sum.SUdps{:});
 % % axis square
 
 
-%% Each stimulus
+%% Add d' with all cells, each stimulus
 
-hf=figure; 
-set(hf,'Position',halfscreen)
+subplot(2,2,3)
+hold on
+
+% set stim order
+diffs = dp_RS_Sum(end,:) - dp_RS_Cat(end,:);
+[dpd,idpd] = sort(diffs,'descend');
+
+plot(1:nStim,dp_RS_Cat(end,idpd),':r','LineWidth',3)
+plot(1:nStim,dp_RS_Sum(end,idpd),'-r','LineWidth',3)
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~ Finish plot
+xlabel('Stimulus')
+ylabel('d'' all RS cells')
+grid off
+box off
+set(gca,'Color','none','xtick',1:nStim,'xticklabel',idpd)
+ylim([0 dpmaxval])
+xlim([0.5 nStim+0.5])
+
+
+subplot(2,2,4)
+bar(1:nStim,dpd,'r')
+
+% ~~~~~~~~~~~~~~~~~~~~~~~~~ Finish plot
+xlabel('Stimulus')
+ylabel('d'' Sum - d'' Cat')
+grid off
+box off
+set(gca,'Color','none','xtick',1:nStim,'xticklabel',idpd)
+ylim([-3.25 1.333])
+% ylim([-1.5 1])
+xlim([0.5 nStim+0.5])
+
+
+savename = ['AddCells_' whichStim '_' whichClass '_' num2str(minNtrs) 'trs'];
+print_eps_kp(hf,fullfile(savedir,savename))
+
+return
+
+
+
+
+%% Plot add cells, each stimulus
+
+hf_supp=figure; 
+set(hf_supp,'Position',halfscreen)
 
 for ist = 1:nStim
     
@@ -242,11 +304,22 @@ for ist = 1:nStim
     box off
     set(gca,'Color','none','xtick',round(linspace(0,length(iSUdps),6)))
     xlim([0 numel(iRS)])
-    ylim([-0.1 ymaxval+0.5])
+    ylim([-0.3 dpmaxval+0.5])
     title(ist)
 end
 
-print_eps_kp(gcf,fullfile(savedir,['AddCells_eachStim' whichStim]))
+print_eps_kp(hf_supp,fullfile(savedir,[savename '_byStim']))
+
+
+%%
+
+return
+
+
+
+
+
+
 
 
 %% ~~~~~~~~~~~~~~~~~~~~~~~~~ Speech ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -320,8 +393,7 @@ print_eps_kp(gcf,fullfile(savedir,['AddCells_eachStim' whichStim]))
 
 
 % keyboard
-print_eps_kp(gcf,fullfile(savedir,'SUvPools_all_5'))
-
+% print_eps_kp(gcf,fullfile(savedir,'SUvPools_all_5'))
 
 
 
@@ -329,6 +401,10 @@ print_eps_kp(gcf,fullfile(savedir,'SUvPools_all_5'))
 %% FIG 3 
 %  sort d', cumulative N spikes
 %==========================================================================
+
+
+% Also get CTTS
+[CTTS,theseCells] = recallDataParams(whichStim,'each',12);
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~ AM ~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -340,7 +416,7 @@ avgNspks = mean(sum(mean(CTTS(iRS,:,:,:),3,'omitnan'),2),4);
 pBest_nSpk = (sum(avgNspks(iSUdps((idp1+1):end)))/sum(avgNspks) + sum(avgNspks(iSUdps((idp1):end)))/sum(avgNspks)) /2;
 pRest_nSpk = 1-pBest_nSpk;
 
-ymaxval = 2.5;
+dpmaxval = 2.5;
 figure; 
 
 yyaxis right
@@ -348,10 +424,10 @@ hold on
 plot( find(~UnSig_AM(iSUdps)),dps_AM(~UnSig_AM(iSUdps)),'+','Color',0.5*[1 1 1],'MarkerSize',5)
 plot( find(UnSig_AM(iSUdps)),dps_AM(UnSig_AM(iSUdps)),'o','MarkerEdgeColor',0.02*[1 1 1],'MarkerSize',5.5,'MarkerFaceColor',0.51*[1 1 1])
 
-plot([idp1 idp1]+0.5,[-0.1 ymaxval],'-','Color',0.7*[1 1 1])
+plot([idp1 idp1]+0.5,[-0.1 dpmaxval],'-','Color',0.7*[1 1 1])
 ylabel('dprime')
 xlim([0 numel(dps_AM)+1])
-ylim([-0.1 ymaxval])
+ylim([-0.1 dpmaxval])
 
 yyaxis left
 plot(1:numel(dps_AM),cumsum(avgNspks(iSUdps))./sum(avgNspks(iSUdps)),'-','LineWidth',3)
@@ -381,7 +457,7 @@ pBest_nSpk = (sum(avgNspks(iSUdps_Sp((idp1+1):end)))/sum(avgNspks) + sum(avgNspk
 pRest_nSpk = 1-pBest_nSpk;
 
 
-ymaxval = 3;
+dpmaxval = 3;
 figure; 
 
 yyaxis right
@@ -389,10 +465,10 @@ hold on
 plot( find(~UnSig_Sp(iSUdps_Sp)),dps_Sp(~UnSig_Sp(iSUdps_Sp)),'+','Color',0.5*[1 1 1],'MarkerSize',5)
 plot( find(UnSig_Sp(iSUdps_Sp)),dps_Sp(UnSig_Sp(iSUdps_Sp)),'o','MarkerEdgeColor',0.02*[1 1 1],'MarkerSize',5.5,'MarkerFaceColor',0.51*[1 1 1])
 
-plot([idp1 idp1]+0.5,[-0.1 ymaxval],'-','Color',0.7*[1 1 1])
+plot([idp1 idp1]+0.5,[-0.1 dpmaxval],'-','Color',0.7*[1 1 1])
 ylabel('dprime')
 xlim([0 numel(dps_Sp)+1])
-ylim([-0.1 ymaxval])
+ylim([-0.1 dpmaxval])
 
 yyaxis left
 plot(1:numel(dps_Sp),cumsum(avgNspks(iSUdps_Sp))./sum(avgNspks(iSUdps_Sp)),'-','LineWidth',3)
@@ -476,7 +552,5 @@ print_eps_kp(gcf,fullfile(savedir,'ActVec_vs_Proj_SUdp'))
 
 
 
-
-
-
+end
 
